@@ -1,0 +1,51 @@
+{
+  "name": "hana-smart-consulting-system",
+  "version": "1.0.0",
+  "description": "하나은행 스마트 금융 상담 시스템 - 실제 은행 창구와 동일한 경험을 제공하는 지능형 금융 상담 시스템",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "server": "node server/server.js",
+    "server:dev": "cd server && nodemon server.js",
+    "client": "cd client && npm start",
+    "client:dev": "cd client && npm start",
+    "setup": "npm run install:server && npm run install:client && npm run db:init",
+    "install:server": "cd server && npm install",
+    "install:client": "cd client && npm install",
+    "db:init": "cd server/scripts && node initDatabase.js && node addCustomerProducts.js && node updateProductData.js",
+    "db:reset": "cd server && rm -f database.db && npm run db:init",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "banking",
+    "financial-consulting",
+    "react",
+    "nodejs",
+    "socket.io",
+    "sqlite",
+    "hana-bank",
+    "smart-consulting"
+  ],
+  "author": {
+    "name": "Hana Bank Smart Consulting Team",
+    "email": "contact@hanabank-consulting.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/hana-smart-consulting.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/hana-smart-consulting/issues"
+  },
+  "homepage": "https://github.com/your-username/hana-smart-consulting#readme",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0",
+    "nodemon": "^2.0.20"
+  }
+}
