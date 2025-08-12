@@ -405,11 +405,25 @@ const ProductExplorer = ({ onScreenSync, customerId }) => {
   };
 
   const handleProductDetail = (product) => {
+    console.log('🚀 === 상품 상세보기 클릭 시작 ===');
+    console.log('클릭한 상품 전체:', JSON.stringify(product, null, 2));
+    console.log('상품명:', product.productName);
+    console.log('상품 특징:', `"${product.productFeatures}"`);
+    console.log('가입 대상:', `"${product.targetCustomers}"`);
+    console.log('가입 금액:', `"${product.depositAmount}"`);
+    console.log('기본 금리:', `"${product.interestRate}"`);
+    console.log('모달 열기 전 showModal 상태:', showModal);
+    
     setSelectedProduct(product);
     setShowModal(true);
     
+    console.log('setSelectedProduct 호출 완료');
+    console.log('setShowModal(true) 호출 완료');
+    console.log('🚀 === 상품 상세보기 클릭 종료 ===');
+    
     // 고객 화면에도 상품 상세정보 전송
     if (onScreenSync) {
+      console.log('🔄 고객 화면으로 데이터 전송:', product);
       onScreenSync({
         type: 'product-detail-sync',
         data: product
@@ -417,7 +431,7 @@ const ProductExplorer = ({ onScreenSync, customerId }) => {
     }
   };
 
-  const productTypes = [...new Set(products.map(p => p.product_type))];
+  const productTypes = [...new Set(products.map(p => p.productType || p.product_type).filter(Boolean))];
 
   if (loading) {
     return (
@@ -433,6 +447,7 @@ const ProductExplorer = ({ onScreenSync, customerId }) => {
   return (
     <>
       <ExplorerContainer>
+
         <SearchBar>
           <SearchInput
             type="text"
@@ -456,21 +471,21 @@ const ProductExplorer = ({ onScreenSync, customerId }) => {
             <ProductCard key={product.id}>
               <ProductHeader>
                 <ProductType>
-                  {getProductIcon(product.product_type)} {product.product_type}
+                  {getProductIcon(product.productType || product.product_type)} {product.productType || product.product_type}
                 </ProductType>
-                <ProductName>{product.product_name}</ProductName>
-                <ProductDescription>{product.product_features}</ProductDescription>
+                <ProductName>{product.productName || product.product_name}</ProductName>
+                <ProductDescription>{product.productFeatures || product.product_features}</ProductDescription>
               </ProductHeader>
               
               <ProductBody>
                 <ProductDetails>
                   <DetailItem>
                     <DetailLabel>가입 금액</DetailLabel>
-                    <DetailValue>{product.deposit_amount || 'N/A'}</DetailValue>
+                    <DetailValue>{product.depositAmount || product.deposit_amount || 'N/A'}</DetailValue>
                   </DetailItem>
                   <DetailItem>
                     <DetailLabel>기본 금리</DetailLabel>
-                    <DetailValue>{product.interest_rate || 'N/A'}</DetailValue>
+                    <DetailValue>{product.interestRate || product.interest_rate || 'N/A'}</DetailValue>
                   </DetailItem>
                 </ProductDetails>
                 
@@ -501,7 +516,7 @@ const ProductExplorer = ({ onScreenSync, customerId }) => {
             <span>비교함 ({comparisonList.length}/3):</span>
             {comparisonList.map(product => (
               <ComparisonItem key={product.id}>
-                {product.product_name}
+                {product.productName || product.product_name}
                 <RemoveButton onClick={() => removeFromComparison(product.id)}>
                   ×
                 </RemoveButton>
@@ -518,59 +533,139 @@ const ProductExplorer = ({ onScreenSync, customerId }) => {
         </ComparisonBar>
       )}
       
+      {console.log('모달 렌더링 조건 확인 - showModal:', showModal, 'selectedProduct:', !!selectedProduct)}
       {showModal && selectedProduct && (
-        <Modal onClick={() => setShowModal(false)}>
+        <Modal onClick={() => {
+          setShowModal(false);
+          setSelectedProduct(null);
+        }}>
           <ModalContent onClick={(e) => e.stopPropagation()}>
+            {console.log('모달이 렌더링됨! selectedProduct:', selectedProduct)}
             <ModalHeader>
-              <ModalTitle>{selectedProduct.product_name}</ModalTitle>
-              <CloseButton onClick={() => setShowModal(false)}>×</CloseButton>
+              <ModalTitle>{selectedProduct.productName || selectedProduct.product_name}</ModalTitle>
+              <CloseButton onClick={() => {
+                setShowModal(false);
+                setSelectedProduct(null);
+              }}>×</CloseButton>
             </ModalHeader>
             
             <DetailSection>
               <h3>상품 타입</h3>
-              <p>{selectedProduct.product_type}</p>
+              <p>{selectedProduct.productType || selectedProduct.product_type || '일반 상품'}</p>
             </DetailSection>
             
             <DetailSection>
               <h3>상품 특징</h3>
-              <p>{selectedProduct.product_features || '정보 없음'}</p>
+              {console.log('=== 🔍 상품 특징 완전 디버깅 ===')}
+              {console.log('selectedProduct 전체:', JSON.stringify(selectedProduct, null, 2))}
+              {console.log('productFeatures 값:', `"${selectedProduct.productFeatures}"`)}
+              {console.log('productFeatures === null:', selectedProduct.productFeatures === null)}
+              {console.log('productFeatures === undefined:', selectedProduct.productFeatures === undefined)}
+              {console.log('productFeatures === "":', selectedProduct.productFeatures === "")}
+              {console.log('Boolean(productFeatures):', Boolean(selectedProduct.productFeatures))}
+              {console.log('productFeatures != null:', selectedProduct.productFeatures != null)}
+              {console.log('조건 결과:', selectedProduct.productFeatures != null ? '데이터 있음' : '정보 없음')}
+              {console.log('실제 렌더링 값:', selectedProduct.productFeatures != null ? selectedProduct.productFeatures : '정보 없음')}
+              {console.log('=================================')}
+              <div style={{border: '2px solid red', padding: '10px', margin: '10px 0'}}>
+                <strong>디버깅 정보:</strong>
+                <br/>값: "{selectedProduct.productFeatures}"
+                <br/>타입: {typeof selectedProduct.productFeatures}
+                <br/>null 체크: {String(selectedProduct.productFeatures != null)}
+                <br/>Boolean 변환: {String(Boolean(selectedProduct.productFeatures))}
+              </div>
+              <p style={{
+                whiteSpace: 'pre-line',
+                color: '#000 !important',
+                backgroundColor: '#f0f0f0',
+                padding: '10px',
+                border: '2px solid #007bff',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                zIndex: '9999',
+                position: 'relative'
+              }}>
+                {selectedProduct.productFeatures != null ? selectedProduct.productFeatures : '정보 없음'}
+              </p>
             </DetailSection>
             
             <DetailSection>
               <h3>가입 대상</h3>
-              <p>{selectedProduct.target_customers || '정보 없음'}</p>
+              <p style={{
+                whiteSpace: 'pre-line',
+                color: '#000 !important',
+                backgroundColor: '#f9f9f9',
+                padding: '10px',
+                border: '1px solid #28a745',
+                fontSize: '14px',
+                position: 'relative'
+              }}>
+                {selectedProduct.targetCustomers != null ? selectedProduct.targetCustomers : '정보 없음'}
+              </p>
             </DetailSection>
             
             <DetailSection>
               <h3>가입 금액</h3>
-              <p>{selectedProduct.deposit_amount || '정보 없음'}</p>
+              <p style={{
+                whiteSpace: 'pre-line',
+                color: '#000 !important',
+                backgroundColor: '#f9f9f9',
+                padding: '10px',
+                border: '1px solid #ffc107',
+                fontSize: '14px',
+                position: 'relative'
+              }}>
+                {selectedProduct.depositAmount != null ? selectedProduct.depositAmount : '정보 없음'}
+              </p>
             </DetailSection>
             
             <DetailSection>
               <h3>가입 기간</h3>
-              <p>{selectedProduct.deposit_period || '정보 없음'}</p>
+              <p style={{
+                color: '#000 !important',
+                backgroundColor: '#f9f9f9',
+                padding: '10px',
+                border: '1px solid #17a2b8',
+                fontSize: '14px',
+                position: 'relative'
+              }}>
+                {selectedProduct.depositPeriod != null ? selectedProduct.depositPeriod : '정보 없음'}
+              </p>
             </DetailSection>
             
             <DetailSection>
               <h3>기본 금리</h3>
-              <p>{selectedProduct.interest_rate || '정보 없음'}</p>
+              <p style={{
+                color: '#000 !important',
+                backgroundColor: '#f9f9f9',
+                padding: '10px',
+                border: '1px solid #dc3545',
+                fontSize: '14px',
+                position: 'relative'
+              }}>
+                {selectedProduct.interestRate != null ? selectedProduct.interestRate : '정보 없음'}
+              </p>
             </DetailSection>
             
-            {selectedProduct.preferential_rate && (
+            {selectedProduct.preferentialRate != null && selectedProduct.preferentialRate !== '' && (
               <DetailSection>
                 <h3>우대 금리</h3>
-                <p>{selectedProduct.preferential_rate}</p>
+                <p style={{whiteSpace: 'pre-line'}}>
+                  {selectedProduct.preferentialRate}
+                </p>
               </DetailSection>
             )}
             
-            {selectedProduct.tax_benefits && (
+            {selectedProduct.taxBenefits != null && selectedProduct.taxBenefits !== '' && (
               <DetailSection>
                 <h3>세제 혜택</h3>
-                <p>{selectedProduct.tax_benefits}</p>
+                <p style={{whiteSpace: 'pre-line'}}>
+                  {selectedProduct.taxBenefits}
+                </p>
               </DetailSection>
             )}
             
-            {selectedProduct.notes && (
+            {(selectedProduct.notes || selectedProduct.notes) && (
               <DetailSection>
                 <h3>유의사항</h3>
                 <p>{selectedProduct.notes}</p>
