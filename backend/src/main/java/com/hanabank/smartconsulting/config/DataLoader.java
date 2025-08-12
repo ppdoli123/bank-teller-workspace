@@ -13,6 +13,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -238,34 +239,40 @@ public class DataLoader implements CommandLineRunner {
                 InputStream inputStream = resource.getInputStream();
                 
                 JsonNode rootNode = objectMapper.readTree(inputStream);
+                log.info("JSON 파일 로드 완료. 총 {} 개의 노드 발견", rootNode.size());
                 
                 int count = 0;
+                int skipped = 0;
                 for (JsonNode productNode : rootNode) {
                     try {
-                        String productName = getTextValue(productNode, "product_name");
+                        String productName = getTextValue(productNode, "상품명");
                         
-                        // product_name이 null이면 건너뛰기
+                        // 상품명이 null이면 건너뛰기
                         if (productName == null || productName.trim().isEmpty()) {
-                            log.warn("상품명이 없는 데이터 건너뛰기");
+                            List<String> fieldNames = new ArrayList<>();
+                            productNode.fieldNames().forEachRemaining(fieldNames::add);
+                            log.warn("상품명이 없는 데이터 건너뛰기. 사용 가능한 키: {}", 
+                                     fieldNames.isEmpty() ? "없음" : String.join(", ", fieldNames));
+                            skipped++;
                             continue;
                         }
                         
                         FinancialProduct product = FinancialProduct.builder()
                                 .productName(productName)
-                                .productType(getTextValue(productNode, "product_type"))
-                                .productFeatures(getTextValue(productNode, "product_features"))
-                                .targetCustomers(getTextValue(productNode, "target_customers"))
-                                .eligibilityRequirements(getTextValue(productNode, "eligibility_requirements"))
-                                .depositAmount(getTextValue(productNode, "deposit_amount"))
-                                .depositPeriod(getTextValue(productNode, "deposit_period"))
-                                .interestRate(getTextValue(productNode, "interest_rate"))
-                                .preferentialRate(getTextValue(productNode, "preferential_rate"))
-                                .taxBenefits(getTextValue(productNode, "tax_benefits"))
-                                .withdrawalConditions(getTextValue(productNode, "withdrawal_conditions"))
-                                .notes(getTextValue(productNode, "notes"))
-                                .depositProtection(getTextValue(productNode, "deposit_protection"))
-                                .interestRateTable(getTextValue(productNode, "interest_rate_table"))
-                                .productGuidePath(getTextValue(productNode, "product_guide_path"))
+                                .productType(getTextValue(productNode, "상품종류"))
+                                .productFeatures(getTextValue(productNode, "상품특징"))
+                                .targetCustomers(getTextValue(productNode, "가입대상"))
+                                .eligibilityRequirements(getTextValue(productNode, "가입조건"))
+                                .depositAmount(getTextValue(productNode, "가입금액"))
+                                .depositPeriod(getTextValue(productNode, "가입기간"))
+                                .interestRate(getTextValue(productNode, "금리"))
+                                .preferentialRate(getTextValue(productNode, "우대금리"))
+                                .taxBenefits(getTextValue(productNode, "세제혜택"))
+                                .withdrawalConditions(getTextValue(productNode, "중도인출조건"))
+                                .notes(getTextValue(productNode, "주의사항"))
+                                .depositProtection(getTextValue(productNode, "예금자보호"))
+                                .interestRateTable(getTextValue(productNode, "금리표"))
+                                .productGuidePath(getTextValue(productNode, "상품가이드경로"))
                                 .build();
                         
                         financialProductRepository.save(product);
@@ -275,7 +282,7 @@ public class DataLoader implements CommandLineRunner {
                     }
                 }
                 
-                log.info("금융 상품 데이터 로드 완료: {} 개", count);
+                log.info("금융 상품 데이터 로드 완료: {} 개 성공, {} 개 건너뜀", count, skipped);
             } catch (Exception e) {
                 log.error("금융 상품 데이터 로드 중 오류 발생", e);
             }

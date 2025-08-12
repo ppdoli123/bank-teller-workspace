@@ -8,6 +8,7 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @Controller
@@ -26,16 +27,19 @@ public class WebSocketController {
         log.info("세션 참여 요청 - sessionId: {}, userType: {}, userId: {}", sessionId, userType, userId);
         
         // 세션 정보를 헤더에 저장
-        headerAccessor.getSessionAttributes().put("sessionId", sessionId);
-        headerAccessor.getSessionAttributes().put("userType", userType);
-        headerAccessor.getSessionAttributes().put("userId", userId);
+        if (headerAccessor.getSessionAttributes() != null) {
+            headerAccessor.getSessionAttributes().put("sessionId", sessionId);
+            headerAccessor.getSessionAttributes().put("userType", userType);
+            headerAccessor.getSessionAttributes().put("userId", userId);
+        }
         
         // 세션 참여 성공 알림
-        messagingTemplate.convertAndSend("/topic/session/" + sessionId, Map.of(
-            "type", "session-joined",
-            "userType", userType,
-            "userId", userId
-        ));
+        Map<String, Object> response = new HashMap<>();
+        response.put("type", "session-joined");
+        response.put("userType", userType);
+        response.put("userId", userId != null ? userId : "anonymous");
+        
+        messagingTemplate.convertAndSend("/topic/session/" + sessionId, response);
     }
     
     @MessageMapping("/customer-info-update")
