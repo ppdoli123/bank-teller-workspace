@@ -184,7 +184,7 @@ const TabContent = styled.div`
 `;
 
 // 고객 정보 표시 컴포넌트
-const CustomerInfo = ({ customer, detailed = false }) => {
+const CustomerInfoDisplay = ({ customer, detailed = false }) => {
   if (!customer) {
     return (
       <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
@@ -296,7 +296,7 @@ const EmployeeDashboard = () => {
     setEmployee(JSON.parse(employeeData));
     
     // Socket.IO 연결
-    const newSocket = io('http://localhost:5000');
+    const newSocket = io('http://localhost:8080');
     setSocket(newSocket);
     
     // 자동으로 세션 참여 (직원 ID 기반으로 세션 생성)
@@ -489,7 +489,7 @@ const EmployeeDashboard = () => {
       const formData = new FormData();
       formData.append('idCard', imageFile);
       
-      const response = await axios.post('http://localhost:5000/api/ocr/id-card', formData, {
+      const response = await axios.post('http://localhost:8080/api/ocr/id-card', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
@@ -519,7 +519,7 @@ const EmployeeDashboard = () => {
 
   const createConsultationSession = async (customerId) => {
     try {
-      const response = await axios.post('http://localhost:5000/api/consultation/sessions', {
+      const response = await axios.post('http://localhost:8080/api/consultation/sessions', {
         employeeId: employee.employeeId,
         customerId: customerId
       });
@@ -536,8 +536,8 @@ const EmployeeDashboard = () => {
         });
         
         // 고객 상세 정보 조회
-        const customerResponse = await axios.get(`http://localhost:5000/api/customers/${customerId}`);
-        setCurrentCustomer(customerResponse.data.customer);
+        const customerResponse = await axios.get(`http://localhost:8080/api/customers/${customerId}`);
+        setCurrentCustomer(customerResponse.data.data);
       }
     } catch (error) {
       console.error('세션 생성 오류:', error);
@@ -624,7 +624,7 @@ const EmployeeDashboard = () => {
 
         {currentCustomer && (
           <Section>
-            <CustomerInfo customer={currentCustomer} />
+            <CustomerInfoDisplay customer={currentCustomer} />
           </Section>
         )}
       </Sidebar>
@@ -674,7 +674,7 @@ const EmployeeDashboard = () => {
 
         <TabContent>
           {activeTab === 'customer' && currentCustomer && (
-            <CustomerInfo customer={currentCustomer} detailed />
+            <CustomerInfoDisplay customer={currentCustomer} detailed />
           )}
           
           {activeTab === 'products' && (

@@ -41,3 +41,4 @@ Start-Process "http://localhost:3000/tablet"
 
 Write-Host "시스템이 성공적으로 시작되었습니다!" -ForegroundColor Green
 Write-Host "이 창을 닫지 마세요." -ForegroundColor Red
+

@@ -125,7 +125,7 @@ const EmployeeLogin = () => {
     setError('');
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', {
+      const response = await axios.post('http://localhost:8080/api/auth/login', {
         employeeId: employeeId.trim(),
         password: password.trim()
       });

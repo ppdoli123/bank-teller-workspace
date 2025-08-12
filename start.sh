@@ -69,3 +69,4 @@ echo -e "${GREEN}✅ 시스템 시작 완료!${NC}"
 echo "   직원용: http://localhost:3000"
 echo "   태블릿: http://localhost:3000/tablet"
 echo
+

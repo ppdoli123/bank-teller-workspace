@@ -338,10 +338,10 @@ const ProductExplorer = ({ onScreenSync, customerId }) => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/products?limit=100');
+      const response = await axios.get('http://localhost:8080/api/products?limit=100');
       console.log('Products response:', response.data); // 디버깅용
-      if (response.data.success && response.data.products) {
-        setProducts(response.data.products);
+      if (response.data.success && response.data.data.products) {
+        setProducts(response.data.data.products);
       } else {
         console.error('상품 데이터 형식 오류:', response.data);
         setProducts([]);

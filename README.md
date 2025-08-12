@@ -1,12 +1,14 @@
-# 🏦 하나은행 스마트 금융 상담 시스템
+# 🏦 하나은행 스마트 금융 상담 시스템 v2.0
 
 실제 은행 창구와 동일한 경험을 제공하는 지능형 금융 상담 시스템입니다. 직원용 PC와 고객용 태블릿이 실시간으로 연동되어 seamless한 상담 서비스를 구현합니다.
 
+**🚀 v2.0 업데이트: Spring Boot + React 아키텍처로 전면 개편!**
+
 ![하나은행 로고](https://img.shields.io/badge/하나은행-00C73C?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMCA5TDEzLjA5IDE1Ljc0TDEyIDIyTDEwLjkxIDE1Ljc0TDQgOUwxMC45MSA4LjI2TDEyIDJaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K&logoColor=white)
-![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
 ![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![Java](https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
-![Socket.io](https://img.shields.io/badge/Socket.io-010101?style=for-the-badge&logo=socketdotio&logoColor=white)
 
 ## 📋 목차
 - [✨ 주요 기능](#-주요-기능)
@@ -44,18 +46,21 @@
 
 ## 🛠️ 기술 스택
 
-### Backend
-- **Node.js + Express.js**: RESTful API 서버
-- **SQLite3**: 경량 데이터베이스
-- **Socket.IO**: 실시간 양방향 통신
-- **JWT**: 직원 인증 시스템
-- **bcrypt**: 비밀번호 암호화
+### Backend (v2.0 NEW!)
+- **Spring Boot 3.2**: 엔터프라이즈급 Java 프레임워크
+- **Spring Data JPA**: 데이터베이스 ORM
+- **Spring Security**: 보안 및 인증
+- **Spring WebSocket**: 실시간 양방향 통신
+- **SQLite**: 경량 데이터베이스 (JPA 호환)
+- **JWT**: 토큰 기반 인증
+- **BCrypt**: 비밀번호 암호화
+- **Maven**: 빌드 도구
 
 ### Frontend
 - **React 18**: 사용자 인터페이스
 - **Styled Components**: CSS-in-JS 스타일링
 - **Axios**: HTTP 클라이언트
-- **Socket.IO Client**: 실시간 통신
+- **WebSocket Client**: 실시간 통신
 
 ### Database Schema
 ```sql
@@ -77,67 +82,80 @@ consultation_sessions (id, session_id, employee_id, customer_id)
 
 ## 🚀 빠른 시작
 
-### 자동 설치 및 실행 (권장)
+### v2.0 Spring Boot 버전 (권장)
 
-#### Windows
+#### 필수 요구사항
+- **Java 17 이상**
+- **Node.js 16.0 이상**
+- **npm 8.0 이상**
+
+#### 자동 설치 및 실행
+
+##### Windows
 ```bash
 # 저장소 클론
 git clone https://github.com/your-username/hana-smart-consulting.git
 cd hana-smart-consulting
 
-# 자동 설치 및 실행
-./setup.bat
+# 자동 설치
+./setup-spring.bat
+
+# 시스템 실행
+./start-spring.bat
 ```
 
-#### macOS/Linux
+##### macOS/Linux
 ```bash
 # 저장소 클론
 git clone https://github.com/your-username/hana-smart-consulting.git
 cd hana-smart-consulting
 
-# 자동 설치 및 실행
-chmod +x setup.sh
-./setup.sh
+# 자동 설치
+chmod +x setup-spring.sh
+./setup-spring.sh
+
+# 시스템 실행
+chmod +x start-spring.sh
+./start-spring.sh
 ```
 
-### 수동 설치
+### 수동 설치 (v2.0 Spring Boot)
 
-#### 1. 필수 요구사항
-- **Node.js** 16.0 이상
-- **npm** 8.0 이상
-
-#### 2. 의존성 설치
+#### 1. Spring Boot 백엔드 설치
 ```bash
-# 서버 의존성 설치
-cd server
-npm install
+# 백엔드 디렉토리로 이동
+cd backend
 
-# 클라이언트 의존성 설치  
+# Maven으로 의존성 설치 및 빌드
+./mvnw clean install -DskipTests
+```
+
+#### 2. React 클라이언트 설치
+```bash
+# 클라이언트 디렉토리로 이동
 cd ../client
+
+# npm 의존성 설치
 npm install
 ```
 
-#### 3. 데이터베이스 초기화
+#### 3. 시스템 실행
+
+##### 백엔드 실행 (포트 8080)
 ```bash
-cd ../server/scripts
-node initDatabase.js
-node addCustomerProducts.js
-node updateProductData.js
+cd backend
+./mvnw spring-boot:run
 ```
 
-#### 4. 서버 실행
+##### 클라이언트 실행 (새 터미널, 포트 3000)
 ```bash
-# 서버 시작 (포트 5000)
-cd ../
-node server.js
-```
-
-#### 5. 클라이언트 실행 (새 터미널)
-```bash
-# 클라이언트 시작 (포트 3000)
 cd client
 npm start
 ```
+
+### 레거시 Node.js 버전 (v1.0)
+
+레거시 Node.js 버전을 사용하려면 `server_nodejs_backup` 폴더를 `server`로 이름을 변경하고 기존 설치 방법을 따르세요.
 
 ## 📖 사용 방법
 
@@ -171,22 +189,33 @@ ID: 1234
 ## 🏗️ 시스템 구조
 
 ```
-📁 프로젝트 구조
-├── 📁 server/              # 백엔드 서버
-│   ├── 📁 config/           # 데이터베이스 설정
-│   ├── 📁 routes/           # API 라우터
-│   ├── 📁 scripts/          # 데이터베이스 스크립트
-│   ├── 📁 data/             # JSON 데이터 파일
-│   └── server.js            # 메인 서버 파일
-├── 📁 client/               # 프론트엔드
+📁 프로젝트 구조 (v2.0)
+├── 📁 backend/              # Spring Boot 백엔드
+│   ├── 📁 src/main/java/    # Java 소스 코드
+│   │   └── 📁 com/hanabank/smartconsulting/
+│   │       ├── 📁 controller/    # REST API 컨트롤러
+│   │       ├── 📁 service/       # 비즈니스 로직
+│   │       ├── 📁 repository/    # 데이터 액세스
+│   │       ├── 📁 entity/        # JPA 엔티티
+│   │       ├── 📁 dto/          # 데이터 전송 객체
+│   │       └── 📁 config/       # 설정 클래스
+│   ├── 📁 src/main/resources/   # 리소스 파일
+│   │   ├── application.properties
+│   │   └── 📁 data/         # JSON 데이터 파일
+│   ├── pom.xml              # Maven 설정
+│   └── mvnw                 # Maven Wrapper
+├── 📁 client/               # React 프론트엔드
 │   ├── 📁 public/           # 정적 파일
 │   └── 📁 src/
 │       ├── 📁 components/   # React 컴포넌트
 │       │   ├── 📁 employee/ # 직원용 컴포넌트
 │       │   └── 📁 customer/ # 고객용 컴포넌트
 │       └── App.js           # 메인 앱 컴포넌트
-├── setup.bat                # Windows 자동 설치
-├── setup.sh                 # macOS/Linux 자동 설치
+├── 📁 server_nodejs_backup/ # 레거시 Node.js 백엔드
+├── setup-spring.bat         # Windows 자동 설치 (v2.0)
+├── setup-spring.sh          # macOS/Linux 자동 설치 (v2.0)
+├── start-spring.bat         # Windows 실행 스크립트 (v2.0)
+├── start-spring.sh          # macOS/Linux 실행 스크립트 (v2.0)
 └── README.md
 ```
 
@@ -246,21 +275,32 @@ npm start
 
 ### API 엔드포인트
 
+#### API 엔드포인트 (v2.0 Spring Boot)
+
+**Base URL**: `http://localhost:8080/api`
+
 #### 인증
-- `POST /api/auth/login` - 직원 로그인
-- `GET /api/auth/verify` - 토큰 검증
+- `POST /auth/login` - 직원 로그인
+- `GET /auth/verify` - 토큰 검증
 
 #### 고객 관리
-- `GET /api/customers/:id` - 고객 정보 조회
-- `GET /api/customers/:id/products` - 고객 보유 상품 조회
+- `GET /customers/{id}` - 고객 정보 조회
+- `GET /customers/{id}/products` - 고객 보유 상품 조회
+- `GET /customers/search/name/{name}` - 이름으로 고객 검색
+- `GET /customers/search/idnumber/{idNumber}` - 신분증번호로 고객 검색
 
 #### 상품 관리
-- `GET /api/products` - 전체 상품 조회
-- `GET /api/products/search` - 상품 검색
+- `GET /products` - 전체 상품 조회 (페이징 지원)
+- `GET /products/{id}` - 상품 상세 조회
+- `GET /products/search?keyword={keyword}` - 상품 검색
+- `GET /products/types` - 상품 타입 목록
 
 #### OCR 시뮬레이션
-- `POST /api/ocr/id-card` - 신분증 인식
-- `GET /api/ocr/test-customers` - 테스트 고객 목록
+- `POST /ocr/id-card` - 신분증 인식
+- `GET /ocr/test-customers` - 테스트 고객 목록
+
+#### 시스템
+- `GET /health` - 헬스체크
 
 ## 🤝 기여하기
 

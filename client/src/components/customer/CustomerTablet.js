@@ -112,7 +112,7 @@ const CustomerTablet = () => {
     setSessionId(urlSessionId);
 
     // Socket.IO 연결
-    const newSocket = io('http://localhost:5000');
+    const newSocket = io('http://localhost:8080');
     setSocket(newSocket);
 
     // 태블릿 세션 참여
@@ -175,11 +175,11 @@ const CustomerTablet = () => {
 
   const fetchCustomerProducts = async (customerId) => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/customers/${customerId}/products`);
+      const response = await axios.get(`http://localhost:8080/api/customers/${customerId}/products`);
       if (response.data.success) {
-        setCustomerProducts(response.data.products);
-        setProductSummary(response.data.summary);
-        console.log('고객 보유 상품 로드:', response.data.products.length, '개');
+        setCustomerProducts(response.data.data.products);
+        setProductSummary(response.data.data.summary);
+        console.log('고객 보유 상품 로드:', response.data.data.products.length, '개');
       }
     } catch (error) {
       console.error('고객 보유 상품 조회 실패:', error);

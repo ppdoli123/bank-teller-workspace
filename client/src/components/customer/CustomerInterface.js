@@ -297,7 +297,7 @@ const CustomerInterface = () => {
       try {
         const signatureData = signatureRef.current.toDataURL();
         
-        await axios.post('http://localhost:5000/api/signature/submit', {
+        await axios.post('http://localhost:8080/api/signature/submit', {
           customerId: screenData?.customerId,
           sessionId: sessionId,
           productId: screenData?.product?.ProductID,

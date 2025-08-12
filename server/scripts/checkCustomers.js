@@ -83,3 +83,4 @@ checkCustomers().then(() => {
   console.error('실패:', error);
   process.exit(1);
 });
+
