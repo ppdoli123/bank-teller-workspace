@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import axios from 'axios';
-import io from 'socket.io-client';
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 import Webcam from 'react-webcam';
 
 import ProductExplorer from './ProductExplorer';
@@ -274,7 +275,7 @@ const EmployeeDashboard = () => {
   const [employee, setEmployee] = useState(null);
   const [currentCustomer, setCurrentCustomer] = useState(null);
   const [sessionId, setSessionId] = useState(null);
-  const [socket, setSocket] = useState(null);
+  const [stompClient, setStompClient] = useState(null);
   const [activeTab, setActiveTab] = useState('customer');
   const [cameraActive, setCameraActive] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -295,26 +296,53 @@ const EmployeeDashboard = () => {
     
     setEmployee(JSON.parse(employeeData));
     
-    // Socket.IO 연결
-    const newSocket = io('http://localhost:8080');
-    setSocket(newSocket);
-    
-    // 자동으로 세션 참여 (직원 ID 기반으로 세션 생성)
-    const employeeSessionId = `employee_${JSON.parse(employeeData).employeeId}_${Date.now()}`;
-    setSessionId(employeeSessionId);
-    
-    newSocket.emit('join-session', {
-      sessionId: employeeSessionId,
-      userType: 'employee',
-      userId: JSON.parse(employeeData).employeeId
+    // STOMP WebSocket 연결
+    const client = new Client({
+      webSocketFactory: () => new SockJS('http://localhost:8080/api/ws'),
+      connectHeaders: {},
+      debug: function (str) {
+        console.log('STOMP Debug:', str);
+      },
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000,
     });
-    
-    console.log('직원 세션 참여:', employeeSessionId);
+
+    client.onConnect = function (frame) {
+      console.log('STOMP 연결 성공:', frame);
+      setStompClient(client);
+
+      // 태블릿과 같은 세션 ID 사용
+      const sharedSessionId = 'tablet_main';
+      setSessionId(sharedSessionId);
+
+      // 세션 참여
+      client.publish({
+        destination: '/app/join-session',
+        body: JSON.stringify({
+          sessionId: sharedSessionId,
+          userType: 'employee',
+          userId: JSON.parse(employeeData).employeeId
+        })
+      });
+      
+      console.log('직원 세션 참여:', sharedSessionId);
+    };
+
+    client.onStompError = function (frame) {
+      console.error('STOMP 오류:', frame.headers['message']);
+    };
+
+    client.activate();
     
     // 테스트 고객 목록 가져오기
     fetchTestCustomers();
     
-    return () => newSocket.close();
+    return () => {
+      if (client.active) {
+        client.deactivate();
+      }
+    };
   }, [navigate]);
 
   const fetchTestCustomers = async () => {
@@ -419,23 +447,29 @@ const EmployeeDashboard = () => {
         setShowCustomerSelect(false);
         
         console.log('선택된 고객:', customerData.Name);
-        console.log('Socket 상태:', socket ? '연결됨' : '연결안됨');
+        console.log('STOMP 상태:', stompClient ? '연결됨' : '연결안됨');
         console.log('세션 ID:', sessionId);
         
         // Socket을 통해 고객 태블릿에 정보 전송
-        if (socket && sessionId) {
+        if (stompClient && sessionId && stompClient.active) {
           console.log('고객 정보를 태블릿에 전송합니다...');
           
           // 고객 정보 업데이트 이벤트 전송
-          socket.emit('customer-info-update', {
-            sessionId: sessionId,
-            ...customerData
+          stompClient.publish({
+            destination: '/app/customer-info-update',
+            body: JSON.stringify({
+              sessionId: sessionId,
+              ...customerData
+            })
           });
           
           // OCR 결과 이벤트도 전송 (호환성을 위해)
-          socket.emit('ocr-result', {
-            sessionId: sessionId,
-            customerData: customerData
+          stompClient.publish({
+            destination: '/app/send-message',
+            body: JSON.stringify({
+              sessionId: sessionId,
+              customerData: customerData
+            })
           });
         } else {
           console.error('Socket 또는 세션 ID가 없습니다!');
@@ -455,7 +489,7 @@ const EmployeeDashboard = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('employee');
-    if (socket) socket.disconnect();
+    if (stompClient && stompClient.active) stompClient.deactivate();
     navigate('/employee/login');
   };
 
@@ -497,10 +531,13 @@ const EmployeeDashboard = () => {
         setCurrentCustomer(response.data.customer);
         
         // Socket을 통해 고객 태블릿에 정보 전송
-        if (socket && sessionId) {
-          socket.emit('ocr-result', {
-            sessionId: sessionId,
-            customerData: response.data.customer
+        if (stompClient && sessionId && stompClient.active) {
+          stompClient.publish({
+            destination: '/app/send-message',
+            body: JSON.stringify({
+              sessionId: sessionId,
+              customerData: response.data.customer
+            })
           });
         }
         
@@ -525,14 +562,17 @@ const EmployeeDashboard = () => {
       });
       
       if (response.data.success) {
-        const newSessionId = response.data.sessionId;
-        setSessionId(newSessionId);
+        const sharedSessionId = 'tablet_main';
+        setSessionId(sharedSessionId);
         
-        // Socket에 세션 참여
-        socket.emit('join-session', {
-          sessionId: newSessionId,
-          userType: 'employee',
-          userId: employee.employeeId
+        // STOMP에 세션 참여
+        stompClient.publish({
+          destination: '/app/join-session',
+          body: JSON.stringify({
+            sessionId: sharedSessionId,
+            userType: 'employee',
+            userId: employee.employeeId
+          })
         });
         
         // 고객 상세 정보 조회
@@ -546,17 +586,23 @@ const EmployeeDashboard = () => {
   };
 
   const syncScreenToCustomer = (screenData) => {
-    if (socket && sessionId) {
+    if (stompClient && sessionId && stompClient.active) {
       // 상품 상세보기 동기화
       if (screenData.type === 'product-detail-sync') {
-        socket.emit('product-detail-sync', {
-          sessionId: sessionId,
-          productData: screenData.data
+        stompClient.publish({
+          destination: '/app/product-detail-sync',
+          body: JSON.stringify({
+            sessionId: sessionId,
+            productData: screenData.data
+          })
         });
       } else {
-        socket.emit('sync-screen', {
-          sessionId,
-          screenData
+        stompClient.publish({
+          destination: '/app/screen-sync',
+          body: JSON.stringify({
+            sessionId,
+            screenData
+          })
         });
       }
     }
