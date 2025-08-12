@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
-import io from 'socket.io-client';
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 
 const TabletContainer = styled.div`
   width: 100vw;
@@ -98,7 +99,7 @@ const CustomerTablet = () => {
   const [sessionId, setSessionId] = useState('');
   const [connected, setConnected] = useState(false);
   const [employeeName, setEmployeeName] = useState('');
-  const [socket, setSocket] = useState(null);
+  const [stompClient, setStompClient] = useState(null);
   const [currentCustomer, setCurrentCustomer] = useState(null);
   const [isWaitingForEmployee, setIsWaitingForEmployee] = useState(true);
   const [customerProducts, setCustomerProducts] = useState([]);
@@ -111,65 +112,89 @@ const CustomerTablet = () => {
     const urlSessionId = urlParams.get('session') || 'tablet_main';
     setSessionId(urlSessionId);
 
-    // Socket.IO 연결
-    const newSocket = io('http://localhost:8080');
-    setSocket(newSocket);
-
-    // 태블릿 세션 참여
-    newSocket.emit('join-tablet-session', {
-      sessionId: urlSessionId,
-      userType: 'customer-tablet'
+    // STOMP WebSocket 연결
+    const client = new Client({
+      webSocketFactory: () => new SockJS('http://localhost:8080/api/ws'),
+      connectHeaders: {},
+      debug: function (str) {
+        console.log('STOMP Debug:', str);
+      },
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000,
     });
 
-    // 활성 직원 세션 확인 요청
-    newSocket.emit('check-active-employees');
-    
-    // 활성 직원 목록 수신
-    newSocket.on('active-employees', (employees) => {
-      if (employees.length > 0) {
-        const firstEmployee = employees[0];
-        setConnected(true);
-        setEmployeeName(firstEmployee.userId);
-        setIsWaitingForEmployee(false);
-        
-        // 해당 직원 세션에 참여
-        newSocket.emit('join-tablet-session', {
-          sessionId: firstEmployee.sessionId,
+    client.onConnect = function (frame) {
+      console.log('STOMP 연결 성공:', frame);
+      setStompClient(client);
+
+      // 태블릿 세션 참여
+      client.publish({
+        destination: '/app/join-session',
+        body: JSON.stringify({
+          sessionId: urlSessionId,
           userType: 'customer-tablet'
-        });
-        setSessionId(firstEmployee.sessionId);
-      }
-    });
+        })
+      });
 
-    // 직원 연결 이벤트 수신
-    newSocket.on('employee-connected', (data) => {
-      setConnected(true);
-      setEmployeeName(data.employeeName);
-      setIsWaitingForEmployee(false);
-    });
+      // 메시지 구독 설정
+      client.subscribe('/topic/session/' + urlSessionId, function (message) {
+        const data = JSON.parse(message.body);
+        console.log('세션 메시지 수신:', data);
+        
+        switch (data.type) {
+          case 'session-joined':
+            if (data.userType === 'employee') {
+              setConnected(true);
+              setEmployeeName(data.userId || '직원');
+              setIsWaitingForEmployee(false);
+              console.log('직원 연결됨:', data.userId);
+            }
+            break;
+          case 'employee-connected':
+            setConnected(true);
+            setEmployeeName(data.employeeName);
+            setIsWaitingForEmployee(false);
+            break;
+          case 'customer-info-updated':
+            setCurrentCustomer(data.customerData);
+            if (data.customerData.CustomerID) {
+              fetchCustomerProducts(data.customerData.CustomerID);
+            }
+            break;
+          case 'product-detail-sync':
+            // 상품 상세 메시지를 받으면 직원이 연결된 것으로 간주
+            if (!connected) {
+              setConnected(true);
+              setEmployeeName('직원');
+              setIsWaitingForEmployee(false);
+              console.log('직원 연결됨 (상품 동기화를 통해 감지)');
+            }
+            setSelectedProductDetail(data.data || data.productData);
+            break;
+          case 'session-status':
+            if (data.connected) {
+              setConnected(true);
+              setEmployeeName(data.employeeName);
+              setIsWaitingForEmployee(false);
+            }
+            break;
+          default:
+            console.log('알 수 없는 메시지 타입:', data.type);
+        }
+      });
+    };
 
-    // 고객 정보 업데이트 수신
-    newSocket.on('customer-info-updated', (customerData) => {
-      setCurrentCustomer(customerData);
-      fetchCustomerProducts(customerData.CustomerID);
-    });
+    client.onStompError = function (frame) {
+      console.error('STOMP 오류:', frame.headers['message']);
+    };
 
-    // 상품 상세보기 수신 (직원이 상품 상세보기를 눌렀을 때)
-    newSocket.on('product-detail-sync', (productData) => {
-      setSelectedProductDetail(productData);
-    });
-
-    // 세션 상태 업데이트 수신
-    newSocket.on('session-status', (status) => {
-      if (status.connected) {
-        setConnected(true);
-        setEmployeeName(status.employeeName);
-        setIsWaitingForEmployee(false);
-      }
-    });
+    client.activate();
 
     return () => {
-      newSocket.disconnect();
+      if (client.active) {
+        client.deactivate();
+      }
     };
   }, []);
 
@@ -187,19 +212,27 @@ const CustomerTablet = () => {
   };
 
   const handleStartConsultation = () => {
-    if (socket) {
-      socket.emit('start-consultation', {
-        sessionId: sessionId,
-        ready: true
+    if (stompClient && stompClient.active) {
+      stompClient.publish({
+        destination: '/app/send-message',
+        body: JSON.stringify({
+          sessionId: sessionId,
+          type: 'start-consultation',
+          ready: true
+        })
       });
     }
   };
 
   const handleCustomerInfoConfirm = () => {
-    if (socket && currentCustomer) {
-      socket.emit('customer-info-confirmed', {
-        sessionId: sessionId,
-        customerData: currentCustomer
+    if (stompClient && stompClient.active && currentCustomer) {
+      stompClient.publish({
+        destination: '/app/send-message',
+        body: JSON.stringify({
+          sessionId: sessionId,
+          type: 'customer-info-confirmed',
+          customerData: currentCustomer
+        })
       });
     }
   };
@@ -383,35 +416,60 @@ const CustomerTablet = () => {
               
               <div style={{ marginBottom: '1rem' }}>
                 <h4 style={{ color: 'var(--hana-mint)', marginBottom: '0.5rem' }}>상품 타입</h4>
-                <p style={{ margin: 0, color: '#333' }}>{selectedProductDetail.product_type}</p>
+                <p style={{ margin: 0, color: '#333' }}>
+                  {selectedProductDetail.productType || selectedProductDetail.product_type || '일반 상품'}
+                </p>
               </div>
               
               <div style={{ marginBottom: '1rem' }}>
                 <h4 style={{ color: 'var(--hana-mint)', marginBottom: '0.5rem' }}>상품 특징</h4>
-                <p style={{ margin: 0, color: '#333', lineHeight: 1.6 }}>
-                  {selectedProductDetail.product_features || '정보 없음'}
+                <p style={{ margin: 0, color: '#333', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                  {selectedProductDetail.productFeatures || selectedProductDetail.product_features || '정보 없음'}
+                </p>
+              </div>
+              
+              <div style={{ marginBottom: '1rem' }}>
+                <h4 style={{ color: 'var(--hana-mint)', marginBottom: '0.5rem' }}>가입 대상</h4>
+                <p style={{ margin: 0, color: '#333', whiteSpace: 'pre-line' }}>
+                  {selectedProductDetail.targetCustomers || selectedProductDetail.target_customers || '정보 없음'}
                 </p>
               </div>
               
               <div style={{ marginBottom: '1rem' }}>
                 <h4 style={{ color: 'var(--hana-mint)', marginBottom: '0.5rem' }}>가입 금액</h4>
+                <p style={{ margin: 0, color: '#333', whiteSpace: 'pre-line' }}>
+                  {selectedProductDetail.depositAmount || selectedProductDetail.deposit_amount || '정보 없음'}
+                </p>
+              </div>
+              
+              <div style={{ marginBottom: '1rem' }}>
+                <h4 style={{ color: 'var(--hana-mint)', marginBottom: '0.5rem' }}>가입 기간</h4>
                 <p style={{ margin: 0, color: '#333' }}>
-                  {selectedProductDetail.deposit_amount || '정보 없음'}
+                  {selectedProductDetail.depositPeriod || selectedProductDetail.deposit_period || '정보 없음'}
                 </p>
               </div>
               
               <div style={{ marginBottom: '1rem' }}>
                 <h4 style={{ color: 'var(--hana-mint)', marginBottom: '0.5rem' }}>기본 금리</h4>
                 <p style={{ margin: 0, color: '#333', fontSize: '1.2rem', fontWeight: 'bold' }}>
-                  {selectedProductDetail.interest_rate || '정보 없음'}
+                  {selectedProductDetail.interestRate || selectedProductDetail.interest_rate || '정보 없음'}
                 </p>
               </div>
               
-              {selectedProductDetail.preferential_rate && (
+              {(selectedProductDetail.preferentialRate || selectedProductDetail.preferential_rate) && (
                 <div style={{ marginBottom: '1rem' }}>
                   <h4 style={{ color: 'var(--hana-mint)', marginBottom: '0.5rem' }}>우대 금리</h4>
-                  <p style={{ margin: 0, color: '#e65100', fontSize: '1.1rem', fontWeight: 'bold' }}>
-                    {selectedProductDetail.preferential_rate}
+                  <p style={{ margin: 0, color: '#e65100', fontSize: '1.1rem', fontWeight: 'bold', whiteSpace: 'pre-line' }}>
+                    {selectedProductDetail.preferentialRate || selectedProductDetail.preferential_rate}
+                  </p>
+                </div>
+              )}
+              
+              {(selectedProductDetail.taxBenefits || selectedProductDetail.tax_benefits) && (
+                <div style={{ marginBottom: '1rem' }}>
+                  <h4 style={{ color: 'var(--hana-mint)', marginBottom: '0.5rem' }}>세제 혜택</h4>
+                  <p style={{ margin: 0, color: '#333', whiteSpace: 'pre-line' }}>
+                    {selectedProductDetail.taxBenefits || selectedProductDetail.tax_benefits}
                   </p>
                 </div>
               )}
