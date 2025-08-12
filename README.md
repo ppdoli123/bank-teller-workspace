@@ -8,7 +8,8 @@
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
 ![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
 ![Java](https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
+![H2 Database](https://img.shields.io/badge/H2%20Database-003B57?style=for-the-badge&logo=h2&logoColor=white)
+![WebSocket](https://img.shields.io/badge/WebSocket-010101?style=for-the-badge&logo=websocket&logoColor=white)
 
 ## 📋 목차
 - [✨ 주요 기능](#-주요-기능)
@@ -25,7 +26,7 @@
 ### 🏛️ 실제 은행 창구 환경 구현
 - **직원용 PC**: 고객 관리, 상품 탐색, 상담 진행
 - **고객용 태블릿**: 실시간 정보 확인, 상품 상세보기
-- **실시간 동기화**: Socket.IO를 통한 즉시 화면 연동
+- **실시간 동기화**: STOMP WebSocket을 통한 즉시 화면 연동
 
 ### 👥 고객 관리 시스템
 - **OCR 신분증 인식**: 실제 신분증 스캔 (시뮬레이션)
@@ -34,7 +35,7 @@
 - **자산/부채 요약**: 총 자산, 총 부채, 순자산 자동 계산
 
 ### 💰 금융 상품 관리
-- **214개 실제 하나은행 상품**: JSON 데이터 기반
+- **179개 실제 하나은행 상품**: JSON 데이터 기반
 - **스마트 검색**: 상품명, 타입, 특징으로 필터링
 - **상품 비교**: 최대 3개 상품 동시 비교
 - **우대금리 표시**: 기존 고객 혜택 강조
@@ -46,12 +47,12 @@
 
 ## 🛠️ 기술 스택
 
-### Backend (v2.0 NEW!)
+### Backend
 - **Spring Boot 3.2**: 엔터프라이즈급 Java 프레임워크
 - **Spring Data JPA**: 데이터베이스 ORM
 - **Spring Security**: 보안 및 인증
-- **Spring WebSocket**: 실시간 양방향 통신
-- **SQLite**: 경량 데이터베이스 (JPA 호환)
+- **Spring WebSocket (STOMP)**: 실시간 양방향 통신
+- **H2 Database**: 인메모리 데이터베이스 (개발용)
 - **JWT**: 토큰 기반 인증
 - **BCrypt**: 비밀번호 암호화
 - **Maven**: 빌드 도구
@@ -60,7 +61,8 @@
 - **React 18**: 사용자 인터페이스
 - **Styled Components**: CSS-in-JS 스타일링
 - **Axios**: HTTP 클라이언트
-- **WebSocket Client**: 실시간 통신
+- **@stomp/stompjs**: STOMP WebSocket 클라이언트
+- **sockjs-client**: WebSocket 폴백 지원
 
 ### Database Schema
 ```sql
@@ -74,7 +76,7 @@ customers (customer_id, name, phone, age, address, income, assets)
 customer_products (id, customer_id, product_name, balance, interest_rate)
 
 -- 금융 상품
-financial_products (id, product_name, product_type, interest_rate)
+financial_products (id, product_name, product_type, interest_rate, product_features)
 
 -- 상담 세션
 consultation_sessions (id, session_id, employee_id, customer_id)
@@ -82,80 +84,51 @@ consultation_sessions (id, session_id, employee_id, customer_id)
 
 ## 🚀 빠른 시작
 
-### v2.0 Spring Boot 버전 (권장)
-
-#### 필수 요구사항
+### 필수 요구사항
 - **Java 17 이상**
 - **Node.js 16.0 이상**
 - **npm 8.0 이상**
 
-#### 자동 설치 및 실행
+### Windows 자동 실행
 
-##### Windows
-```bash
-# 저장소 클론
-git clone https://github.com/your-username/hana-smart-consulting.git
-cd hana-smart-consulting
-
-# 자동 설치
-./setup-spring.bat
-
-# 시스템 실행
-./start-spring.bat
+#### 백엔드 서버 시작
+```cmd
+start-backend.bat
 ```
 
-##### macOS/Linux
-```bash
-# 저장소 클론
-git clone https://github.com/your-username/hana-smart-consulting.git
-cd hana-smart-consulting
-
-# 자동 설치
-chmod +x setup-spring.sh
-./setup-spring.sh
-
-# 시스템 실행
-chmod +x start-spring.sh
-./start-spring.sh
+#### 프론트엔드 서버 시작 (새 터미널)
+```cmd
+start-frontend.bat
 ```
 
-### 수동 설치 (v2.0 Spring Boot)
+### 수동 설치 및 실행
 
-#### 1. Spring Boot 백엔드 설치
+#### 1. 저장소 클론
+```bash
+git clone https://github.com/ppdoli123/bank-teller-workspace.git
+cd bank-teller-workspace
+```
+
+#### 2. Spring Boot 백엔드 설치 및 실행
 ```bash
 # 백엔드 디렉토리로 이동
 cd backend
 
-# Maven으로 의존성 설치 및 빌드
-./mvnw clean install -DskipTests
-```
-
-#### 2. React 클라이언트 설치
-```bash
-# 클라이언트 디렉토리로 이동
-cd ../client
-
-# npm 의존성 설치
-npm install
-```
-
-#### 3. 시스템 실행
-
-##### 백엔드 실행 (포트 8080)
-```bash
-cd backend
+# Maven으로 의존성 설치 및 실행
 ./mvnw spring-boot:run
 ```
 
-##### 클라이언트 실행 (새 터미널, 포트 3000)
+#### 3. React 클라이언트 설치 및 실행 (새 터미널)
 ```bash
+# 클라이언트 디렉토리로 이동
 cd client
+
+# npm 의존성 설치
+npm install
+
+# 개발 서버 시작
 npm start
 ```
-
-### 레거시 Node.js 버전 (v1.0)
-
-레거시 Node.js 버전을 사용하려면 `server_nodejs_backup` 폴더를 `server`로 이름을 변경하고 기존 설치 방법을 따르세요.
 
 ## 📖 사용 방법
 
@@ -189,7 +162,7 @@ ID: 1234
 ## 🏗️ 시스템 구조
 
 ```
-📁 프로젝트 구조 (v2.0)
+📁 프로젝트 구조
 ├── 📁 backend/              # Spring Boot 백엔드
 │   ├── 📁 src/main/java/    # Java 소스 코드
 │   │   └── 📁 com/hanabank/smartconsulting/
@@ -211,11 +184,9 @@ ID: 1234
 │       │   ├── 📁 employee/ # 직원용 컴포넌트
 │       │   └── 📁 customer/ # 고객용 컴포넌트
 │       └── App.js           # 메인 앱 컴포넌트
-├── 📁 server_nodejs_backup/ # 레거시 Node.js 백엔드
-├── setup-spring.bat         # Windows 자동 설치 (v2.0)
-├── setup-spring.sh          # macOS/Linux 자동 설치 (v2.0)
-├── start-spring.bat         # Windows 실행 스크립트 (v2.0)
-├── start-spring.sh          # macOS/Linux 실행 스크립트 (v2.0)
+├── 📁 data_crawling/        # 상품 데이터 크롤링
+├── start-backend.bat        # Windows 백엔드 실행 스크립트
+├── start-frontend.bat       # Windows 프론트엔드 실행 스크립트
 └── README.md
 ```
 
@@ -223,7 +194,7 @@ ID: 1234
 ```mermaid
 graph TD
     A[직원 로그인] --> B[고객 선택/OCR]
-    B --> C[Socket.IO 세션 생성]
+    B --> C[STOMP WebSocket 세션 생성]
     C --> D[고객 태블릿 연결]
     D --> E[보유 상품 표시]
     E --> F[상품 탐색 및 추천]
@@ -241,41 +212,48 @@ graph TD
 - 잔액, 금리, 만기일 등 상세 정보
 
 #### 금융 상품 (financial_products)  
-- 214개 실제 하나은행 상품 데이터
+- 179개 실제 하나은행 상품 데이터
 - 예금, 적금, 대출, 카드 등 전 상품군
 - 금리, 가입조건, 우대혜택 포함
 
+### 데이터 초기화
+시스템 시작 시 `DataLoader` 클래스가 자동으로 다음 데이터를 로드합니다:
+- 테스트 직원 계정 (ID: 1234, PW: 1234)
+- 5명의 테스트 고객 및 보유 상품
+- 179개의 하나은행 금융 상품
+
 ## 🔧 개발 환경
 
-### 환경 변수 설정
-```bash
-# server/config.env (자동 생성됨)
-PORT=5000
-JWT_SECRET=hana_bank_smart_consulting_jwt_secret_key_2024
-DB_PATH=./database.db
-NODE_ENV=development
-LOG_LEVEL=info
-```
+### Spring Boot 설정 (application.properties)
+```properties
+# 서버 설정
+server.port=8080
+server.servlet.context-path=/api
 
-**⚠️ 보안 주의사항:**
-- `config.env` 파일은 Git에 포함되지 않습니다
-- 실제 운영환경에서는 `JWT_SECRET`을 반드시 변경하세요
-- 데이터베이스 파일(`database.db`)도 Git에 포함되지 않습니다
+# H2 데이터베이스 설정
+spring.datasource.url=jdbc:h2:mem:testdb
+spring.datasource.driverClassName=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=
 
-### 개발 모드 실행
-```bash
-# 서버 개발 모드 (nodemon 사용)
-cd server
-npm run dev
+# JPA 설정
+spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.jpa.show-sql=true
 
-# 클라이언트 개발 모드
-cd client  
-npm start
+# H2 콘솔 활성화 (개발용)
+spring.h2.console.enabled=true
+spring.h2.console.path=/h2-console
+
+# JWT 설정
+jwt.secret=hana_bank_smart_consulting_jwt_secret_key_2024
+jwt.expiration=86400000
+
+# CORS 설정
+cors.allowed-origins=http://localhost:3000
 ```
 
 ### API 엔드포인트
-
-#### API 엔드포인트 (v2.0 Spring Boot)
 
 **Base URL**: `http://localhost:8080/api`
 
@@ -299,8 +277,18 @@ npm start
 - `POST /ocr/id-card` - 신분증 인식
 - `GET /ocr/test-customers` - 테스트 고객 목록
 
+#### 상담 세션
+- `POST /consultation/sessions` - 상담 세션 생성
+
 #### 시스템
 - `GET /health` - 헬스체크
+
+### WebSocket 엔드포인트
+- **연결**: `/api/ws` (SockJS + STOMP)
+- **세션 참여**: `/app/join-session`
+- **상품 동기화**: `/app/product-detail-sync`
+- **화면 동기화**: `/app/screen-sync`
+- **구독**: `/topic/session/{sessionId}`
 
 ## 🤝 기여하기
 
@@ -311,9 +299,16 @@ npm start
 5. Pull Request를 생성합니다
 
 ### 개발 가이드라인
-- **코드 스타일**: Prettier + ESLint 설정 준수
+- **코드 스타일**: Java는 Google Java Style, JavaScript는 Prettier + ESLint 설정 준수
 - **커밋 메시지**: [Conventional Commits](https://www.conventionalcommits.org/) 형식
 - **테스트**: 새 기능 추가 시 테스트 코드 작성
+
+### 최근 업데이트 (v2.0)
+- **Node.js → Spring Boot**: 백엔드를 엔터프라이즈급 Java 프레임워크로 마이그레이션
+- **Socket.IO → STOMP**: 표준 WebSocket 프로토콜 적용
+- **SQLite → H2**: JPA 호환 인메모리 데이터베이스 사용
+- **모듈화된 아키텍처**: Controller, Service, Repository 패턴 적용
+- **타입 안전성**: Java의 강타입 시스템으로 런타임 오류 최소화
 
 ## 📝 라이선스
 
@@ -322,13 +317,14 @@ npm start
 ## 🙏 감사의 말
 
 - **하나은행**: 실제 금융 상품 데이터 참조
+- **Spring 커뮤니티**: 우수한 엔터프라이즈 프레임워크 제공
 - **React 커뮤니티**: 우수한 오픈소스 라이브러리 제공
-- **Socket.IO 팀**: 실시간 통신 솔루션 제공
+- **STOMP 프로토콜**: 표준 WebSocket 메시징 솔루션
 
 ---
 
 ## 📞 지원 및 문의
 
-프로젝트 관련 문의사항이나 버그 리포트는 [Issues](https://github.com/your-username/hana-smart-consulting/issues) 페이지를 이용해 주세요.
+프로젝트 관련 문의사항이나 버그 리포트는 [Issues](https://github.com/ppdoli123/bank-teller-workspace/issues) 페이지를 이용해 주세요.
 
 **⭐ 이 프로젝트가 도움이 되셨다면 Star를 눌러주세요!**
