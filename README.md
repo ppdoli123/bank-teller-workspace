@@ -49,23 +49,30 @@ cd bank-teller-workspace
 
 ### ⚙️ 2. 환경 설정 및 의존성 설치
 
-#### 백엔드 설정
+#### 🚀 자동 설치 (Windows) - 가장 빠른 방법
+```bash
+# 모든 의존성 자동 설치
+setup.bat
+```
+
+#### 🔧 수동 설치
+##### 백엔드 설정
 ```bash
 cd backend
 # Windows
-./mvnw clean install
+mvnw.cmd clean install
 
 # Mac/Linux  
 ./mvnw clean install
 ```
 
-#### 프론트엔드 설정
+##### 프론트엔드 설정
 ```bash
 cd ../client
 npm install
 ```
 
-#### 태블릿 앱 설정 (선택사항)
+##### 태블릿 앱 설정 (선택사항)
 ```bash
 cd ../TabletApp
 npm install
@@ -73,7 +80,7 @@ npm install
 
 ### 🚀 3. 실행
 
-#### 방법 1: 배치 파일 사용 (Windows)
+#### 방법 1: 배치 파일 사용 (Windows) - 권장
 ```bash
 # 백엔드 실행
 start-backend.bat
@@ -89,16 +96,26 @@ start-tablet-app.bat
 ```bash
 # 1. 백엔드 실행 (포트 8080)
 cd backend
+
+# Windows
+mvnw.cmd spring-boot:run
+
+# Mac/Linux
 ./mvnw spring-boot:run
 
-# 2. 프론트엔드 실행 (포트 3000) - 새 터미널
+# 2. 프론트엔드 실행 (포트 3000) - 새 터미널에서
 cd client
 npm start
 
-# 3. 태블릿 앱 실행 (선택사항) - 새 터미널
+# 3. 태블릿 앱 실행 (선택사항) - 새 터미널에서
 cd TabletApp
 npm run android  # Android 에뮬레이터 필요
 ```
+
+### 🚨 실행 순서 중요!
+1. **백엔드 먼저 실행** → 데이터베이스 초기화 대기
+2. **백엔드 완전 시작 확인** → "Started SmartConsultingApplication" 메시지 확인
+3. **프론트엔드 실행** → 백엔드 API 연결 확인
 
 ### 🌐 4. 접속 주소
 - **직원용 웹 인터페이스**: http://localhost:3000
@@ -106,6 +123,79 @@ npm run android  # Android 에뮬레이터 필요
 - **고객용 태블릿 (앱)**: Android 에뮬레이터 또는 실제 디바이스
 - **API 서버**: http://localhost:8080
 - **H2 데이터베이스 콘솔**: http://localhost:8080/h2-console
+
+### 🔧 문제 해결 (Troubleshooting)
+
+#### ❌ 백엔드 실행 실패
+**증상**: `mvnw.cmd spring-boot:run` 실행 시 오류 발생
+
+**해결방법**:
+```bash
+# 1. Java 버전 확인
+java -version
+
+# 2. JAVA_HOME 환경변수 설정 확인
+echo $JAVA_HOME    # Mac/Linux
+echo %JAVA_HOME%   # Windows
+
+# 3. Maven 캐시 정리 후 재시도
+cd backend
+mvnw.cmd clean install
+mvnw.cmd spring-boot:run
+```
+
+#### ❌ 프론트엔드 의존성 설치 실패
+**증상**: `npm install` 실행 시 오류 발생
+
+**해결방법**:
+```bash
+# 1. Node.js 버전 확인 (v16 이상 필요)
+node --version
+npm --version
+
+# 2. npm 캐시 정리
+npm cache clean --force
+
+# 3. node_modules 삭제 후 재설치
+cd client
+rm -rf node_modules package-lock.json  # Mac/Linux
+rmdir /s node_modules & del package-lock.json  # Windows
+npm install
+```
+
+#### ❌ 포트 충돌 오류
+**증상**: "Port 8080 already in use" 또는 "Port 3000 already in use"
+
+**해결방법**:
+```bash
+# Windows에서 포트 사용 프로세스 확인 및 종료
+netstat -ano | findstr :8080
+netstat -ano | findstr :3000
+taskkill /PID [PID번호] /F
+
+# Mac/Linux에서 포트 사용 프로세스 확인 및 종료
+lsof -ti:8080 | xargs kill -9
+lsof -ti:3000 | xargs kill -9
+```
+
+#### ❌ CORS 오류
+**증상**: "Access to fetch at 'http://localhost:8080' from origin 'http://localhost:3000' has been blocked by CORS policy"
+
+**해결방법**: 백엔드가 완전히 시작되었는지 확인 후, 브라우저 새로고침
+
+#### ❌ 데이터베이스 연결 실패
+**증상**: H2 데이터베이스 접속 불가
+
+**해결방법**: 
+1. 백엔드 서버가 완전히 시작되었는지 확인
+2. http://localhost:8080/h2-console 접속
+3. JDBC URL: `jdbc:h2:mem:testdb`, Username: `sa`, Password: 비워둠
+
+#### ⚠️ 일반적인 실행 문제
+1. **관리자 권한으로 실행**: 일부 환경에서는 관리자 권한 필요
+2. **방화벽 설정**: Windows Defender 방화벽에서 Java, Node.js 허용
+3. **바이러스 백신 소프트웨어**: 프로젝트 폴더를 예외 목록에 추가
+4. **경로 공백 문제**: 프로젝트 경로에 한글이나 공백이 있으면 이동
 
 ### � 기본 로그인 정보
 ```
