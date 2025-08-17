@@ -2,52 +2,122 @@
 
 실제 은행 창구와 동일한 경험을 제공하는 지능형 금융 상담 시스템입니다. 직원용 PC와 고객용 태블릿이 실시간으로 연동되어 seamless한 상담 서비스를 구현합니다.
 
-**🚀 v2.0 업데이트: Spring Boot + React 아키텍처로 전면 개편!**
+**🚀 v2.0 업데이트: Spring Boot + React + React Native 아키텍처로 전면 개편!**
 
 ![하나은행 로고](https://img.shields.io/badge/하나은행-00C73C?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMCA5TDEzLjA5IDE1Ljc0TDEyIDIyTDEwLjkxIDE1Ljc0TDQgOUwxMC45MSA4LjI2TDEyIDJaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
 ![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![Java](https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
-![H2 Database](https://img.shields.io/badge/H2%20Database-003B57?style=for-the-badge&logo=h2&logoColor=white)
-![WebSocket](https://img.shields.io/badge/WebSocket-010101?style=for-the-badge&logo=websocket&logoColor=white)
+![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
 
-## 📋 목차
-- [✨ 주요 기능](#-주요-기능)
-- [🛠️ 기술 스택](#️-기술-스택)
-- [🚀 빠른 시작](#-빠른-시작)
-- [📖 사용 방법](#-사용-방법)
-- [🏗️ 시스템 구조](#️-시스템-구조)
-- [📊 데이터베이스](#-데이터베이스)
-- [🔧 개발 환경](#-개발-환경)
-- [🤝 기여하기](#-기여하기)
+## 🎯 프로젝트 구성
 
-## ✨ 주요 기능
+### � 폴더 구조
+```
+📦 은행 상담 시스템
+├── �️ backend/          # Spring Boot API 서버
+├── � client/           # React 웹앱 (직원용)
+├── 📱 TabletApp/        # React Native 안드로이드 앱 (고객용)
+├── 📊 data_crawling/    # 하나은행 상품 데이터 크롤링
+├── � start-backend.bat # 백엔드 실행 스크립트
+├── 🚀 start-frontend.bat # 프론트엔드 실행 스크립트
+└── 📱 start-tablet-app.bat # 태블릿 앱 실행 스크립트
+```
 
-### 🏛️ 실제 은행 창구 환경 구현
-- **직원용 PC**: 고객 관리, 상품 탐색, 상담 진행
-- **고객용 태블릿**: 실시간 정보 확인, 상품 상세보기
-- **실시간 동기화**: STOMP WebSocket을 통한 즉시 화면 연동
+## 🚀 빠른 시작 (다른 컴퓨터에서 실행)
 
-### 👥 고객 관리 시스템
-- **OCR 신분증 인식**: 실제 신분증 스캔 (시뮬레이션)
-- **테스트 고객 데이터**: 5명의 샘플 고객 제공
-- **보유 상품 현황**: 예금, 적금, 대출 등 전체 포트폴리오 표시
-- **자산/부채 요약**: 총 자산, 총 부채, 순자산 자동 계산
+### 📋 사전 요구사항
+#### 필수 설치 프로그램
+- **Java Development Kit (JDK) 11 이상**
+  - [Oracle JDK](https://www.oracle.com/java/technologies/downloads/) 또는 [OpenJDK](https://openjdk.org/install/)
+- **Node.js v16 이상**
+  - [Node.js 공식 사이트](https://nodejs.org/)
+- **Git**
+  - [Git 공식 사이트](https://git-scm.com/)
 
-### 💰 금융 상품 관리
-- **179개 실제 하나은행 상품**: JSON 데이터 기반
-- **스마트 검색**: 상품명, 타입, 특징으로 필터링
-- **상품 비교**: 최대 3개 상품 동시 비교
-- **우대금리 표시**: 기존 고객 혜택 강조
+#### 안드로이드 앱 개발용 (선택사항)
+- **Android Studio**
+  - [Android Studio 공식 사이트](https://developer.android.com/studio)
+- **Android SDK (API Level 28 이상)**
 
-### 🔄 실시간 상담 기능
-- **화면 동기화**: 직원 PC에서 상품 선택 시 고객 태블릿에 즉시 표시
-- **세션 관리**: 직원-고객 1:1 매칭 시스템
-- **상담 히스토리**: 진행 상황 추적
+### 📥 1. 프로젝트 클론
+```bash
+git clone https://github.com/ppdoli123/bank-teller-workspace.git
+cd bank-teller-workspace
+```
 
-## 🛠️ 기술 스택
+### ⚙️ 2. 환경 설정 및 의존성 설치
 
-### Backend
+#### 백엔드 설정
+```bash
+cd backend
+# Windows
+./mvnw clean install
+
+# Mac/Linux  
+./mvnw clean install
+```
+
+#### 프론트엔드 설정
+```bash
+cd ../client
+npm install
+```
+
+#### 태블릿 앱 설정 (선택사항)
+```bash
+cd ../TabletApp
+npm install
+```
+
+### 🚀 3. 실행
+
+#### 방법 1: 배치 파일 사용 (Windows)
+```bash
+# 백엔드 실행
+start-backend.bat
+
+# 프론트엔드 실행 (새 터미널)
+start-frontend.bat
+
+# 태블릿 앱 실행 (선택사항, 새 터미널)
+start-tablet-app.bat
+```
+
+#### 방법 2: 수동 실행
+```bash
+# 1. 백엔드 실행 (포트 8080)
+cd backend
+./mvnw spring-boot:run
+
+# 2. 프론트엔드 실행 (포트 3000) - 새 터미널
+cd client
+npm start
+
+# 3. 태블릿 앱 실행 (선택사항) - 새 터미널
+cd TabletApp
+npm run android  # Android 에뮬레이터 필요
+```
+
+### 🌐 4. 접속 주소
+- **직원용 웹 인터페이스**: http://localhost:3000
+- **고객용 태블릿 (웹)**: http://localhost:3000/tablet
+- **고객용 태블릿 (앱)**: Android 에뮬레이터 또는 실제 디바이스
+- **API 서버**: http://localhost:8080
+- **H2 데이터베이스 콘솔**: http://localhost:8080/h2-console
+
+### � 기본 로그인 정보
+```
+직원 로그인:
+- ID: employee1
+- PW: password123
+
+H2 데이터베이스:
+- JDBC URL: jdbc:h2:mem:testdb
+- Username: sa
+- Password: (빈 값)
+```
 - **Spring Boot 3.2**: 엔터프라이즈급 Java 프레임워크
 - **Spring Data JPA**: 데이터베이스 ORM
 - **Spring Security**: 보안 및 인증
