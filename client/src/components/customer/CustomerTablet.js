@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import axios from 'axios';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import FormDisplay from './FormDisplay';
 
 const TabletContainer = styled.div`
   width: 100vw;
@@ -105,6 +106,8 @@ const CustomerTablet = () => {
   const [customerProducts, setCustomerProducts] = useState([]);
   const [productSummary, setProductSummary] = useState(null);
   const [selectedProductDetail, setSelectedProductDetail] = useState(null);
+  const [formData, setFormData] = useState(null);
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     // URL에서 세션 ID 추출 또는 기본 태블릿 세션 사용
@@ -171,6 +174,12 @@ const CustomerTablet = () => {
               console.log('직원 연결됨 (상품 동기화를 통해 감지)');
             }
             setSelectedProductDetail(data.data || data.productData);
+            break;
+          case 'form-display':
+            // 서식 표시 메시지 처리
+            console.log('서식 표시 메시지 수신:', data.data);
+            setFormData(data.data);
+            setShowForm(true);
             break;
           case 'session-status':
             if (data.connected) {
@@ -489,6 +498,11 @@ const CustomerTablet = () => {
           </div>
         )}
       </WelcomeCard>
+
+      {/* 서식 표시 */}
+      {showForm && formData && (
+        <FormDisplay formData={formData} />
+      )}
     </TabletContainer>
   );
 };

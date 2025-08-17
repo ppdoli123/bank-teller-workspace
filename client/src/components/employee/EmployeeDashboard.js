@@ -9,6 +9,7 @@ import Webcam from 'react-webcam';
 import ProductExplorer from './ProductExplorer';
 import SimulationPanel from './SimulationPanel';
 import CustomerInfo from './CustomerInfo';
+import FormSelector from './FormSelector';
 
 const DashboardContainer = styled.div`
   display: flex;
@@ -281,6 +282,8 @@ const EmployeeDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [testCustomers, setTestCustomers] = useState([]);
   const [showCustomerSelect, setShowCustomerSelect] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedForm, setSelectedForm] = useState(null);
   
   const navigate = useNavigate();
   const webcamRef = useRef(null);
@@ -711,6 +714,12 @@ const EmployeeDashboard = () => {
             상품 탐색
           </Tab>
           <Tab 
+            active={activeTab === 'forms'} 
+            onClick={() => setActiveTab('forms')}
+          >
+            서식 선택
+          </Tab>
+          <Tab 
             active={activeTab === 'simulation'} 
             onClick={() => setActiveTab('simulation')}
           >
@@ -726,7 +735,17 @@ const EmployeeDashboard = () => {
           {activeTab === 'products' && (
             <ProductExplorer 
               onScreenSync={syncScreenToCustomer}
+              onProductSelected={setSelectedProduct}
               customerId={currentCustomer?.CustomerID}
+            />
+          )}
+          
+          {activeTab === 'forms' && (
+            <FormSelector
+              selectedProduct={selectedProduct}
+              onFormSelected={setSelectedForm}
+              sessionId={sessionId}
+              stompClient={stompClient}
             />
           )}
           

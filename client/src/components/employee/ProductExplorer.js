@@ -318,7 +318,7 @@ const getProductIcon = (type) => {
   return icons[type] || '📄';
 };
 
-const ProductExplorer = ({ onScreenSync, customerId }) => {
+const ProductExplorer = ({ onScreenSync, onProductSelected, customerId }) => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -416,6 +416,11 @@ const ProductExplorer = ({ onScreenSync, customerId }) => {
     
     setSelectedProduct(product);
     setShowModal(true);
+    
+    // 상품 선택 이벤트 전달
+    if (onProductSelected) {
+      onProductSelected(product);
+    }
     
     console.log('setSelectedProduct 호출 완료');
     console.log('setShowModal(true) 호출 완료');
