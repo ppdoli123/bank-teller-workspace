@@ -27,10 +27,20 @@ public class WebSocketController {
         log.info("세션 참여 요청 - sessionId: {}, userType: {}, userId: {}", sessionId, userType, userId);
         
         // 세션 정보를 헤더에 저장
-        if (headerAccessor.getSessionAttributes() != null) {
-            headerAccessor.getSessionAttributes().put("sessionId", sessionId);
-            headerAccessor.getSessionAttributes().put("userType", userType);
-            headerAccessor.getSessionAttributes().put("userId", userId);
+        try {
+            Map<String, Object> sessionAttributes = headerAccessor.getSessionAttributes();
+            if (sessionAttributes == null) {
+                sessionAttributes = new HashMap<>();
+                headerAccessor.setSessionAttributes(sessionAttributes);
+                sessionAttributes = headerAccessor.getSessionAttributes(); // 재할당
+            }
+            if (sessionAttributes != null) {
+                sessionAttributes.put("sessionId", sessionId);
+                sessionAttributes.put("userType", userType);
+                sessionAttributes.put("userId", userId);
+            }
+        } catch (Exception e) {
+            log.warn("세션 속성 설정 실패: {}", e.getMessage());
         }
         
         // 세션 참여 성공 알림
