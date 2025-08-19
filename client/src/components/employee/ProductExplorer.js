@@ -1,72 +1,112 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import axios from 'axios';
+import { getProductInterestRates, getBestRateForPeriod } from '../../utils/interestRateUtils';
+import { productCategories, productDetails, productIcons, productColors } from '../../data/hanaProducts';
 
 const ExplorerContainer = styled.div`
-  padding: 2rem;
+  padding: var(--hana-space-8);
   height: 100%;
   overflow: auto;
+  background: var(--hana-bg-gray);
+  font-family: var(--hana-font-family);
 `;
 
 const SearchBar = styled.div`
   display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
+  gap: var(--hana-space-4);
+  margin-bottom: var(--hana-space-8);
   align-items: center;
+  background: var(--hana-white);
+  padding: var(--hana-space-6);
+  border-radius: var(--hana-radius-lg);
+  box-shadow: var(--hana-shadow-light);
+  border: var(--hana-border-light);
 `;
 
 const SearchInput = styled.input`
   flex: 1;
-  padding: 1rem;
-  border: 2px solid #e9ecef;
-  border-radius: 8px;
-  font-size: 1rem;
+  padding: var(--hana-space-4);
+  border: 2px solid var(--hana-light-gray);
+  border-radius: var(--hana-radius-md);
+  font-size: var(--hana-font-size-base);
+  font-family: var(--hana-font-family);
+  transition: all var(--hana-transition-base);
   
   &:focus {
     outline: none;
-    border-color: var(--hana-mint);
+    border-color: var(--hana-primary);
+    box-shadow: 0 0 0 3px rgba(0, 133, 122, 0.1);
+  }
+  
+  &::placeholder {
+    color: var(--hana-gray);
+    font-weight: 500;
   }
 `;
 
 const FilterSelect = styled.select`
-  padding: 1rem;
-  border: 2px solid #e9ecef;
-  border-radius: 8px;
-  font-size: 1rem;
-  background: white;
-  min-width: 150px;
+  padding: var(--hana-space-4);
+  border: 2px solid var(--hana-light-gray);
+  border-radius: var(--hana-radius-md);
+  font-size: var(--hana-font-size-base);
+  font-family: var(--hana-font-family);
+  background: var(--hana-white);
+  min-width: 200px;
+  font-weight: 600;
+  color: var(--hana-primary);
+  transition: all var(--hana-transition-base);
   
   &:focus {
     outline: none;
-    border-color: var(--hana-mint);
+    border-color: var(--hana-primary);
+    box-shadow: 0 0 0 3px rgba(0, 133, 122, 0.1);
   }
 `;
 
 const ProductGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: var(--hana-space-6);
+  margin-bottom: var(--hana-space-8);
 `;
 
 const ProductCard = styled.div`
   background: var(--hana-white);
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: var(--hana-radius-lg);
+  box-shadow: var(--hana-shadow-light);
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: all var(--hana-transition-base);
   cursor: pointer;
+  border: var(--hana-border-light);
+  position: relative;
   
   &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 25px rgba(0, 132, 133, 0.15);
+    transform: translateY(-6px);
+    box-shadow: var(--hana-shadow-heavy);
+    border-color: var(--hana-primary);
+  }
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--hana-primary), var(--hana-mint), var(--hana-orange));
+    opacity: 0;
+    transition: all var(--hana-transition-base);
+  }
+  
+  &:hover::before {
+    opacity: 1;
   }
 `;
 
 const ProductHeader = styled.div`
-  background: linear-gradient(135deg, var(--hana-mint) 0%, var(--hana-mint-dark) 100%);
-  color: white;
-  padding: 1.5rem;
+  background: linear-gradient(135deg, ${props => props.bgColor || 'var(--hana-primary)'} 0%, ${props => props.bgColor ? props.bgColor + 'DD' : 'var(--hana-mint)'} 100%);
+  color: var(--hana-white);
+  padding: var(--hana-space-6);
   position: relative;
   
   &::after {
@@ -75,93 +115,144 @@ const ProductHeader = styled.div`
     bottom: 0;
     left: 0;
     right: 0;
-    height: 4px;
-    background: var(--hana-mint-light);
+    height: 3px;
+    background: rgba(255, 255, 255, 0.3);
   }
 `;
 
 const ProductType = styled.div`
-  font-size: 0.8rem;
-  opacity: 0.9;
-  margin-bottom: 0.5rem;
+  font-size: var(--hana-font-size-sm);
+  opacity: 0.95;
+  margin-bottom: var(--hana-space-2);
   text-transform: uppercase;
   letter-spacing: 1px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: var(--hana-space-2);
 `;
 
 const ProductName = styled.h3`
-  font-size: 1.3rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
+  font-size: var(--hana-font-size-xl);
+  font-weight: 900;
+  margin-bottom: var(--hana-space-2);
+  line-height: 1.3;
 `;
 
 const ProductDescription = styled.p`
-  font-size: 0.9rem;
-  opacity: 0.9;
-  line-height: 1.4;
+  font-size: var(--hana-font-size-sm);
+  opacity: 0.95;
+  line-height: 1.5;
+  margin: 0;
 `;
 
 const ProductBody = styled.div`
-  padding: 1.5rem;
+  padding: var(--hana-space-6);
 `;
 
 const ProductDetails = styled.div`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: var(--hana-space-3);
+  margin-bottom: var(--hana-space-6);
 `;
 
 const DetailItem = styled.div`
   text-align: center;
-  padding: 1rem;
-  background: var(--hana-gray);
-  border-radius: 8px;
+  padding: var(--hana-space-4);
+  background: var(--hana-primary-light);
+  border-radius: var(--hana-radius-md);
+  border: 1px solid rgba(0, 133, 122, 0.1);
+  transition: all var(--hana-transition-base);
+  
+  &:hover {
+    background: rgba(0, 133, 122, 0.1);
+    transform: scale(1.02);
+  }
 `;
 
 const DetailLabel = styled.div`
-  font-size: 0.8rem;
-  color: var(--hana-dark-gray);
-  margin-bottom: 0.25rem;
+  font-size: var(--hana-font-size-xs);
+  color: var(--hana-gray);
+  margin-bottom: var(--hana-space-1);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 `;
 
 const DetailValue = styled.div`
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--hana-mint);
+  font-size: var(--hana-font-size-base);
+  font-weight: 700;
+  color: var(--hana-primary);
+  line-height: 1.4;
 `;
 
 const ProductActions = styled.div`
   display: flex;
-  gap: 0.5rem;
+  gap: var(--hana-space-3);
 `;
 
 const ActionButton = styled.button`
   flex: 1;
-  padding: 0.75rem;
+  padding: var(--hana-space-3) var(--hana-space-4);
   border: none;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
+  border-radius: var(--hana-radius-md);
+  font-size: var(--hana-font-size-sm);
+  font-weight: 700;
+  font-family: var(--hana-font-family);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--hana-transition-base);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left var(--hana-transition-slow);
+  }
+  
+  &:hover::before {
+    left: 100%;
+  }
   
   &.primary {
-    background: var(--hana-mint);
-    color: white;
+    background: linear-gradient(135deg, var(--hana-primary), var(--hana-mint));
+    color: var(--hana-white);
+    box-shadow: var(--hana-shadow-light);
     
     &:hover {
-      background: var(--hana-mint-dark);
+      transform: translateY(-2px);
+      box-shadow: var(--hana-shadow-medium);
+    }
+    
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
     }
   }
   
   &.secondary {
-    background: transparent;
-    color: var(--hana-mint);
-    border: 1px solid var(--hana-mint);
+    background: var(--hana-white);
+    color: var(--hana-primary);
+    border: 2px solid var(--hana-primary);
     
     &:hover {
-      background: var(--hana-mint);
-      color: white;
+      background: var(--hana-primary-light);
+      transform: translateY(-1px);
+    }
+    
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      border-color: var(--hana-light-gray);
+      color: var(--hana-gray);
     }
   }
 `;
@@ -171,63 +262,89 @@ const ComparisonBar = styled.div`
   bottom: 0;
   left: 0;
   right: 0;
-  background: var(--hana-white);
-  border-top: 2px solid var(--hana-mint);
-  padding: 1rem 2rem;
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, var(--hana-white), var(--hana-primary-light));
+  border-top: 3px solid var(--hana-primary);
+  padding: var(--hana-space-4) var(--hana-space-8);
+  box-shadow: var(--hana-shadow-heavy);
   display: flex;
   justify-content: space-between;
   align-items: center;
   z-index: 100;
+  backdrop-filter: blur(10px);
 `;
 
 const ComparisonItems = styled.div`
   display: flex;
-  gap: 1rem;
+  gap: var(--hana-space-4);
   align-items: center;
+  
+  > span {
+    font-weight: 700;
+    color: var(--hana-primary);
+    font-size: var(--hana-font-size-lg);
+  }
 `;
 
 const ComparisonItem = styled.div`
-  background: var(--hana-mint);
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.9rem;
+  background: linear-gradient(135deg, var(--hana-primary), var(--hana-mint));
+  color: var(--hana-white);
+  padding: var(--hana-space-2) var(--hana-space-4);
+  border-radius: var(--hana-radius-full);
+  font-size: var(--hana-font-size-sm);
+  font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--hana-space-2);
+  box-shadow: var(--hana-shadow-light);
+  
+  &:hover {
+    transform: scale(1.05);
+  }
 `;
 
 const RemoveButton = styled.button`
-  background: none;
+  background: rgba(255, 255, 255, 0.2);
   border: none;
-  color: white;
+  color: var(--hana-white);
   cursor: pointer;
-  font-size: 1rem;
+  font-size: var(--hana-font-size-lg);
+  width: 24px;
+  height: 24px;
+  border-radius: var(--hana-radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--hana-transition-base);
   
   &:hover {
-    opacity: 0.7;
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
   }
 `;
 
 const CompareButton = styled.button`
-  background: var(--hana-mint);
-  color: white;
+  background: linear-gradient(135deg, var(--hana-orange), var(--hana-primary));
+  color: var(--hana-white);
   border: none;
-  padding: 1rem 2rem;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
+  padding: var(--hana-space-4) var(--hana-space-8);
+  border-radius: var(--hana-radius-md);
+  font-size: var(--hana-font-size-lg);
+  font-weight: 700;
+  font-family: var(--hana-font-family);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--hana-transition-base);
+  box-shadow: var(--hana-shadow-light);
   
   &:hover {
-    background: var(--hana-mint-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--hana-shadow-medium);
   }
   
   &:disabled {
-    opacity: 0.5;
+    opacity: 0.6;
     cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
   }
 `;
 
@@ -237,63 +354,106 @@ const Modal = styled.div`
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 133, 122, 0.3);
+  backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  animation: hanaFadeIn 0.3s ease-out;
 `;
 
 const ModalContent = styled.div`
-  background: white;
-  width: 90%;
-  max-width: 800px;
+  background: var(--hana-white);
+  width: 95%;
+  max-width: 900px;
   max-height: 90%;
   overflow-y: auto;
-  border-radius: 12px;
-  padding: 2rem;
+  border-radius: var(--hana-radius-xl);
+  padding: var(--hana-space-8);
   position: relative;
+  box-shadow: var(--hana-shadow-heavy);
+  border: var(--hana-border-light);
 `;
 
 const ModalHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #f1f3f4;
+  margin-bottom: var(--hana-space-8);
+  padding-bottom: var(--hana-space-6);
+  border-bottom: 3px solid var(--hana-primary-light);
+  background: linear-gradient(135deg, var(--hana-primary-light), rgba(0, 193, 178, 0.1));
+  margin: calc(-1 * var(--hana-space-8)) calc(-1 * var(--hana-space-8)) var(--hana-space-8);
+  padding: var(--hana-space-6) var(--hana-space-8);
+  border-radius: var(--hana-radius-xl) var(--hana-radius-xl) 0 0;
 `;
 
 const ModalTitle = styled.h2`
-  color: var(--hana-mint);
-  font-size: 1.5rem;
+  color: var(--hana-primary);
+  font-size: var(--hana-font-size-3xl);
   margin: 0;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  gap: var(--hana-space-3);
+  
+  &::before {
+    content: '🏦';
+    font-size: var(--hana-font-size-2xl);
+  }
 `;
 
 const CloseButton = styled.button`
-  background: none;
-  border: none;
-  font-size: 1.5rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid var(--hana-light-gray);
+  font-size: var(--hana-font-size-2xl);
   cursor: pointer;
-  color: #666;
+  color: var(--hana-gray);
+  width: 48px;
+  height: 48px;
+  border-radius: var(--hana-radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--hana-transition-base);
+  font-weight: 700;
   
   &:hover {
-    color: var(--hana-mint);
+    color: var(--hana-error);
+    border-color: var(--hana-error);
+    background: var(--hana-error-light);
+    transform: scale(1.1);
   }
 `;
 
 const DetailSection = styled.div`
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--hana-space-6);
+  padding: var(--hana-space-4);
+  background: var(--hana-primary-light);
+  border-radius: var(--hana-radius-lg);
+  border-left: 4px solid var(--hana-primary);
   
   h3 {
-    color: var(--hana-mint);
-    margin-bottom: 0.5rem;
-    font-size: 1.1rem;
+    color: var(--hana-primary);
+    margin-bottom: var(--hana-space-3);
+    font-size: var(--hana-font-size-xl);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: var(--hana-space-2);
+    
+    &::before {
+      content: '▶';
+      color: var(--hana-mint);
+    }
   }
   
   p {
-    line-height: 1.6;
-    color: #333;
+    line-height: 1.7;
+    color: var(--hana-black);
+    font-weight: 500;
+    font-size: var(--hana-font-size-base);
   }
 `;
 
@@ -308,14 +468,7 @@ const formatRate = (rate) => {
 };
 
 const getProductIcon = (type) => {
-  const icons = {
-    'Savings': '💰',
-    'Deposit': '🏦',
-    'Card': '💳',
-    'Loan': '📋',
-    'Investment': '📈'
-  };
-  return icons[type] || '📄';
+  return productIcons[type] || '📄';
 };
 
 const ProductExplorer = ({ onScreenSync, onProductSelected, customerId }) => {
@@ -336,18 +489,87 @@ const ProductExplorer = ({ onScreenSync, onProductSelected, customerId }) => {
     filterProducts();
   }, [products, searchTerm, selectedType]);
 
+  // 실제 금리 조회 함수
+  const getActualInterestRate = (productName, baseRate) => {
+    const rates = getProductInterestRates(productName);
+    
+    if (rates.length === 0) {
+      return baseRate || '시장금리 연동';
+    }
+    
+    // 가장 일반적인 기간(1년 또는 12개월)의 금리를 우선 조회
+    const commonRate = getBestRateForPeriod(productName, 12);
+    if (commonRate) {
+      return `${commonRate.rateDisplay}`;
+    }
+    
+    // 첫 번째 금리 반환
+    return rates[0].rateDisplay;
+  };
+
+  // 상품별 금리 상세 정보 조회
+  const getRateDetails = (productName) => {
+    const rates = getProductInterestRates(productName);
+    return rates;
+  };
+
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('http://localhost:8080/api/products?limit=100');
-      console.log('Products response:', response.data); // 디버깅용
-      if (response.data.success && response.data.data.products) {
-        setProducts(response.data.data.products);
-      } else {
-        console.error('상품 데이터 형식 오류:', response.data);
-        setProducts([]);
-      }
+      // 하나은행 실제 상품 데이터를 사용
+      const hanaProducts = [];
+      
+      // 카테고리별 상품을 변환
+      Object.entries(productCategories).forEach(([category, products]) => {
+        products.forEach(productName => {
+          const detail = productDetails[productName];
+          const actualRate = getActualInterestRate(productName, detail?.interestRate);
+          
+          if (detail) {
+            hanaProducts.push({
+              id: hanaProducts.length + 1,
+              product_name: productName,
+              product_type: category,
+              product_features: detail.productFeatures,
+              target_customers: detail.targetCustomers,
+              deposit_period: detail.depositPeriod,
+              deposit_amount: detail.depositAmount,
+              interest_rate: actualRate,
+              preferential_rate: detail.preferentialRate,
+              tax_benefits: detail.taxBenefits,
+              withdrawal_conditions: detail.withdrawalConditions,
+              notes: detail.notes,
+              eligibility_requirements: detail.targetCustomers,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+          } else {
+            // 상세 정보가 없는 경우 기본 정보만 제공
+            hanaProducts.push({
+              id: hanaProducts.length + 1,
+              product_name: productName,
+              product_type: category,
+              product_features: `${category} 상품입니다.`,
+              target_customers: "실명의 개인 및 법인",
+              deposit_period: "상품별 상이",
+              deposit_amount: "상품별 상이", 
+              interest_rate: actualRate,
+              preferential_rate: "",
+              tax_benefits: "",
+              withdrawal_conditions: "상품별 상이",
+              notes: "자세한 내용은 영업점 문의",
+              eligibility_requirements: "실명의 개인 및 법인",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+          }
+        });
+      });
+      
+      console.log('하나은행 상품 데이터 로드 완료:', hanaProducts.length, '개');
+      setProducts(hanaProducts);
+      
     } catch (error) {
-      console.error('상품 조회 오류:', error);
+      console.error('상품 데이터 로드 오류:', error);
       setProducts([]);
     } finally {
       setLoading(false);
@@ -436,7 +658,8 @@ const ProductExplorer = ({ onScreenSync, onProductSelected, customerId }) => {
     }
   };
 
-  const productTypes = [...new Set(products.map(p => p.productType || p.product_type).filter(Boolean))];
+  // 하나은행 상품 카테고리 사용
+  const productTypes = Object.keys(productCategories);
 
   if (loading) {
     return (
@@ -452,7 +675,6 @@ const ProductExplorer = ({ onScreenSync, onProductSelected, customerId }) => {
   return (
     <>
       <ExplorerContainer>
-
         <SearchBar>
           <SearchInput
             type="text"
@@ -466,53 +688,91 @@ const ProductExplorer = ({ onScreenSync, onProductSelected, customerId }) => {
           >
             <option value="">전체 상품</option>
             {productTypes.map(type => (
-              <option key={type} value={type}>{type}</option>
+              <option key={type} value={type}>{getProductIcon(type)} {type}</option>
             ))}
           </FilterSelect>
         </SearchBar>
 
-        <ProductGrid>
-          {filteredProducts.map(product => (
-            <ProductCard key={product.id}>
-              <ProductHeader>
-                <ProductType>
-                  {getProductIcon(product.productType || product.product_type)} {product.productType || product.product_type}
-                </ProductType>
-                <ProductName>{product.productName || product.product_name}</ProductName>
-                <ProductDescription>{product.productFeatures || product.product_features}</ProductDescription>
-              </ProductHeader>
-              
-              <ProductBody>
-                <ProductDetails>
-                  <DetailItem>
-                    <DetailLabel>가입 금액</DetailLabel>
-                    <DetailValue>{product.depositAmount || product.deposit_amount || 'N/A'}</DetailValue>
-                  </DetailItem>
-                  <DetailItem>
-                    <DetailLabel>기본 금리</DetailLabel>
-                    <DetailValue>{product.interestRate || product.interest_rate || 'N/A'}</DetailValue>
-                  </DetailItem>
-                </ProductDetails>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--hana-dark-gray)' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🏦</div>
+            <h3>하나은행 상품 정보를 불러오는 중...</h3>
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--hana-dark-gray)' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔍</div>
+            <h3>검색 결과가 없습니다</h3>
+            <p>다른 키워드로 검색하거나 필터를 변경해보세요.</p>
+          </div>
+        ) : (
+          <ProductGrid>
+            {filteredProducts.map(product => (
+              <ProductCard key={product.id}>
+                <ProductHeader bgColor={productColors[product.product_type]}>
+                  <ProductType>
+                    {getProductIcon(product.productType || product.product_type)} {product.productType || product.product_type}
+                  </ProductType>
+                  <ProductName>{product.productName || product.product_name}</ProductName>
+                  <ProductDescription>{product.productFeatures || product.product_features}</ProductDescription>
+                </ProductHeader>
                 
-                <ProductActions>
-                  <ActionButton 
-                    className="secondary"
-                    onClick={() => addToComparison(product)}
-                    disabled={comparisonList.length >= 3 || comparisonList.find(p => p.id === product.id)}
-                  >
-                    비교함 추가
-                  </ActionButton>
-                  <ActionButton 
-                    className="primary"
-                    onClick={() => handleProductDetail(product)}
-                  >
-                    자세히 보기
-                  </ActionButton>
-                </ProductActions>
-              </ProductBody>
-            </ProductCard>
-          ))}
-        </ProductGrid>
+                <ProductBody>
+                  <ProductDetails>
+                    <DetailItem>
+                      <DetailLabel>가입 대상</DetailLabel>
+                      <DetailValue style={{ fontSize: '0.8rem' }}>
+                        {(product.targetCustomers || product.target_customers || 'N/A').length > 20 
+                          ? (product.targetCustomers || product.target_customers || 'N/A').substring(0, 20) + '...'
+                          : (product.targetCustomers || product.target_customers || 'N/A')
+                        }
+                      </DetailValue>
+                    </DetailItem>
+                    <DetailItem>
+                      <DetailLabel>가입 금액/기간</DetailLabel>
+                      <DetailValue style={{ fontSize: '0.8rem' }}>
+                        {(product.depositAmount || product.deposit_amount || 'N/A').length > 20 
+                          ? (product.depositAmount || product.deposit_amount || 'N/A').substring(0, 20) + '...'
+                          : (product.depositAmount || product.deposit_amount || 'N/A')
+                        }
+                      </DetailValue>
+                    </DetailItem>
+                    <DetailItem>
+                      <DetailLabel>기본 금리</DetailLabel>
+                      <DetailValue>{product.interestRate || product.interest_rate || '문의 필요'}</DetailValue>
+                    </DetailItem>
+                    <DetailItem>
+                      <DetailLabel>우대 혜택</DetailLabel>
+                      <DetailValue style={{ fontSize: '0.8rem' }}>
+                        {product.preferentialRate || product.preferential_rate 
+                          ? (product.preferentialRate || product.preferential_rate).length > 15
+                            ? (product.preferentialRate || product.preferential_rate).substring(0, 15) + '...'
+                            : (product.preferentialRate || product.preferential_rate)
+                          : '해당없음'
+                        }
+                      </DetailValue>
+                    </DetailItem>
+                  </ProductDetails>
+                  
+                  <ProductActions>
+                    <ActionButton 
+                      className="secondary"
+                      onClick={() => addToComparison(product)}
+                      disabled={comparisonList.length >= 3 || comparisonList.find(p => p.id === product.id)}
+                    >
+                      비교함 추가
+                    </ActionButton>
+                    <ActionButton 
+                      className="primary"
+                      onClick={() => handleProductDetail(product)}
+                    >
+                      자세히 보기
+                    </ActionButton>
+                  </ProductActions>
+                </ProductBody>
+              </ProductCard>
+            ))}
+          </ProductGrid>
+        )}
       </ExplorerContainer>
 
       {comparisonList.length > 0 && (
@@ -650,6 +910,61 @@ const ProductExplorer = ({ onScreenSync, onProductSelected, customerId }) => {
               }}>
                 {selectedProduct.interestRate != null ? selectedProduct.interestRate : '정보 없음'}
               </p>
+              {(() => {
+                const rateDetails = getRateDetails(selectedProduct.product_name || selectedProduct.productName);
+                if (rateDetails.length > 0) {
+                  return (
+                    <div style={{
+                      marginTop: '10px',
+                      padding: '12px',
+                      backgroundColor: '#e8f5e8',
+                      border: '1px solid #4caf50',
+                      borderRadius: '6px'
+                    }}>
+                      <h4 style={{ 
+                        margin: '0 0 8px 0', 
+                        color: '#2e7d32', 
+                        fontSize: '14px',
+                        fontWeight: 'bold'
+                      }}>💰 실시간 금리 정보</h4>
+                      <div style={{ display: 'grid', gap: '6px' }}>
+                        {rateDetails.map((rate, index) => (
+                          <div key={index} style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '6px 10px',
+                            backgroundColor: 'white',
+                            borderRadius: '4px',
+                            border: '1px solid #c8e6c9',
+                            fontSize: '13px'
+                          }}>
+                            <span style={{ fontWeight: '500', color: '#333' }}>
+                              {rate.period}
+                            </span>
+                            <span style={{ 
+                              fontWeight: 'bold', 
+                              color: '#d32f2f',
+                              fontSize: '14px'
+                            }}>
+                              {rate.rateDisplay}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{
+                        marginTop: '8px',
+                        fontSize: '11px',
+                        color: '#666',
+                        textAlign: 'center'
+                      }}>
+                        ※ 실시간 시장금리 반영 (세전 기준)
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </DetailSection>
             
             {selectedProduct.preferentialRate != null && selectedProduct.preferentialRate !== '' && (
