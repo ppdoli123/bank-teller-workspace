@@ -11,14 +11,15 @@ import NotFound from './components/common/NotFound';
 
 const AppContainer = styled.div`
   min-height: 100vh;
-  background-color: var(--hana-gray);
+  background-color: var(--hana-bg-gray);
+  font-family: var(--hana-font-family);
 `;
 
 const Header = styled.header`
-  background: linear-gradient(135deg, var(--hana-mint) 0%, var(--hana-mint-dark) 100%);
-  color: white;
-  padding: 1rem 2rem;
-  box-shadow: 0 2px 10px rgba(0, 132, 133, 0.2);
+  background: linear-gradient(135deg, var(--hana-primary) 0%, var(--hana-mint) 100%);
+  color: var(--hana-white);
+  padding: var(--hana-space-6) var(--hana-space-8);
+  box-shadow: var(--hana-shadow-medium);
   position: relative;
   overflow: hidden;
 
@@ -29,8 +30,13 @@ const Header = styled.header`
     left: 0;
     right: 0;
     bottom: 0;
-    background: url('/api/placeholder/pattern') repeat;
-    opacity: 0.1;
+    background: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 10px,
+      rgba(255, 255, 255, 0.05) 10px,
+      rgba(255, 255, 255, 0.05) 20px
+    );
   }
 `;
 
@@ -38,7 +44,7 @@ const HeaderContent = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   position: relative;
   z-index: 1;
@@ -47,20 +53,53 @@ const HeaderContent = styled.div`
 const Logo = styled.div`
   display: flex;
   align-items: center;
-  font-size: 1.5rem;
-  font-weight: 700;
-
-  &::before {
-    content: '🏦';
-    margin-right: 0.5rem;
-    font-size: 2rem;
+  font-size: var(--hana-font-size-2xl);
+  font-weight: 900;
+  gap: var(--hana-space-4);
+  
+  .logo-icon {
+    width: 56px;
+    height: 56px;
+    background: var(--hana-white);
+    border-radius: var(--hana-radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--hana-shadow-medium);
+    
+    img {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--hana-radius-md);
+    }
+  }
+  
+  .logo-text {
+    display: flex;
+    flex-direction: column;
+    
+    .main-title {
+      font-size: var(--hana-font-size-2xl);
+      font-weight: 900;
+      line-height: 1.2;
+      color: var(--hana-white);
+    }
+    
+    .sub-title {
+      font-size: var(--hana-font-size-base);
+      font-weight: 500;
+      opacity: 0.9;
+      color: var(--hana-white);
+      margin-top: var(--hana-space-1);
+    }
   }
 `;
 
 const SystemTitle = styled.h1`
-  font-size: 1.2rem;
+  font-size: var(--hana-font-size-lg);
   font-weight: 500;
-  opacity: 0.9;
+  opacity: 0.95;
+  margin: 0;
 `;
 
 function App() {
@@ -70,8 +109,15 @@ function App() {
         <Header>
           <HeaderContent>
             <div>
-              <Logo>하나은행</Logo>
-              <SystemTitle>지능형 금융 컨설팅 시뮬레이션 시스템</SystemTitle>
+              <Logo>
+                <div className="logo-icon">
+                  <img src="/hana-logo.svg" alt="하나금융그룹" />
+                </div>
+                <div className="logo-text">
+                  <div className="main-title">하나금융그룹</div>
+                  <div className="sub-title">지능형 금융 컨설팅 시뮬레이션 시스템</div>
+                </div>
+              </Logo>
             </div>
           </HeaderContent>
         </Header>

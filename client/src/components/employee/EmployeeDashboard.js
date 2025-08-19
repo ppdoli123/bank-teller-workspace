@@ -14,15 +14,17 @@ import FormSelector from './FormSelector';
 const DashboardContainer = styled.div`
   display: flex;
   height: calc(100vh - 120px);
-  background-color: var(--hana-gray);
+  background-color: var(--hana-bg-gray);
+  font-family: var(--hana-font-family);
 `;
 
 const Sidebar = styled.div`
-  width: 300px;
+  width: 320px;
   background: var(--hana-white);
-  border-right: 1px solid #e9ecef;
+  border-right: var(--hana-border-light);
   display: flex;
   flex-direction: column;
+  box-shadow: var(--hana-shadow-light);
 `;
 
 const MainContent = styled.div`
@@ -33,39 +35,109 @@ const MainContent = styled.div`
 `;
 
 const TopBar = styled.div`
-  background: var(--hana-white);
-  padding: 1rem 2rem;
-  border-bottom: 1px solid #e9ecef;
+  background: linear-gradient(135deg, var(--hana-primary), var(--hana-mint));
+  padding: var(--hana-space-6) var(--hana-space-8);
+  border-bottom: var(--hana-border-light);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  color: var(--hana-white);
+  box-shadow: var(--hana-shadow-light);
 `;
 
 const EmployeeInfo = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--hana-space-4);
+`;
+
+const HanaLogo = styled.div`
+  display: flex;
+  align-items: center;
+  margin-right: var(--hana-space-8);
+  
+  .logo-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--hana-white);
+    border-radius: var(--hana-radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: var(--hana-space-3);
+    box-shadow: var(--hana-shadow-light);
+    
+    img {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--hana-radius-sm);
+    }
+  }
+  
+  .logo-text {
+    font-size: var(--hana-font-size-lg);
+    font-weight: 700;
+    color: var(--hana-white);
+  }
 `;
 
 const Avatar = styled.div`
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--hana-mint) 0%, var(--hana-mint-dark) 100%);
+  width: 48px;
+  height: 48px;
+  border-radius: var(--hana-radius-full);
+  background: linear-gradient(135deg, var(--hana-white), rgba(255, 255, 255, 0.8));
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-weight: bold;
+  color: var(--hana-primary);
+  font-weight: 700;
+  font-size: var(--hana-font-size-lg);
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  box-shadow: var(--hana-shadow-light);
+`;
+
+const EmployeeDetails = styled.div`
+  .name {
+    font-size: var(--hana-font-size-lg);
+    font-weight: 700;
+    margin-bottom: var(--hana-space-1);
+  }
+  
+  .role {
+    font-size: var(--hana-font-size-sm);
+    opacity: 0.9;
+    font-weight: 500;
+  }
 `;
 
 const SessionStatus = styled.div`
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  background: ${props => props.active ? 'var(--hana-success)' : 'var(--hana-dark-gray)'};
-  color: white;
+  padding: var(--hana-space-3) var(--hana-space-5);
+  border-radius: var(--hana-radius-full);
+  font-size: var(--hana-font-size-base);
+  font-weight: 700;
+  background: ${props => props.active ? 'var(--hana-success)' : 'rgba(255, 255, 255, 0.2)'};
+  color: var(--hana-white);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  gap: var(--hana-space-3);
+  min-width: 180px;
+  justify-content: center;
+  
+  &::before {
+    content: '';
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: ${props => props.active ? 'var(--hana-white)' : 'rgba(255, 255, 255, 0.6)'};
+    animation: ${props => props.active ? 'pulse 2s infinite' : 'none'};
+  }
+  
+  @keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+  }
 `;
 
 const ContentArea = styled.div`
@@ -75,55 +147,228 @@ const ContentArea = styled.div`
 `;
 
 const Section = styled.div`
-  padding: 1.5rem;
-  border-bottom: 1px solid #e9ecef;
+  padding: var(--hana-space-6);
+  border-bottom: var(--hana-border-light);
+  
+  &:last-child {
+    border-bottom: none;
+  }
 `;
 
 const SectionTitle = styled.h3`
-  color: var(--hana-mint);
-  margin-bottom: 1rem;
-  font-size: 1.1rem;
-  font-weight: 600;
+  color: var(--hana-primary);
+  margin-bottom: var(--hana-space-4);
+  font-size: var(--hana-font-size-xl);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: var(--hana-space-2);
+  
+  &::before {
+    content: '';
+    width: 4px;
+    height: 24px;
+    background: linear-gradient(135deg, var(--hana-primary), var(--hana-mint));
+    border-radius: var(--hana-radius-sm);
+  }
 `;
 
 const Button = styled.button`
-  padding: 0.75rem 1.5rem;
+  padding: var(--hana-space-3) var(--hana-space-6);
   border: none;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
+  border-radius: var(--hana-radius-md);
+  font-size: var(--hana-font-size-base);
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-  margin-bottom: 0.5rem;
+  transition: all var(--hana-transition-base);
+  margin-bottom: var(--hana-space-3);
   width: 100%;
+  font-family: var(--hana-font-family);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left var(--hana-transition-slow);
+  }
+  
+  &:hover::before {
+    left: 100%;
+  }
   
   &.primary {
-    background: var(--hana-mint);
-    color: white;
+    background: linear-gradient(135deg, var(--hana-primary), var(--hana-mint));
+    color: var(--hana-white);
+    box-shadow: var(--hana-shadow-light);
     
     &:hover {
-      background: var(--hana-mint-dark);
+      transform: translateY(-2px);
+      box-shadow: var(--hana-shadow-medium);
+      background: linear-gradient(135deg, var(--hana-primary-dark), var(--hana-primary));
+    }
+    
+    &:active {
+      transform: translateY(0);
+    }
+  }
+
+  &.secondary {
+    background: var(--hana-white);
+    color: var(--hana-primary);
+    border: 2px solid var(--hana-primary);
+    
+    &:hover {
+      background: var(--hana-primary-light);
+      transform: translateY(-1px);
+    }
+  }
+
+  &.outlined {
+    background: transparent;
+    color: var(--hana-primary);
+    border: 1px solid var(--hana-light-gray);
+    
+    &:hover {
+      border-color: var(--hana-primary);
+      background: var(--hana-primary-light);
     }
   }
   
-  &.secondary {
-    background: var(--hana-white);
-    color: var(--hana-mint);
-    border: 1px solid var(--hana-mint);
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
     
     &:hover {
-      background: var(--hana-mint);
-      color: white;
+      transform: none !important;
+      box-shadow: none !important;
     }
+  }
+`;
+
+const TabContainer = styled.div`
+  display: flex;
+  background: var(--hana-white);
+  border-bottom: var(--hana-border-light);
+  box-shadow: var(--hana-shadow-light);
+`;
+
+const Tab = styled.button`
+  flex: 1;
+  padding: var(--hana-space-4) var(--hana-space-6);
+  border: none;
+  background: ${props => props.active ? 'linear-gradient(135deg, var(--hana-primary), var(--hana-mint))' : 'transparent'};
+  color: ${props => props.active ? 'var(--hana-white)' : 'var(--hana-gray)'};
+  font-size: var(--hana-font-size-base);
+  font-weight: ${props => props.active ? '700' : '500'};
+  cursor: pointer;
+  transition: all var(--hana-transition-base);
+  border-bottom: 3px solid ${props => props.active ? 'transparent' : 'transparent'};
+  font-family: var(--hana-font-family);
+  position: relative;
+  
+  &:hover {
+    background: ${props => props.active ? 'linear-gradient(135deg, var(--hana-primary), var(--hana-mint))' : 'var(--hana-primary-light)'};
+    color: ${props => props.active ? 'var(--hana-white)' : 'var(--hana-primary)'};
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: ${props => props.active ? 'var(--hana-orange)' : 'transparent'};
+    transition: all var(--hana-transition-base);
+  }
+`;
+
+const CustomerCard = styled.div`
+  background: var(--hana-white);
+  border: var(--hana-border-light);
+  border-radius: var(--hana-radius-lg);
+  padding: var(--hana-space-4);
+  margin-bottom: var(--hana-space-3);
+  cursor: pointer;
+  transition: all var(--hana-transition-base);
+  box-shadow: var(--hana-shadow-light);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--hana-shadow-medium);
+    border-color: var(--hana-primary);
+  }
+  
+  &.selected {
+    border-color: var(--hana-primary);
+    background: var(--hana-primary-light);
+    box-shadow: var(--hana-shadow-medium);
+  }
+`;
+
+const CustomerName = styled.div`
+  font-size: var(--hana-font-size-lg);
+  font-weight: 700;
+  color: var(--hana-black);
+  margin-bottom: var(--hana-space-1);
+`;
+
+const CustomerDetails = styled.div`
+  font-size: var(--hana-font-size-sm);
+  color: var(--hana-gray);
+  display: flex;
+  flex-direction: column;
+  gap: var(--hana-space-1);
+  
+  .customer-id {
+    font-weight: 600;
+    color: var(--hana-primary);
+  }
+  
+  .customer-phone {
+    color: var(--hana-dark-gray);
+  }
+`;
+
+const StatusBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: var(--hana-space-1) var(--hana-space-3);
+  font-size: var(--hana-font-size-xs);
+  font-weight: 600;
+  border-radius: var(--hana-radius-full);
+  margin-top: var(--hana-space-2);
+  
+  &.waiting {
+    background: var(--hana-orange-light);
+    color: var(--hana-orange);
+  }
+  
+  &.in-progress {
+    background: var(--hana-mint-light);
+    color: var(--hana-primary);
+  }
+  
+  &.completed {
+    background: var(--hana-success-light);
+    color: var(--hana-success);
   }
 `;
 
 const CameraContainer = styled.div`
   position: relative;
-  margin-bottom: 1rem;
-  border-radius: 8px;
+  margin-bottom: var(--hana-space-4);
+  border-radius: var(--hana-radius-lg);
   overflow: hidden;
-  background: #000;
+  background: var(--hana-black);
+  box-shadow: var(--hana-shadow-medium);
 `;
 
 const CameraOverlay = styled.div`
@@ -131,12 +376,13 @@ const CameraOverlay = styled.div`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: white;
+  color: var(--hana-white);
   text-align: center;
   z-index: 2;
-  background: rgba(0, 0, 0, 0.7);
-  padding: 1rem;
-  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.8);
+  padding: var(--hana-space-4);
+  border-radius: var(--hana-radius-md);
+  backdrop-filter: blur(4px);
 `;
 
 const FileInput = styled.input`
@@ -148,67 +394,71 @@ const FileInputLabel = styled.label`
   padding: 0.75rem 1.5rem;
   background: var(--hana-mint);
   color: white;
-  border-radius: 8px;
+  border-radius: var(--hana-radius-md);
   text-align: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-  margin-bottom: 0.5rem;
-  
-  &:hover {
-    background: var(--hana-mint-dark);
-  }
-`;
-
-const TabContainer = styled.div`
-  display: flex;
-  border-bottom: 1px solid #e9ecef;
+  transition: all var(--hana-transition-base);
+  margin-bottom: var(--hana-space-3);
+  padding: var(--hana-space-4);
   background: var(--hana-white);
-`;
-
-const Tab = styled.button`
-  flex: 1;
-  padding: 1rem;
-  border: none;
-  background: ${props => props.active ? 'var(--hana-mint)' : 'transparent'};
-  color: ${props => props.active ? 'white' : 'var(--hana-mint)'};
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  border: 2px dashed var(--hana-light-gray);
+  color: var(--hana-primary);
+  font-weight: 600;
   
   &:hover {
-    background: ${props => props.active ? 'var(--hana-mint-dark)' : 'rgba(0, 132, 133, 0.1)'};
+    border-color: var(--hana-primary);
+    background: var(--hana-primary-light);
   }
 `;
 
 const TabContent = styled.div`
   flex: 1;
   overflow: auto;
+  background: var(--hana-white);
 `;
 
 // 고객 정보 표시 컴포넌트
 const CustomerInfoDisplay = ({ customer, detailed = false }) => {
   if (!customer) {
     return (
-      <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
-        <h3>고객 정보 없음</h3>
-        <p>신분증을 업로드하거나 테스트 고객을 선택해주세요.</p>
+      <div style={{ 
+        textAlign: 'center', 
+        padding: 'var(--hana-space-8)', 
+        color: 'var(--hana-gray)',
+        background: 'var(--hana-white)',
+        borderRadius: 'var(--hana-radius-lg)',
+        margin: 'var(--hana-space-4)',
+        border: 'var(--hana-border-light)'
+      }}>
+        <div style={{ fontSize: '3rem', marginBottom: 'var(--hana-space-4)' }}>👤</div>
+        <h3 style={{ 
+          color: 'var(--hana-primary)', 
+          marginBottom: 'var(--hana-space-2)',
+          fontSize: 'var(--hana-font-size-xl)'
+        }}>고객 정보 없음</h3>
+        <p style={{ color: 'var(--hana-gray)' }}>신분증을 업로드하거나 테스트 고객을 선택해주세요.</p>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: '1rem' }}>
+    <div style={{ padding: 'var(--hana-space-4)' }}>
       <div style={{
-        background: 'linear-gradient(135deg, var(--hana-mint) 0%, #20b2aa 100%)',
-        color: 'white',
-        padding: '1.5rem',
-        borderRadius: '12px',
-        marginBottom: '1.5rem'
+        background: 'linear-gradient(135deg, var(--hana-primary) 0%, var(--hana-mint) 100%)',
+        color: 'var(--hana-white)',
+        padding: 'var(--hana-space-6)',
+        borderRadius: 'var(--hana-radius-lg)',
+        marginBottom: 'var(--hana-space-6)',
+        boxShadow: 'var(--hana-shadow-medium)'
       }}>
-        <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.5rem' }}>
+        <h2 style={{ 
+          margin: '0 0 var(--hana-space-4) 0', 
+          fontSize: 'var(--hana-font-size-2xl)',
+          fontWeight: '700'
+        }}>
           {customer.Name} 고객님
         </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--hana-space-4)' }}>
           <div>
             <p style={{ margin: '0.5rem 0', opacity: 0.9 }}>
               <strong>연락처:</strong> {customer.Phone}
@@ -348,6 +598,11 @@ const EmployeeDashboard = () => {
     };
   }, [navigate]);
 
+  // currentCustomer 상태 변화 감지
+  useEffect(() => {
+    console.log('currentCustomer 상태 변경됨:', currentCustomer);
+  }, [currentCustomer]);
+
   const fetchTestCustomers = async () => {
     console.log('테스트 고객 데이터를 로드합니다...');
     
@@ -425,10 +680,12 @@ const EmployeeDashboard = () => {
   };
 
   const selectTestCustomer = async (customerId) => {
+    console.log('selectTestCustomer 호출됨 - customerId:', customerId);
     setLoading(true);
     try {
       // 임시로 클라이언트에서 직접 고객 데이터 생성
       const selectedCustomer = testCustomers.find(customer => customer.customer_id === customerId);
+      console.log('찾은 고객:', selectedCustomer);
       
       if (selectedCustomer) {
         // OCR 결과와 같은 형태로 변환
@@ -446,10 +703,13 @@ const EmployeeDashboard = () => {
           InvestmentPeriod: selectedCustomer.investment_period
         };
         
+        console.log('변환된 고객 데이터:', customerData);
+        
         setCurrentCustomer(customerData);
         setShowCustomerSelect(false);
         
         console.log('선택된 고객:', customerData.Name);
+        console.log('currentCustomer 상태 업데이트됨');
         console.log('STOMP 상태:', stompClient ? '연결됨' : '연결안됨');
         console.log('세션 ID:', sessionId);
         
@@ -531,7 +791,25 @@ const EmployeeDashboard = () => {
       });
       
       if (response.data.customer) {
-        setCurrentCustomer(response.data.customer);
+        const ocrCustomerData = response.data.customer;
+        
+        // OCR 데이터가 이미 올바른 형태인지 확인하고, 필요시 변환
+        const transformedOcrData = {
+          CustomerID: ocrCustomerData.CustomerID || ocrCustomerData.customerId,
+          Name: ocrCustomerData.Name || ocrCustomerData.name,
+          Phone: ocrCustomerData.Phone || ocrCustomerData.phone,
+          Age: ocrCustomerData.Age || ocrCustomerData.age,
+          Address: ocrCustomerData.Address || ocrCustomerData.address,
+          IdNumber: ocrCustomerData.IdNumber || ocrCustomerData.idNumber || '******-*******',
+          Income: ocrCustomerData.Income || ocrCustomerData.income,
+          Assets: ocrCustomerData.Assets || ocrCustomerData.assets,
+          InvestmentGoal: ocrCustomerData.InvestmentGoal || ocrCustomerData.investmentGoal,
+          RiskTolerance: ocrCustomerData.RiskTolerance || ocrCustomerData.riskTolerance,
+          InvestmentPeriod: ocrCustomerData.InvestmentPeriod || ocrCustomerData.investmentPeriod
+        };
+        
+        setCurrentCustomer(transformedOcrData);
+        console.log('OCR 고객 데이터 변환 완료:', transformedOcrData);
         
         // Socket을 통해 고객 태블릿에 정보 전송
         if (stompClient && sessionId && stompClient.active) {
@@ -539,12 +817,12 @@ const EmployeeDashboard = () => {
             destination: '/app/send-message',
             body: JSON.stringify({
               sessionId: sessionId,
-              customerData: response.data.customer
+              customerData: transformedOcrData
             })
           });
         }
         
-        await createConsultationSession(response.data.customer.CustomerID);
+        await createConsultationSession(transformedOcrData.CustomerID);
       } else {
         alert('등록되지 않은 고객입니다. 신규 고객 등록이 필요합니다.');
       }
@@ -580,7 +858,25 @@ const EmployeeDashboard = () => {
         
         // 고객 상세 정보 조회
         const customerResponse = await axios.get(`http://localhost:8080/api/customers/${customerId}`);
-        setCurrentCustomer(customerResponse.data.data);
+        const backendCustomerData = customerResponse.data.data;
+        
+        // 백엔드 데이터를 프론트엔드가 기대하는 형태로 변환
+        const transformedCustomerData = {
+          CustomerID: backendCustomerData.customerId,
+          Name: backendCustomerData.name,
+          Phone: backendCustomerData.phone,
+          Age: backendCustomerData.age,
+          Address: backendCustomerData.address,
+          IdNumber: backendCustomerData.idNumber || '******-*******',
+          Income: backendCustomerData.income,
+          Assets: backendCustomerData.assets,
+          InvestmentGoal: backendCustomerData.investmentGoal,
+          RiskTolerance: backendCustomerData.riskTolerance,
+          InvestmentPeriod: backendCustomerData.investmentPeriod
+        };
+        
+        setCurrentCustomer(transformedCustomerData);
+        console.log('백엔드에서 가져온 고객 데이터 변환 완료:', transformedCustomerData);
       }
     } catch (error) {
       console.error('세션 생성 오류:', error);
@@ -671,31 +967,52 @@ const EmployeeDashboard = () => {
           {loading && <div>신분증 인식 중...</div>}
         </Section>
 
-        {currentCustomer && (
+        {currentCustomer ? (
           <Section>
             <CustomerInfoDisplay customer={currentCustomer} />
+          </Section>
+        ) : (
+          <Section>
+            <div style={{
+              textAlign: 'center',
+              padding: '2rem 1rem',
+              color: 'var(--hana-dark-gray)',
+              background: '#f8f9fa',
+              borderRadius: '8px',
+              border: '2px dashed #dee2e6'
+            }}>
+              <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>👤</div>
+              <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--hana-mint)' }}>고객 정보</h3>
+              <p style={{ margin: 0, fontSize: '0.9rem' }}>
+                신분증을 촬영하거나<br/>
+                테스트 고객을 선택해주세요
+              </p>
+            </div>
           </Section>
         )}
       </Sidebar>
 
       <MainContent>
         <TopBar>
+          <HanaLogo>
+            <img src="/hana-logo.svg" alt="Hana" style={{ width: '40px', height: '40px' }} />
+            <div className="logo-text">하나금융그룹 스마트 상담</div>
+          </HanaLogo>
+          
           <EmployeeInfo>
             <Avatar>{employee.name.charAt(0)}</Avatar>
-            <div>
-              <div><strong>{employee.name}</strong> {employee.position}</div>
-              <div style={{ fontSize: '0.9rem', color: 'var(--hana-dark-gray)' }}>
-                {employee.department}
-              </div>
-            </div>
+            <EmployeeDetails>
+              <div className="name">{employee.name} {employee.position}</div>
+              <div className="role">{employee.department}</div>
+            </EmployeeDetails>
           </EmployeeInfo>
           
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 'var(--hana-space-4)', alignItems: 'center' }}>
             <SessionStatus active={!!sessionId}>
               {sessionId ? `세션 활성: ${sessionId.slice(-8)}` : '대기 중'}
             </SessionStatus>
             <Button className="secondary" onClick={handleLogout}>
-              로그아웃
+              🚪 로그아웃
             </Button>
           </div>
         </TopBar>
@@ -728,8 +1045,30 @@ const EmployeeDashboard = () => {
         </TabContainer>
 
         <TabContent>
-          {activeTab === 'customer' && currentCustomer && (
-            <CustomerInfoDisplay customer={currentCustomer} detailed />
+          {activeTab === 'customer' && (
+            currentCustomer ? (
+              <CustomerInfoDisplay customer={currentCustomer} detailed />
+            ) : (
+              <div style={{ 
+                textAlign: 'center', 
+                padding: 'var(--hana-space-8)', 
+                color: 'var(--hana-gray)',
+                background: 'var(--hana-white)',
+                borderRadius: 'var(--hana-radius-lg)',
+                margin: 'var(--hana-space-4)',
+                border: 'var(--hana-border-light)'
+              }}>
+                <div style={{ fontSize: '3rem', marginBottom: 'var(--hana-space-4)' }}>👤</div>
+                <h3 style={{ 
+                  color: 'var(--hana-primary)', 
+                  marginBottom: 'var(--hana-space-2)',
+                  fontSize: 'var(--hana-font-size-xl)'
+                }}>고객 정보 없음</h3>
+                <p style={{ color: 'var(--hana-gray)', marginBottom: 'var(--hana-space-4)' }}>
+                  왼쪽 사이드바에서 신분증을 업로드하거나 테스트 고객을 선택해주세요.
+                </p>
+              </div>
+            )
           )}
           
           {activeTab === 'products' && (
@@ -749,12 +1088,32 @@ const EmployeeDashboard = () => {
             />
           )}
           
-          {activeTab === 'simulation' && currentCustomer && (
-            <SimulationPanel 
-              customer={currentCustomer}
-              onScreenSync={syncScreenToCustomer}
-              sessionId={sessionId}
-            />
+          {activeTab === 'simulation' && (
+            currentCustomer ? (
+              <SimulationPanel 
+                customer={currentCustomer}
+                onScreenSync={syncScreenToCustomer}
+                sessionId={sessionId}
+              />
+            ) : (
+              <div style={{ 
+                textAlign: 'center', 
+                padding: 'var(--hana-space-8)', 
+                color: 'var(--hana-gray)',
+                background: 'var(--hana-white)',
+                borderRadius: 'var(--hana-radius-lg)',
+                margin: 'var(--hana-space-4)',
+                border: 'var(--hana-border-light)'
+              }}>
+                <div style={{ fontSize: '3rem', marginBottom: 'var(--hana-space-4)' }}>📊</div>
+                <h3 style={{ 
+                  color: 'var(--hana-primary)', 
+                  marginBottom: 'var(--hana-space-2)',
+                  fontSize: 'var(--hana-font-size-xl)'
+                }}>혜택 시뮬레이션</h3>
+                <p style={{ color: 'var(--hana-gray)' }}>고객 정보를 먼저 입력해주세요.</p>
+              </div>
+            )
           )}
         </TabContent>
       </MainContent>
@@ -767,96 +1126,105 @@ const EmployeeDashboard = () => {
           left: 0,
           width: '100%',
           height: '100%',
-          background: 'rgba(0, 0, 0, 0.5)',
+          background: 'rgba(0, 133, 122, 0.3)',
+          backdropFilter: 'blur(4px)',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          zIndex: 1000
+          zIndex: 1000,
+          animation: 'hanaFadeIn 0.3s ease-out'
         }}>
           <div style={{
-            background: 'white',
-            borderRadius: '12px',
-            padding: '2rem',
-            maxWidth: '600px',
+            background: 'var(--hana-white)',
+            borderRadius: 'var(--hana-radius-xl)',
+            padding: 'var(--hana-space-8)',
+            maxWidth: '700px',
             width: '90%',
-            maxHeight: '80%',
-            overflow: 'auto'
+            maxHeight: '85%',
+            overflow: 'auto',
+            boxShadow: 'var(--hana-shadow-heavy)',
+            border: 'var(--hana-border-light)'
           }}>
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: '1.5rem',
-              borderBottom: '2px solid #f1f3f4',
-              paddingBottom: '1rem'
+              marginBottom: 'var(--hana-space-6)',
+              borderBottom: '3px solid var(--hana-primary-light)',
+              paddingBottom: 'var(--hana-space-4)'
             }}>
-              <h2 style={{ color: 'var(--hana-mint)', margin: 0 }}>테스트 고객 선택</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--hana-space-3)' }}>
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  background: 'linear-gradient(135deg, var(--hana-primary), var(--hana-mint))',
+                  borderRadius: 'var(--hana-radius-full)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 'var(--hana-font-size-xl)',
+                  color: 'var(--hana-white)'
+                }}>👥</div>
+                <h2 style={{ 
+                  color: 'var(--hana-primary)', 
+                  margin: 0,
+                  fontSize: 'var(--hana-font-size-2xl)',
+                  fontWeight: '700'
+                }}>테스트 고객 선택</h2>
+              </div>
               <button
                 onClick={() => setShowCustomerSelect(false)}
                 style={{
                   background: 'none',
                   border: 'none',
-                  fontSize: '1.5rem',
+                  fontSize: 'var(--hana-font-size-2xl)',
                   cursor: 'pointer',
-                  color: '#666'
+                  color: 'var(--hana-gray)',
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: 'var(--hana-radius-full)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all var(--hana-transition-base)'
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.background = 'var(--hana-error-light)';
+                  e.target.style.color = 'var(--hana-error)';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.background = 'none';
+                  e.target.style.color = 'var(--hana-gray)';
                 }}
               >
                 ×
               </button>
             </div>
             
-            <div style={{ display: 'grid', gap: '1rem' }}>
+            <div style={{ display: 'grid', gap: 'var(--hana-space-4)' }}>
               {testCustomers.map(customer => (
-                <div
+                <CustomerCard
                   key={customer.customer_id}
-                  style={{
-                    border: '2px solid #e9ecef',
-                    borderRadius: '8px',
-                    padding: '1rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseOver={(e) => e.target.style.borderColor = 'var(--hana-mint)'}
-                  onMouseOut={(e) => e.target.style.borderColor = '#e9ecef'}
                   onClick={() => selectTestCustomer(customer.customer_id)}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--hana-mint)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1 }}>
+                      <CustomerName>
                         {customer.name} ({customer.age}세)
-                      </h3>
-                      <p style={{ margin: '0.25rem 0', color: '#666' }}>
-                        📞 {customer.phone}
-                      </p>
-                      <p style={{ margin: '0.25rem 0', color: '#666' }}>
-                        📍 {customer.address}
-                      </p>
-                      <p style={{ margin: '0.25rem 0', color: '#666' }}>
-                        💰 연소득: {customer.income?.toLocaleString()}원
-                      </p>
-                      <p style={{ margin: '0.25rem 0', color: '#666' }}>
-                        🎯 목표: {customer.investment_goal}
-                      </p>
+                      </CustomerName>
+                      <CustomerDetails>
+                        <div className="customer-id">ID: {customer.customer_id}</div>
+                        <div className="customer-phone">📞 {customer.phone}</div>
+                        <div>📍 {customer.address}</div>
+                        <div>💰 연소득: {customer.income?.toLocaleString()}원</div>
+                        <div>🎯 목표: {customer.investment_goal}</div>
+                      </CustomerDetails>
                     </div>
-                    <div style={{
-                      background: 'var(--hana-mint)',
-                      color: 'white',
-                      padding: '0.5rem 1rem',
-                      borderRadius: '20px',
-                      fontSize: '0.9rem'
-                    }}>
-                      {customer.customer_id}
-                    </div>
+                    <StatusBadge className="waiting">선택 가능</StatusBadge>
                   </div>
-                </div>
+                </CustomerCard>
               ))}
             </div>
-            
-            {testCustomers.length === 0 && (
-              <p style={{ textAlign: 'center', color: '#666', padding: '2rem' }}>
-                등록된 테스트 고객이 없습니다.
-              </p>
-            )}
           </div>
         </div>
       )}
