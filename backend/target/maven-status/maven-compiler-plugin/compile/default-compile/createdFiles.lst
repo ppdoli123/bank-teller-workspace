@@ -9,11 +9,13 @@ com\hanabank\smartconsulting\repository\FinancialProductRepository.class
 com\hanabank\smartconsulting\dto\LoginResponse.class
 com\hanabank\smartconsulting\repository\EmployeeRepository.class
 com\hanabank\smartconsulting\controller\OcrController.class
+com\hanabank\smartconsulting\config\WebConfig.class
 com\hanabank\smartconsulting\config\CorsConfig.class
 com\hanabank\smartconsulting\dto\LoginRequest.class
 com\hanabank\smartconsulting\controller\HealthController.class
 com\hanabank\smartconsulting\entity\Employee$EmployeeBuilder.class
 com\hanabank\smartconsulting\controller\ConsultationController.class
+com\hanabank\smartconsulting\controller\TestFormsController.class
 com\hanabank\smartconsulting\config\WebSocketConfig.class
 com\hanabank\smartconsulting\controller\ProductController.class
 com\hanabank\smartconsulting\entity\CustomerProduct.class
@@ -29,6 +31,7 @@ com\hanabank\smartconsulting\entity\ConsultationSession$ConsultationSessionBuild
 com\hanabank\smartconsulting\controller\AuthController.class
 com\hanabank\smartconsulting\entity\Customer$CustomerBuilder.class
 com\hanabank\smartconsulting\entity\ProductForm$ProductFormBuilder.class
+com\hanabank\smartconsulting\controller\FormController.class
 com\hanabank\smartconsulting\dto\ApiResponse.class
 com\hanabank\smartconsulting\dto\ApiResponse$ApiResponseBuilder.class
 com\hanabank\smartconsulting\dto\ProductFormDto$ProductFormDtoBuilder.class

@@ -93,6 +93,23 @@ public class WebSocketController {
         ));
     }
     
+    @MessageMapping("/send-to-session")
+    public void sendToSession(@Payload Map<String, Object> payload) {
+        String sessionId = (String) payload.get("sessionId");
+        String type = (String) payload.get("type");
+        Object data = payload.get("data");
+        
+        log.info("세션으로 데이터 전송 - sessionId: {}, type: {}", sessionId, type);
+        
+        // 태블릿으로 데이터 전송
+        Map<String, Object> response = new HashMap<>();
+        response.put("type", type);
+        response.put("data", data);
+        response.put("timestamp", System.currentTimeMillis());
+        
+        messagingTemplate.convertAndSend("/topic/session/" + sessionId, response);
+    }
+    
     @MessageMapping("/send-message")
     public void sendMessage(@Payload Map<String, Object> payload) {
         String sessionId = (String) payload.get("sessionId");
