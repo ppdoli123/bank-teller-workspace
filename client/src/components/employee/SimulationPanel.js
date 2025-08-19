@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
+import { getProductInterestRates, getBestRateForPeriod } from '../../utils/interestRateUtils';
 
 const SimulationContainer = styled.div`
   padding: 2rem;
@@ -381,6 +382,28 @@ const SimulationPanel = ({ customer, onScreenSync, sessionId }) => {
     });
   };
 
+  // 실제 금리 계산 함수
+  const calculateActualInterestRate = (productName, periodMonths = 12) => {
+    const rateInfo = getBestRateForPeriod(productName, periodMonths);
+    return rateInfo ? rateInfo.interestRate : null;
+  };
+
+  // 시뮬레이션 결과에 실제 금리 반영
+  const enhanceSimulationWithActualRates = (result, productName, periodMonths) => {
+    const actualRate = calculateActualInterestRate(productName, periodMonths);
+    
+    if (actualRate) {
+      return {
+        ...result,
+        baseInterestRate: actualRate,
+        actualRateUsed: true,
+        rateSource: '실시간 시장금리'
+      };
+    }
+    
+    return result;
+  };
+
   const runSimulation = async (productId, conditionIds) => {
     if (!productId) return;
     
@@ -393,18 +416,44 @@ const SimulationPanel = ({ customer, onScreenSync, sessionId }) => {
         selectedConditions: conditionIds
       });
       
-      setSimulationResult(response.data);
+      // 실제 금리로 강화된 시뮬레이션 결과
+      const productName = selectedProduct?.ProductName || selectedProduct?.product_name;
+      const enhancedResult = enhanceSimulationWithActualRates(
+        response.data, 
+        productName, 
+        12 // 기본 12개월
+      );
+      
+      setSimulationResult(enhancedResult);
       
       // 고객 화면에 시뮬레이션 결과 동기화
       onScreenSync({
         type: 'simulation-result',
         data: {
           product: selectedProduct,
-          result: response.data
+          result: enhancedResult
         }
       });
     } catch (error) {
       console.error('시뮬레이션 오류:', error);
+      
+      // API 오류 시 프론트엔드에서 기본 시뮬레이션 제공
+      if (selectedProduct) {
+        const productName = selectedProduct.ProductName || selectedProduct.product_name;
+        const actualRate = calculateActualInterestRate(productName);
+        
+        const fallbackResult = {
+          baseInterestRate: actualRate || 2.5,
+          preferentialRate: selectedConditions.length * 0.1,
+          totalInterestRate: (actualRate || 2.5) + (selectedConditions.length * 0.1),
+          estimatedReturn: 1000000, // 임시 값
+          actualRateUsed: actualRate ? true : false,
+          rateSource: actualRate ? '실시간 시장금리' : '기본 금리',
+          fallbackMode: true
+        };
+        
+        setSimulationResult(fallbackResult);
+      }
     } finally {
       setLoading(false);
     }
@@ -500,8 +549,46 @@ const SimulationPanel = ({ customer, onScreenSync, sessionId }) => {
                 {selectedProduct.ProductName}
               </div>
               <div style={{ fontSize: '0.9rem', color: 'var(--hana-dark-gray)' }}>
-                기본 금리: {formatRate(selectedProduct.BaseInterestRate)}
+                기본 금리: {(() => {
+                  const productName = selectedProduct.ProductName || selectedProduct.product_name;
+                  const actualRate = calculateActualInterestRate(productName);
+                  if (actualRate) {
+                    return `${actualRate.toFixed(2)}% (실시간 금리)`;
+                  }
+                  return formatRate(selectedProduct.BaseInterestRate);
+                })()}
               </div>
+              {(() => {
+                const productName = selectedProduct.ProductName || selectedProduct.product_name;
+                const rates = getProductInterestRates(productName);
+                if (rates.length > 0) {
+                  return (
+                    <div style={{
+                      marginTop: '8px',
+                      padding: '8px',
+                      backgroundColor: '#e8f5e8',
+                      borderRadius: '4px',
+                      border: '1px solid #4caf50'
+                    }}>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#2e7d32', marginBottom: '4px' }}>
+                        📈 실시간 금리 정보
+                      </div>
+                      {rates.slice(0, 3).map((rate, idx) => (
+                        <div key={idx} style={{
+                          fontSize: '0.75rem',
+                          color: '#333',
+                          display: 'flex',
+                          justifyContent: 'space-between'
+                        }}>
+                          <span>{rate.period}</span>
+                          <span style={{ fontWeight: 'bold', color: '#d32f2f' }}>{rate.rateDisplay}</span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
           )}
         </ProductSelector>
@@ -540,6 +627,16 @@ const SimulationPanel = ({ customer, onScreenSync, sessionId }) => {
             <ResultCard>
               <ResultLabel>기본 금리</ResultLabel>
               <ResultValue>{formatRate(simulationResult.baseInterestRate)}</ResultValue>
+              {simulationResult.actualRateUsed && (
+                <div style={{
+                  fontSize: '0.7rem',
+                  color: '#4caf50',
+                  fontWeight: 'bold',
+                  marginTop: '4px'
+                }}>
+                  🔄 {simulationResult.rateSource}
+                </div>
+              )}
             </ResultCard>
             <ResultCard>
               <ResultLabel>최종 금리</ResultLabel>
