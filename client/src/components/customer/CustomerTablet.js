@@ -177,9 +177,16 @@ const CustomerTablet = () => {
             break;
           case 'form-display':
             // 서식 표시 메시지 처리
-            console.log('서식 표시 메시지 수신:', data.data);
+            console.log('서식 표시 메시지 수신:', data);
+            console.log('서식 데이터:', data.data);
             setFormData(data.data);
             setShowForm(true);
+            // 직원이 연결되지 않았다면 연결상태로 설정
+            if (!connected) {
+              setConnected(true);
+              setEmployeeName('직원');
+              setIsWaitingForEmployee(false);
+            }
             break;
           case 'session-status':
             if (data.connected) {

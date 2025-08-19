@@ -150,7 +150,7 @@ const FormDisplay = ({ formData }) => {
 
       <FormContent
         dangerouslySetInnerHTML={{ 
-          __html: formData.formContent || '서식 내용을 불러오는 중입니다...' 
+          __html: formData.formTemplate || formData.formContent || '서식 내용을 불러오는 중입니다...' 
         }}
       />
     </FormDisplayContainer>

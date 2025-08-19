@@ -2,6 +2,14 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
 
+// 한글-영어 매핑
+const FORM_TYPE_MAPPING = {
+  '예금': 'deposit',
+  '적금': 'savings', 
+  '대출': 'loan',
+  '투자': 'investment'
+};
+
 const FormSelectorContainer = styled.div`
   background: white;
   border-radius: 12px;
@@ -129,9 +137,14 @@ const FormSelector = ({ selectedProduct, onFormSelected, sessionId, stompClient 
   const fetchFormsByType = async (formType) => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:8080/api/forms/type/${formType}`);
+      // 한글을 영어로 변환
+      const englishType = FORM_TYPE_MAPPING[formType] || formType;
+      const response = await axios.get(`http://localhost:8080/api/test-forms/by-type?type=${englishType}`);
       if (response.data.success) {
         setAvailableForms(response.data.data);
+      } else {
+        // 응답이 배열인 경우 (success 없이)
+        setAvailableForms(response.data);
       }
     } catch (error) {
       console.error('서식 목록 조회 실패:', error);
@@ -155,53 +168,63 @@ const FormSelector = ({ selectedProduct, onFormSelected, sessionId, stompClient 
 
   // 서식 적용
   const handleApplyForm = async () => {
-    if (!selectedForm || !selectedProduct) {
-      alert('서식과 상품을 모두 선택해주세요.');
+    if (!selectedForm) {
+      alert('서식을 선택해주세요.');
       return;
     }
+
+    console.log('서식 전송 시작:', {
+      selectedForm,
+      selectedProduct,
+      sessionId,
+      stompClient: !!stompClient
+    });
 
     try {
       setLoading(true);
       
-      // 서식 생성 요청
-      const response = await axios.post('http://localhost:8080/api/forms/generate', {
-        formId: selectedForm.id,
-        productId: selectedProduct.id
-      });
+      // 서식 데이터 준비 (상품 정보 없이도 가능)
+      const formData = {
+        formType: selectedFormType,
+        formName: selectedForm.formName,
+        formTemplate: selectedForm.formTemplate,
+        description: selectedForm.description,
+        productInfo: selectedProduct || null // 상품이 선택되지 않아도 null로 전송
+      };
 
-      if (response.data.success) {
-        const filledForm = response.data.data;
+      // 태블릿으로 서식 전송
+      if (stompClient && sessionId) {
+        console.log('WebSocket으로 서식 전송:', formData);
         
-        // 태블릿으로 서식 전송
-        if (stompClient && sessionId) {
-          stompClient.publish({
-            destination: '/app/send-to-session',
-            body: JSON.stringify({
-              sessionId: sessionId,
-              type: 'form-display',
-              data: {
-                formType: selectedFormType,
-                formName: selectedForm.formName,
-                formContent: filledForm,
-                productInfo: selectedProduct
-              }
-            })
-          });
-        }
-
-        if (onFormSelected) {
-          onFormSelected({
-            form: selectedForm,
-            filledContent: filledForm,
-            productInfo: selectedProduct
-          });
-        }
+        stompClient.publish({
+          destination: '/app/send-to-session',
+          body: JSON.stringify({
+            sessionId: sessionId,
+            type: 'form-display',
+            data: formData
+          })
+        });
 
         alert('서식이 태블릿으로 전송되었습니다.');
+      } else {
+        console.error('WebSocket 연결 또는 세션 ID가 없습니다:', {
+          stompClient: !!stompClient,
+          sessionId
+        });
+        alert('WebSocket 연결이 필요합니다.');
       }
+
+      if (onFormSelected) {
+        onFormSelected({
+          form: selectedForm,
+          filledContent: selectedForm.formTemplate,
+          productInfo: selectedProduct
+        });
+      }
+
     } catch (error) {
-      console.error('서식 생성 실패:', error);
-      alert('서식 생성에 실패했습니다.');
+      console.error('서식 전송 실패:', error);
+      alert('서식 전송에 실패했습니다.');
     } finally {
       setLoading(false);
     }
@@ -256,7 +279,7 @@ const FormSelector = ({ selectedProduct, onFormSelected, sessionId, stompClient 
 
           <ActionButton
             onClick={handleApplyForm}
-            disabled={!selectedForm || !selectedProduct || loading}
+            disabled={!selectedForm || loading}
           >
             {loading ? '처리 중...' : '서식 태블릿으로 전송'}
           </ActionButton>
@@ -265,15 +288,15 @@ const FormSelector = ({ selectedProduct, onFormSelected, sessionId, stompClient 
 
       {!selectedProduct && (
         <div style={{ 
-          background: '#fff3cd', 
-          border: '1px solid #ffeaa7', 
+          background: '#e3f2fd', 
+          border: '1px solid #90caf9', 
           borderRadius: '6px',
           padding: '1rem',
           marginTop: '1rem',
           textAlign: 'center',
-          color: '#856404'
+          color: '#1565c0'
         }}>
-          먼저 상품을 선택해주세요.
+          💡 상품을 선택하면 더 자세한 서식 정보를 제공할 수 있습니다.
         </div>
       )}
     </FormSelectorContainer>
