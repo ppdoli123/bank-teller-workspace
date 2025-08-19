@@ -1,19 +1,100 @@
-/* 하나은행 브랜드 색상 정의 */
+/* 하나금융그룹 공식 색상 팔레트 및 기본 스타일 */
 :root {
-  --hana-mint: #008485;
-  --hana-mint-light: #4db8ba;
-  --hana-mint-dark: #006566;
-  --hana-gray: #f8f9fa;
-  --hana-dark-gray: #6c757d;
-  --hana-white: #ffffff;
-  --hana-black: #212529;
-  --hana-red: #dc3545;
-  --hana-blue: #0d6efd;
-  --hana-success: #198754;
-  --hana-warning: #ffc107;
+  /* 하나금융그룹 메인 컬러 */
+  --hana-primary: #00857A;
+  --hana-primary-dark: #006B63;
+  --hana-primary-light: #E8F5F4;
+  
+  /* 하나금융그룹 보조 컬러 */
+  --hana-mint: #00857A;
+  --hana-mint-light: #E8F5F4;
+  --hana-mint-dark: #006B63;
+  
+  /* 하나금융그룹 포인트 컬러 */
+  --hana-orange: #FF6B35;
+  --hana-orange-light: #FFE4DC;
+  
+  /* 하나금융그룹 그레이스케일 */
+  --hana-black: #1A1A1A;
+  --hana-dark-gray: #4A4A4A;
+  --hana-gray: #8C8C8C;
+  --hana-light-gray: #E5E5E5;
+  --hana-bg-gray: #F8F9FA;
+  --hana-white: #FFFFFF;
+  
+  /* 기능별 컬러 */
+  --hana-success: #28A745;
+  --hana-success-light: #D4F4DD;
+  --hana-warning: #FFC107;
+  --hana-warning-light: #FFF3CD;
+  --hana-error: #DC3545;
+  --hana-error-light: #F8D7DA;
+  --hana-info: #17A2B8;
+  --hana-info-light: #D1ECF1;
+  
+  /* 그림자 */
+  --hana-shadow-light: 0 2px 8px rgba(0, 133, 122, 0.1);
+  --hana-shadow-medium: 0 4px 16px rgba(0, 133, 122, 0.15);
+  --hana-shadow-heavy: 0 8px 32px rgba(0, 133, 122, 0.2);
+  
+  /* 보더 */
+  --hana-border-light: 1px solid var(--hana-light-gray);
+  --hana-border-medium: 1px solid var(--hana-gray);
+  --hana-border-primary: 2px solid var(--hana-primary);
+  
+  /* 타이포그래피 */
+  --hana-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  --hana-font-size-xs: 0.75rem;
+  --hana-font-size-sm: 0.875rem;
+  --hana-font-size-base: 1rem;
+  --hana-font-size-lg: 1.125rem;
+  --hana-font-size-xl: 1.25rem;
+  --hana-font-size-2xl: 1.5rem;
+  --hana-font-size-3xl: 1.875rem;
+  --hana-font-size-4xl: 2.25rem;
+  
+  /* 스페이싱 */
+  --hana-space-1: 0.25rem;
+  --hana-space-2: 0.5rem;
+  --hana-space-3: 0.75rem;
+  --hana-space-4: 1rem;
+  --hana-space-5: 1.25rem;
+  --hana-space-6: 1.5rem;
+  --hana-space-8: 2rem;
+  --hana-space-10: 2.5rem;
+  --hana-space-12: 3rem;
+  --hana-space-16: 4rem;
+  
+  /* 보더 반경 */
+  --hana-radius-sm: 4px;
+  --hana-radius-md: 8px;
+  --hana-radius-lg: 12px;
+  --hana-radius-xl: 16px;
+  --hana-radius-full: 9999px;
+  
+  /* 트랜지션 */
+  --hana-transition-fast: 0.15s ease-out;
+  --hana-transition-base: 0.2s ease-out;
+  --hana-transition-slow: 0.3s ease-out;
+  
+  /* 기존 변수 호환성 유지 */
+  --primary-color: var(--hana-primary);
+  --secondary-color: var(--hana-mint);
+  --accent-color: var(--hana-orange);
+  --background-color: var(--hana-bg-gray);
+  --surface-color: var(--hana-white);
+  --text-primary: var(--hana-black);
+  --text-secondary: var(--hana-gray);
+  --border-color: var(--hana-light-gray);
+  --shadow-light: var(--hana-shadow-light);
+  --shadow-medium: var(--hana-shadow-medium);
+  
+  /* 호환성을 위한 추가 매핑 */
+  --hana-red: var(--hana-error);
+  --hana-blue: var(--hana-info);
 }
 
-/* 전역 스타일 */
+/* 글로벌 스타일 초기화 */
 * {
   margin: 0;
   padding: 0;
@@ -21,278 +102,21 @@
 }
 
 body {
-  font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-family: var(--hana-font-family);
+  font-size: var(--hana-font-size-base);
+  line-height: 1.6;
+  color: var(--hana-black);
+  background-color: var(--hana-bg-gray);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--hana-gray);
-  color: var(--hana-black);
-  line-height: 1.6;
 }
 
-/* 버튼 스타일 */
-.btn {
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-decoration: none;
-  display: inline-block;
-  text-align: center;
-  font-family: inherit;
+#root {
+  min-height: 100vh;
+  background: var(--hana-bg-gray);
 }
 
-.btn-primary {
-  background-color: var(--hana-mint);
-  color: var(--hana-white);
+/* 코드 폰트는 기본 모노스페이스 유지 */
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
-
-.btn-primary:hover {
-  background-color: var(--hana-mint-dark);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 132, 133, 0.3);
-}
-
-.btn-secondary {
-  background-color: var(--hana-white);
-  color: var(--hana-mint);
-  border: 2px solid var(--hana-mint);
-}
-
-.btn-secondary:hover {
-  background-color: var(--hana-mint);
-  color: var(--hana-white);
-}
-
-.btn-danger {
-  background-color: var(--hana-red);
-  color: var(--hana-white);
-}
-
-.btn-danger:hover {
-  background-color: #c82333;
-}
-
-.btn-large {
-  padding: 16px 32px;
-  font-size: 18px;
-}
-
-.btn-small {
-  padding: 8px 16px;
-  font-size: 14px;
-}
-
-/* 카드 스타일 */
-.card {
-  background-color: var(--hana-white);
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  padding: 24px;
-  margin-bottom: 16px;
-  transition: box-shadow 0.3s ease;
-}
-
-.card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-}
-
-.card-header {
-  border-bottom: 1px solid #e9ecef;
-  padding-bottom: 16px;
-  margin-bottom: 16px;
-}
-
-.card-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--hana-black);
-  margin-bottom: 8px;
-}
-
-.card-subtitle {
-  font-size: 14px;
-  color: var(--hana-dark-gray);
-}
-
-/* 폼 스타일 */
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: var(--hana-black);
-}
-
-.form-input {
-  width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #e9ecef;
-  border-radius: 8px;
-  font-size: 16px;
-  font-family: inherit;
-  transition: border-color 0.3s ease;
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: var(--hana-mint);
-  box-shadow: 0 0 0 3px rgba(0, 132, 133, 0.1);
-}
-
-.form-select {
-  width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #e9ecef;
-  border-radius: 8px;
-  font-size: 16px;
-  font-family: inherit;
-  background-color: var(--hana-white);
-  cursor: pointer;
-}
-
-/* 토글 스위치 */
-.toggle-switch {
-  position: relative;
-  display: inline-block;
-  width: 60px;
-  height: 34px;
-}
-
-.toggle-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  transition: 0.4s;
-  border-radius: 34px;
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 26px;
-  width: 26px;
-  left: 4px;
-  bottom: 4px;
-  background-color: white;
-  transition: 0.4s;
-  border-radius: 50%;
-}
-
-input:checked + .slider {
-  background-color: var(--hana-mint);
-}
-
-input:checked + .slider:before {
-  transform: translateX(26px);
-}
-
-/* 상태 배지 */
-.badge {
-  display: inline-block;
-  padding: 4px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 16px;
-  text-transform: uppercase;
-}
-
-.badge-success {
-  background-color: var(--hana-success);
-  color: var(--hana-white);
-}
-
-.badge-warning {
-  background-color: var(--hana-warning);
-  color: var(--hana-black);
-}
-
-.badge-danger {
-  background-color: var(--hana-red);
-  color: var(--hana-white);
-}
-
-.badge-info {
-  background-color: var(--hana-blue);
-  color: var(--hana-white);
-}
-
-/* 로딩 스피너 */
-.spinner {
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid var(--hana-mint);
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-  margin: 20px auto;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* 유틸리티 클래스 */
-.text-center { text-align: center; }
-.text-left { text-align: left; }
-.text-right { text-align: right; }
-
-.mt-1 { margin-top: 8px; }
-.mt-2 { margin-top: 16px; }
-.mt-3 { margin-top: 24px; }
-.mt-4 { margin-top: 32px; }
-
-.mb-1 { margin-bottom: 8px; }
-.mb-2 { margin-bottom: 16px; }
-.mb-3 { margin-bottom: 24px; }
-.mb-4 { margin-bottom: 32px; }
-
-.ml-1 { margin-left: 8px; }
-.ml-2 { margin-left: 16px; }
-.mr-1 { margin-right: 8px; }
-.mr-2 { margin-right: 16px; }
-
-.p-1 { padding: 8px; }
-.p-2 { padding: 16px; }
-.p-3 { padding: 24px; }
-.p-4 { padding: 32px; }
-
-.d-flex { display: flex; }
-.justify-content-center { justify-content: center; }
-.justify-content-between { justify-content: space-between; }
-.align-items-center { align-items: center; }
-
-.w-100 { width: 100%; }
-.h-100 { height: 100%; }
-
-/* 반응형 디자인 */
-@media (max-width: 768px) {
-  .btn {
-    padding: 10px 20px;
-    font-size: 14px;
-  }
-  
-  .card {
-    padding: 16px;
-  }
-  
-  .card-title {
-    font-size: 18px;
-  }
-} 
