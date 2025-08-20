@@ -129,11 +129,13 @@ function App() {
           {/* 직원 관련 라우트 */}
           <Route path="/employee/login" element={<EmployeeLogin />} />
           <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
+          <Route path="/employee" element={<Navigate to="/employee/dashboard" replace />} />
           
           {/* 고객 인터페이스 */}
           <Route path="/customer/:sessionId" element={<CustomerInterface />} />
           
-          {/* 고객 태블릿 (창구용) */}
+          {/* 고객 태블릿 (창구용) - /customer와 /tablet 모두 지원 */}
+          <Route path="/customer" element={<CustomerTablet />} />
           <Route path="/tablet" element={<CustomerTablet />} />
           
           {/* 404 페이지 */}

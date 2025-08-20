@@ -10,6 +10,7 @@ import ProductExplorer from './ProductExplorer';
 import SimulationPanel from './SimulationPanel';
 import CustomerInfo from './CustomerInfo';
 import FormSelector from './FormSelector';
+import PDFFormManager from './PDFFormManager';
 
 const DashboardContainer = styled.div`
   display: flex;
@@ -564,6 +565,9 @@ const EmployeeDashboard = () => {
     client.onConnect = function (frame) {
       console.log('STOMP 연결 성공:', frame);
       setStompClient(client);
+      
+      // 전역 STOMP 클라이언트 설정 (ActualBankForm에서 사용)
+      window.stompClient = client;
 
       // 태블릿과 같은 세션 ID 사용
       const sharedSessionId = 'tablet_main';
@@ -1037,6 +1041,12 @@ const EmployeeDashboard = () => {
             서식 선택
           </Tab>
           <Tab 
+            active={activeTab === 'pdf-forms'} 
+            onClick={() => setActiveTab('pdf-forms')}
+          >
+            📝 PDF 서식 작성
+          </Tab>
+          <Tab 
             active={activeTab === 'simulation'} 
             onClick={() => setActiveTab('simulation')}
           >
@@ -1085,6 +1095,22 @@ const EmployeeDashboard = () => {
               onFormSelected={setSelectedForm}
               sessionId={sessionId}
               stompClient={stompClient}
+            />
+          )}
+          
+          {activeTab === 'pdf-forms' && (
+            <PDFFormManager
+              onFormSubmit={(formData) => {
+                console.log('PDF 폼 제출:', formData);
+                // 백엔드에 폼 데이터 저장
+                if (currentCustomer) {
+                  axios.post('http://localhost:8080/api/forms/submit', {
+                    customerId: currentCustomer.CustomerID,
+                    ...formData
+                  }).catch(error => console.error('폼 제출 오류:', error));
+                }
+              }}
+              onScreenSync={syncScreenToCustomer}
             />
           )}
           

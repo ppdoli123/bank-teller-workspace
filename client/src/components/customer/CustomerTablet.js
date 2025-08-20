@@ -4,6 +4,8 @@ import axios from 'axios';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import FormDisplay from './FormDisplay';
+import InteractiveFormViewer from './InteractiveFormViewer';
+import TabletFieldInput from './TabletFieldInput';
 
 const TabletContainer = styled.div`
   width: 100vw;
@@ -108,6 +110,10 @@ const CustomerTablet = () => {
   const [selectedProductDetail, setSelectedProductDetail] = useState(null);
   const [formData, setFormData] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  
+  // 필드 입력 상태 추가
+  const [fieldInputData, setFieldInputData] = useState(null);
+  const [showFieldInput, setShowFieldInput] = useState(false);
 
   useEffect(() => {
     // URL에서 세션 ID 추출 또는 기본 태블릿 세션 사용
@@ -145,24 +151,31 @@ const CustomerTablet = () => {
         const data = JSON.parse(message.body);
         console.log('세션 메시지 수신:', data);
         
-        switch (data.type) {
+        // receive-message 타입으로 래핑된 메시지 처리
+        let messageData = data;
+        if (data.type === 'receive-message' && data.data) {
+          messageData = data.data;
+          console.log('래핑된 메시지 데이터:', messageData);
+        }
+        
+        switch (messageData.type) {
           case 'session-joined':
-            if (data.userType === 'employee') {
+            if (messageData.userType === 'employee') {
               setConnected(true);
-              setEmployeeName(data.userId || '직원');
+              setEmployeeName(messageData.userId || '직원');
               setIsWaitingForEmployee(false);
-              console.log('직원 연결됨:', data.userId);
+              console.log('직원 연결됨:', messageData.userId);
             }
             break;
           case 'employee-connected':
             setConnected(true);
-            setEmployeeName(data.employeeName);
+            setEmployeeName(messageData.employeeName);
             setIsWaitingForEmployee(false);
             break;
           case 'customer-info-updated':
-            setCurrentCustomer(data.customerData);
-            if (data.customerData.CustomerID) {
-              fetchCustomerProducts(data.customerData.CustomerID);
+            setCurrentCustomer(messageData.customerData);
+            if (messageData.customerData.CustomerID) {
+              fetchCustomerProducts(messageData.customerData.CustomerID);
             }
             break;
           case 'product-detail-sync':
@@ -173,13 +186,13 @@ const CustomerTablet = () => {
               setIsWaitingForEmployee(false);
               console.log('직원 연결됨 (상품 동기화를 통해 감지)');
             }
-            setSelectedProductDetail(data.data || data.productData);
+            setSelectedProductDetail(messageData.data || messageData.productData);
             break;
           case 'form-display':
             // 서식 표시 메시지 처리
-            console.log('서식 표시 메시지 수신:', data);
-            console.log('서식 데이터:', data.data);
-            setFormData(data.data);
+            console.log('서식 표시 메시지 수신:', messageData);
+            console.log('서식 데이터:', messageData.data);
+            setFormData(messageData.data);
             setShowForm(true);
             // 직원이 연결되지 않았다면 연결상태로 설정
             if (!connected) {
@@ -188,15 +201,38 @@ const CustomerTablet = () => {
               setIsWaitingForEmployee(false);
             }
             break;
+          case 'form-preview':
+            // PDF 폼 미리보기
+            console.log('PDF 폼 미리보기 수신:', messageData);
+            setFormData(messageData.data);
+            break;
+          case 'FIELD_INPUT_REQUEST':
+            // 필드 입력 요청 처리
+            console.log('필드 입력 요청 수신:', messageData);
+            setFieldInputData(messageData.field);
+            setShowFieldInput(true);
+            break;
+          case 'FIELD_INPUT_COMPLETED':
+            // 필드 입력 완료 메시지 (태블릿에서 보낸 것이 다시 돌아옴)
+            console.log('필드 입력 완료 메시지 수신 (에코):', messageData);
+            // 태블릿에서는 특별한 처리 불필요 (행원 화면용 메시지)
+            break;
+          case 'form-completed':
+            // 완성된 PDF 폼
+            console.log('완성된 PDF 폼 수신:', messageData);
+            setFormData(messageData.data);
+            setShowForm(true);
+            break;
           case 'session-status':
-            if (data.connected) {
+            if (messageData.connected) {
               setConnected(true);
-              setEmployeeName(data.employeeName);
+              setEmployeeName(messageData.employeeName);
               setIsWaitingForEmployee(false);
             }
             break;
           default:
-            console.log('알 수 없는 메시지 타입:', data.type);
+            console.log('알 수 없는 메시지 타입:', messageData.type);
+            break;
         }
       });
     };
@@ -253,8 +289,43 @@ const CustomerTablet = () => {
     }
   };
 
+  // 필드 입력 완료 핸들러
+  const handleFieldInputComplete = (inputValue) => {
+    if (stompClient && stompClient.active && fieldInputData) {
+      stompClient.publish({
+        destination: '/app/send-message',
+        body: JSON.stringify({
+          sessionId: sessionId,
+          type: 'FIELD_INPUT_COMPLETED',
+          field: {
+            id: fieldInputData.id,
+            value: inputValue
+          }
+        })
+      });
+    }
+    
+    setShowFieldInput(false);
+    setFieldInputData(null);
+  };
+
+  // 필드 입력 취소 핸들러
+  const handleFieldInputCancel = () => {
+    setShowFieldInput(false);
+    setFieldInputData(null);
+  };
+
   return (
     <TabletContainer>
+      {/* 필드 입력 모달 */}
+      {showFieldInput && fieldInputData && (
+        <TabletFieldInput
+          fieldData={fieldInputData}
+          onComplete={handleFieldInputComplete}
+          onCancel={handleFieldInputCancel}
+        />
+      )}
+      
       <WelcomeCard>
         <Title>🏦 하나은행</Title>
         <Subtitle>스마트 금융 상담 시스템</Subtitle>
@@ -508,7 +579,15 @@ const CustomerTablet = () => {
 
       {/* 서식 표시 */}
       {showForm && formData && (
-        <FormDisplay formData={formData} />
+        <>
+          {/* 대화형 폼 뷰어 */}
+          {formData.form && (formData.form.pdfUrl || formData.form.type === 'pdf') ? (
+            <InteractiveFormViewer formData={formData} />
+          ) : (
+            /* 기존 일반 서식인 경우 */
+            <FormDisplay formData={formData} />
+          )}
+        </>
       )}
     </TabletContainer>
   );
