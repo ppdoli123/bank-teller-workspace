@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,7 +26,7 @@ public class HealthController {
         try {
             Map<String, Object> healthInfo = new HashMap<>();
             healthInfo.put("status", "healthy");
-            healthInfo.put("timestamp", LocalDateTime.now());
+            healthInfo.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
             healthInfo.put("service", "Hana Smart Consulting System");
             healthInfo.put("version", "2.0.0");
             healthInfo.put("database", "connected");
@@ -36,7 +37,7 @@ public class HealthController {
             
             Map<String, Object> healthInfo = new HashMap<>();
             healthInfo.put("status", "unhealthy");
-            healthInfo.put("timestamp", LocalDateTime.now());
+            healthInfo.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
             healthInfo.put("error", e.getMessage());
             
             return ResponseEntity.status(500).body(
