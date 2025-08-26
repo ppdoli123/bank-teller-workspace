@@ -24,7 +24,9 @@ import {
 } from '../types';
 import TabletFieldInput from './TabletFieldInput';
 import ProductDetailModal from './ProductDetailModal';
-import { API_BASE_URL, WS_URL, CONFIG, ALTERNATIVE_IPS } from '../config';
+import SessionConnector from './SessionConnector';
+import SimpleWebSocket from './SimpleWebSocket';
+import { API_BASE_URL, WS_URL, HTTP_WS_URL, CONFIG, ALTERNATIVE_IPS } from '../config';
 
 const { width, height } = Dimensions.get('window');
 
@@ -43,10 +45,12 @@ const CustomerTablet: React.FC = () => {
   const signatureRef = useRef<any>(null);
 
   // 웹 버전에서 추가된 상태들
-  const [sessionId, setSessionId] = useState(CONFIG.SESSION_ID);
+  const [sessionId, setSessionId] = useState<string>('tablet_main');
   const [employeeName, setEmployeeName] = useState('');
   const [currentCustomer, setCurrentCustomer] = useState<Customer | null>(null);
   const [isWaitingForEmployee, setIsWaitingForEmployee] = useState(true);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [showSessionConnector, setShowSessionConnector] = useState(false); // 기본 세션으로 바로 연결
   const [customerProducts, setCustomerProducts] = useState<CustomerProduct[]>(
     [],
   );
@@ -62,6 +66,7 @@ const CustomerTablet: React.FC = () => {
   const [showProductDetail, setShowProductDetail] = useState(false);
   const [networkStatus, setNetworkStatus] = useState<string>('연결 확인 중...');
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
+  const [lastMessage, setLastMessage] = useState<string>('');
 
   // 디버그 정보 추가
   const addDebugInfo = (message: string) => {
@@ -71,113 +76,115 @@ const CustomerTablet: React.FC = () => {
     setDebugInfo(prev => [...prev.slice(-9), logMessage]); // 최근 10개만 유지
   };
 
-  // 단일 IP 테스트
-  const testSingleIP = async (ip: string, timeout = 5000) => {
-    const testUrl = `http://${ip}:8080/api/health`;
-    addDebugInfo(`🔍 IP 테스트: ${ip}`);
+  // Railway 백엔드 테스트 (로컬 IP 테스트 제거)
+  const testRailwayConnection = async () => {
+    const testUrl = `${API_BASE_URL}/api/health`;
+    addDebugInfo(`🔍 Railway 백엔드 테스트: ${testUrl}`);
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
-
       const response = await fetch(testUrl, {
         method: 'GET',
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',
         },
-        signal: controller.signal,
       });
-
-      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
-      addDebugInfo(`✅ ${ip} 연결 성공`);
-      setNetworkStatus(`연결됨 (${ip})`);
-      return { success: true, ip, data };
+      addDebugInfo(`✅ Railway 연결 성공`);
+      setNetworkStatus(`연결됨 (Railway)`);
+      return { success: true, data };
     } catch (error) {
-      addDebugInfo(`❌ ${ip} 연결 실패: ${error.message}`);
-      return { success: false, ip, error: error.message };
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   };
 
   // 디바이스 네트워크 정보 확인
   const getDeviceNetworkInfo = () => {
     console.log('=== 디바이스 네트워크 정보 ===');
-    console.log('User Agent:', navigator.userAgent);
+    // console.log('User Agent:', navigator.userAgent); // React Native에서는 navigator 제한적 사용
 
-    // 가능한 네트워크 힌트들
-    if (typeof navigator !== 'undefined' && navigator.connection) {
-      console.log('연결 타입:', navigator.connection.effectiveType);
-    }
+    // 가능한 네트워크 힌트들 (React Native에서는 제한적)
+    // if (typeof navigator !== 'undefined' && navigator.connection) {
+    //   console.log('연결 타입:', navigator.connection.effectiveType);
+    // }
 
-    // WebRTC를 통한 로컬 IP 확인 시도 (제한적)
-    try {
-      const pc = new RTCPeerConnection({ iceServers: [] });
-      pc.createDataChannel('');
-      pc.createOffer().then(offer => pc.setLocalDescription(offer));
-      pc.onicecandidate = event => {
-        if (event.candidate) {
-          const candidate = event.candidate.candidate;
-          const ipMatch = candidate.match(/(\d+\.\d+\.\d+\.\d+)/);
-          if (ipMatch) {
-            console.log('태블릿 로컬 IP (추정):', ipMatch[1]);
-          }
-        }
-      };
-    } catch (error) {
-      console.log('로컬 IP 확인 실패:', error.message);
-    }
+    // WebRTC를 통한 로컬 IP 확인 시도 (React Native에서는 제한적이므로 주석 처리)
+    // try {
+    //   const pc = new RTCPeerConnection({ iceServers: [] });
+    //   pc.createDataChannel('');
+    //   pc.createOffer().then(offer => pc.setLocalDescription(offer));
+    //   pc.onicecandidate = event => {
+    //     if (event.candidate) {
+    //       const candidate = event.candidate.candidate;
+    //       const ipMatch = candidate.match(/(\d+\.\d+\.\d+\.\d+)/);
+    //       if (ipMatch) {
+    //         console.log('태블릿 로컬 IP (추정):', ipMatch[1]);
+    //       }
+    //     }
+    //   };
+    // } catch (error) {
+    //   console.log('로컬 IP 확인 실패:', error instanceof Error ? error.message : 'Unknown error');
+    // }
+    
+    // React Native 환경에서는 간단하게 네트워크 상태만 설정
+    setNetworkStatus('네트워크 연결됨');
   };
 
-  // 네트워크 연결 테스트 (다중 IP 지원)
-  const testNetworkConnection = async () => {
-    addDebugInfo('=== 클라우드 백엔드 연결 테스트 시작 ===');
-    setNetworkStatus('클라우드 서버 연결 중...');
-
-    // 클라우드 백엔드 URL 테스트
-    const cloudUrl = `${API_BASE_URL}/api/health`;
-    addDebugInfo(`클라우드 URL: ${cloudUrl}`);
-
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃
-
-      const response = await fetch(cloudUrl, {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-        },
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  // Railway 백엔드 연결 테스트
+    const testNetworkConnection = async () => {
+    setNetworkStatus('Railway 서버 연결 중...');
+    
+    const result = await testRailwayConnection();
+    
+    if (result.success) {
+      // WebSocket 연결 가능성 테스트
+      try {
+        console.log('WebSocket 연결 테스트 시작...');
+        const wsUrl = WS_URL.replace('https://', 'wss://');
+        console.log('WebSocket URL:', wsUrl);
+        
+        // WebSocket 직접 연결 테스트 (SockJS 없이)
+        const ws = new WebSocket(wsUrl);
+        
+        return new Promise((resolve) => {
+          const timeout = setTimeout(() => {
+            console.log('WebSocket 연결 타임아웃');
+            ws.close();
+            resolve(result.success); // HTTP는 성공했으므로 true 반환
+          }, 5000);
+          
+          ws.onopen = () => {
+            console.log('✅ 직접 WebSocket 연결 성공');
+            clearTimeout(timeout);
+            ws.close();
+            resolve(true);
+          };
+          
+          ws.onerror = (error) => {
+            console.log('❌ 직접 WebSocket 연결 실패:', error);
+            clearTimeout(timeout);
+            resolve(result.success); // HTTP는 성공했으므로 true 반환
+          };
+        });
+      } catch (error) {
+        console.log('WebSocket 테스트 오류:', error);
+        return result.success;
       }
-
-      const data = await response.json();
-      addDebugInfo('✅ 클라우드 백엔드 연결 성공!');
-      addDebugInfo(`서버 상태: ${data.message || 'OK'}`);
-      setNetworkStatus('클라우드 연결됨');
-      return true;
-    } catch (error) {
-      addDebugInfo(`❌ 클라우드 연결 실패: ${error.message}`);
-      setNetworkStatus('클라우드 연결 실패');
-      addDebugInfo('확인: 인터넷 연결? 서버 상태?');
-      return false;
     }
+    
+    return result.success;
   };
 
   useEffect(() => {
     const initializeConnection = async () => {
       console.log('=== 태블릿 앱 초기화 ===');
+      console.log('기본 세션 ID:', sessionId);
+      
       const networkOk = await testNetworkConnection();
 
       if (networkOk) {
@@ -199,116 +206,227 @@ const CustomerTablet: React.FC = () => {
     };
   }, []);
 
+  const handleSessionConnect = (newSessionId: string) => {
+    console.log('세션 연결 시도:', newSessionId);
+    setIsConnecting(true);
+    setSessionId(newSessionId);
+    
+    // 기존 연결이 있으면 해제
+    if (stompClient) {
+      console.log('기존 STOMP 클라이언트 비활성화');
+      stompClient.deactivate();
+    }
+    
+    // WebSocket 연결 시도
+    setTimeout(() => {
+      setupWebSocket();
+      // 연결 화면 숨기기
+      setShowSessionConnector(false);
+      setIsConnecting(false);
+    }, 1000); // 기존 연결 해제를 위한 대기
+  };
+
   const setupWebSocket = () => {
     console.log('=== WebSocket 연결 시도 ===');
-    console.log('URL:', WS_URL);
-    console.log('개발 머신 IP:', '192.168.123.7');
+    console.log('HTTP URL:', HTTP_WS_URL);
+    console.log('WSS URL:', WS_URL);
+    console.log('현재 시간:', new Date().toLocaleString());
+    console.log('세션 ID:', sessionId);
 
     try {
-      // SockJS 옵션 설정
-      const sockJSOptions = {
-        timeout: 30000,
-        transports: ['websocket', 'xhr-streaming', 'xhr-polling'],
-      };
-
-      const socket = new SockJS(WS_URL, null, sockJSOptions);
-
-      // SockJS 이벤트 로깅
-      socket.onopen = () => {
-        console.log('SockJS 연결 성공');
-        addDebugInfo('🔗 SockJS 연결 성공');
-      };
-      socket.onclose = e => {
-        console.log('SockJS 연결 종료:', e);
-        addDebugInfo(
-          `❌ SockJS 연결 종료: ${e.code} ${e.reason || 'No reason'}`,
-        );
-      };
-      socket.onerror = e => {
-        console.error('SockJS 오류:', e);
-        addDebugInfo(`⚠️ SockJS 오류: ${e.type || 'Unknown error'}`);
-      };
-
+      console.log('🔌 HTTPS -> WSS 연결 시도');
+      
+      // 첫 번째 시도: SockJS with HTTPS URL (자동 WSS 변환)
       const client = new Client({
-        webSocketFactory: () => socket,
+        webSocketFactory: () => {
+          console.log('🏭 SockJS WebSocket Factory 호출');
+          console.log('SockJS URL:', HTTP_WS_URL);
+          
+          const sockjs = new SockJS(HTTP_WS_URL, null, {
+            timeout: 10000,
+            transports: ['websocket', 'xhr-streaming', 'xhr-polling'],
+            debug: true
+          });
+          
+          sockjs.onopen = () => {
+            console.log('🎉 SockJS 연결 성공');
+            setLastMessage('SockJS 연결 성공');
+          };
+          
+          sockjs.onerror = (error) => {
+            console.error('💥 SockJS 오류:', error);
+            setLastMessage('SockJS 연결 실패 - 네이티브 WebSocket 시도 중...');
+            
+            // SockJS 실패 시 네이티브 WebSocket 시도
+            setTimeout(() => {
+              setupNativeWebSocket();
+            }, 2000);
+          };
+          
+          sockjs.onclose = (event) => {
+            console.log('SockJS 연결 종료:', event.code, event.reason);
+            if (event.code !== 1000) {
+              setLastMessage(`SockJS 종료: ${event.reason || 'Unknown'}`);
+            }
+          };
+          
+          return sockjs;
+        },
         debug: str => {
-          console.log('STOMP:', str);
-          addDebugInfo(`STOMP: ${str.substring(0, 50)}...`);
+          console.log('STOMP Debug:', str);
         },
-        reconnectDelay: CONFIG.RECONNECT_DELAY,
-        heartbeatIncoming: CONFIG.HEARTBEAT_INCOMING,
-        heartbeatOutgoing: CONFIG.HEARTBEAT_OUTGOING,
-        onConnect: frame => {
-          console.log('STOMP 연결 성공:', frame);
-          console.log('연결된 서버:', WS_URL);
-          addDebugInfo('🎉 STOMP 연결 성공!');
-          addDebugInfo(`서버: ${WS_URL}`);
-          setStompClient(client);
-          setIsConnected(true);
-
-          // 태블릿 세션 참여
-          client.publish({
-            destination: '/app/join-session',
-            body: JSON.stringify({
-              sessionId: sessionId,
-              userType: 'customer-tablet',
-            }),
-          });
-
-          // 세션 메시지 구독
-          client.subscribe('/topic/session/' + sessionId, message => {
-            const data = JSON.parse(message.body);
-            console.log('세션 메시지 수신:', data);
-            handleWebSocketMessage(data);
-          });
-
-          // 기존 태블릿 채널도 유지 (호환성을 위해)
-          client.subscribe('/topic/tablet', message => {
-            const data: WebSocketMessage = JSON.parse(message.body);
-            handleWebSocketMessage(data);
-          });
+        connectHeaders: {
+          'Accept-Version': '1.0,1.1,1.2',
+          'heart-beat': '4000,4000'
         },
-        onDisconnect: () => {
-          console.log('WebSocket 연결 해제됨');
-          addDebugInfo('🔌 WebSocket 연결 해제됨');
-          setIsConnected(false);
-          setIsWaitingForEmployee(true);
-        },
-        onStompError: frame => {
-          console.error('STOMP 오류:', frame.headers['message']);
-          console.error('STOMP 오류 상세:', frame);
-          addDebugInfo(
-            `❌ STOMP 오류: ${frame.headers['message'] || 'Unknown'}`,
-          );
-          setIsConnected(false);
-          setIsWaitingForEmployee(true);
-        },
+        reconnectDelay: 5000,
+        heartbeatIncoming: 4000,
+        heartbeatOutgoing: 4000,
       });
 
-      console.log('STOMP 클라이언트 활성화 중...');
-      addDebugInfo('🚀 STOMP 클라이언트 활성화 시도...');
+      client.onConnect = function (frame) {
+        console.log('🎉 STOMP 연결 성공!', frame);
+        setStompClient(client);
+        setIsConnected(true);
+        setLastMessage('STOMP 연결 성공');
+
+        // 웹과 동일한 세션 참여
+        client.publish({
+          destination: '/app/join-session',
+          body: JSON.stringify({
+            sessionId: sessionId,
+            userType: 'customer-tablet', // 웹과 동일
+          }),
+        });
+
+        // 웹과 동일한 메시지 구독
+        client.subscribe('/topic/session/' + sessionId, function (message) {
+          const data = JSON.parse(message.body);
+          console.log('태블릿 메시지 수신:', data);
+          handleWebSocketMessage(data);
+        });
+      };
+      client.onStompError = function (frame) {
+        console.error('STOMP 오류:', frame.headers['message']);
+        setIsConnected(false);
+        setIsWaitingForEmployee(true);
+        setLastMessage(`STOMP 오류: ${frame.headers['message'] || 'Unknown'}`);
+      };
 
       client.activate();
     } catch (error) {
       console.error('WebSocket 설정 오류:', error);
-      addDebugInfo(`💥 WebSocket 설정 오류: ${error.message}`);
       setIsConnected(false);
       setIsWaitingForEmployee(true);
+      setLastMessage(`WebSocket 오류: ${error instanceof Error ? error.message : 'Unknown'}`);
 
       // 5초 후 재시도
       setTimeout(() => {
-        addDebugInfo('🔄 WebSocket 재시도...');
+        console.log('🔄 WebSocket 재시도...');
         setupWebSocket();
       }, 5000);
     }
   };
 
+  // 네이티브 WebSocket 연결 시도 (SockJS 실패 시)
+  const setupNativeWebSocket = () => {
+    console.log('=== 네이티브 WebSocket 연결 시도 ===');
+    console.log('WSS URL:', WS_URL);
+    
+    try {
+      const client = new Client({
+        brokerURL: WS_URL, // 이미 wss://로 변환된 URL 사용
+        debug: str => {
+          console.log('네이티브 STOMP Debug:', str);
+        },
+        connectHeaders: {
+          'Accept-Version': '1.0,1.1,1.2',
+          'heart-beat': '4000,4000'
+        },
+        reconnectDelay: 5000,
+        heartbeatIncoming: 4000,
+        heartbeatOutgoing: 4000,
+        onConnect: frame => {
+          console.log('🎉 네이티브 WebSocket 연결 성공!', frame);
+          setStompClient(client);
+          setIsConnected(true);
+          setLastMessage('네이티브 WebSocket 연결 성공');
+
+          // 세션 참여
+          const joinMessage = {
+            sessionId: sessionId,
+            userType: 'tablet',
+            userId: 'tablet_' + Date.now(),
+          };
+          
+          console.log('네이티브 WebSocket 세션 참여:', joinMessage);
+          client.publish({
+            destination: '/app/join-session',
+            body: JSON.stringify(joinMessage),
+          });
+
+          // 메시지 구독
+          const subscriptionTopic = '/topic/session/' + sessionId;
+          console.log('네이티브 WebSocket 구독 토픽:', subscriptionTopic);
+          
+          client.subscribe(subscriptionTopic, message => {
+            try {
+              const data: WebSocketMessage = JSON.parse(message.body);
+              console.log('=== 네이티브 WebSocket 메시지 수신 ===', data);
+              handleWebSocketMessage(data);
+            } catch (error) {
+              console.error('네이티브 WebSocket 메시지 파싱 오류:', error);
+            }
+          });
+        },
+        onDisconnect: () => {
+          console.log('네이티브 WebSocket 연결 해제됨');
+          setIsConnected(false);
+          setIsWaitingForEmployee(true);
+          setLastMessage('네이티브 WebSocket 연결 해제됨');
+        },
+        onStompError: frame => {
+          console.error('네이티브 WebSocket STOMP 오류:', frame.headers['message']);
+          setIsConnected(false);
+          setIsWaitingForEmployee(true);
+          setLastMessage(`네이티브 WebSocket 오류: ${frame.headers['message'] || 'Unknown'}`);
+        },
+      });
+
+      console.log('네이티브 WebSocket 클라이언트 활성화 중...');
+      client.activate();
+      
+    } catch (error) {
+      console.error('네이티브 WebSocket 설정 오류:', error);
+      setLastMessage(`네이티브 WebSocket 설정 오류: ${error instanceof Error ? error.message : 'Unknown'}`);
+      setIsConnected(false);
+      setIsWaitingForEmployee(true);
+    }
+  };
+
   const handleWebSocketMessage = (message: WebSocketMessage) => {
+    console.log('=== 태블릿 메시지 수신 ===', message);
+    console.log('현재 세션 ID:', sessionId);
+    console.log('메시지 타입:', message.type);
+    console.log('메시지 전체 데이터:', JSON.stringify(message, null, 2));
+    
     // receive-message 타입으로 래핑된 메시지 처리
     let messageData = message;
     if (message.type === 'receive-message' && message.data) {
       messageData = message.data;
       console.log('래핑된 메시지 데이터:', messageData);
+    }
+    
+    // 일반 메시지 수신 알림 (고객 정보 메시지는 별도 처리)
+    const messageType = messageData.type || message.type;
+    if (messageType !== 'customer-info-display' && messageType !== 'customer-info-updated') {
+      const timestamp = new Date().toLocaleTimeString();
+      setLastMessage(`${timestamp} - ${messageType} 메시지 수신`);
+      
+      // 3초 후 메시지 알림 제거
+      setTimeout(() => {
+        setLastMessage('');
+      }, 3000);
     }
 
     switch (messageData.type) {
@@ -343,9 +461,36 @@ const CustomerTablet: React.FC = () => {
         setIsWaitingForEmployee(false);
         break;
       case 'customer-info-updated':
-        setCurrentCustomer(messageData.customerData || null);
-        if (messageData.customerData?.CustomerID) {
-          fetchCustomerProducts(messageData.customerData.CustomerID);
+      case 'customer-info-display':
+        // 행원이 고객 정보를 보여주기 요청했을 때
+        console.log('🎯 고객 정보 표시 메시지 처리 시작');
+        console.log('messageData:', messageData);
+        console.log('messageData.data:', messageData.data);
+        
+        const customerData = messageData.data?.customer || messageData.customerData;
+        console.log('추출된 고객 정보:', customerData);
+        
+        if (customerData) {
+          setCurrentCustomer(customerData);
+          setIsWaitingForEmployee(false);
+          console.log('✅ 고객 정보 상태 업데이트 완료:', customerData);
+          
+          // 고객 정보 수신 특별 알림
+          setLastMessage(`고객 정보 수신: ${customerData.Name || '고객'}`);
+          setTimeout(() => {
+            setLastMessage('');
+          }, 5000); // 고객 정보는 5초간 표시
+          
+          if (customerData.CustomerID) {
+            console.log('고객 상품 정보 조회 시작:', customerData.CustomerID);
+            fetchCustomerProducts(customerData.CustomerID);
+          }
+        } else {
+          console.log('❌ 고객 정보가 없습니다');
+          setLastMessage('고객 정보 수신 실패');
+          setTimeout(() => {
+            setLastMessage('');
+          }, 3000);
         }
         break;
       case 'product-detail-sync':
@@ -699,13 +844,24 @@ const CustomerTablet: React.FC = () => {
 
         {!isConnected && (
           <View style={styles.connectionSection}>
+            <Text style={styles.connectionProblem}>
+              ⚠️ WebSocket 연결 실패
+            </Text>
+            <Text style={styles.connectionHelp}>
+              • SockJS URL: {HTTP_WS_URL}{'\n'}
+              • 네이티브 WSS URL: {WS_URL}{'\n'}
+              • HTTPS → WSS 변환 확인 중...{'\n'}
+              • 잠시 후 자동으로 재시도됩니다
+            </Text>
             <TouchableOpacity
               style={styles.reconnectButton}
               onPress={async () => {
-                addDebugInfo('🔄 수동 재연결 시도...');
+                setLastMessage('수동 재연결 시도 중...');
                 const networkOk = await testNetworkConnection();
                 if (networkOk) {
                   setupWebSocket();
+                } else {
+                  setLastMessage('네트워크 연결 실패');
                 }
               }}
             >
@@ -892,6 +1048,16 @@ const CustomerTablet: React.FC = () => {
     </View>
   );
 
+  // 세션 연결 화면 표시
+  if (showSessionConnector) {
+    return (
+      <SessionConnector 
+        onConnect={handleSessionConnect}
+        isConnecting={isConnecting}
+      />
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -908,17 +1074,18 @@ const CustomerTablet: React.FC = () => {
         </View>
       </View>
 
-      {/* 디버그 정보 표시 */}
-      {debugInfo.length > 0 && (
-        <View style={styles.debugContainer}>
-          <Text style={styles.debugTitle}>네트워크 디버그</Text>
-          {debugInfo.map((info, index) => (
-            <Text key={index} style={styles.debugText}>
-              {info}
-            </Text>
-          ))}
-        </View>
-      )}
+      {/* 간단한 WebSocket 연결 컴포넌트 */}
+      <SimpleWebSocket 
+        sessionId={sessionId}
+        onMessage={handleWebSocketMessage}
+      />
+
+      <TouchableOpacity
+        style={styles.sessionChangeButton}
+        onPress={() => setShowSessionConnector(true)}
+      >
+        <Text style={styles.sessionChangeButtonText}>세션 변경</Text>
+      </TouchableOpacity>
 
       {customer.currentStep === 'waiting' && renderWelcomeScreen()}
       {customer.currentStep === 'info_input' && renderInfoInput()}
@@ -1226,18 +1393,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
   },
-  sessionInfo: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 12,
-    padding: 15,
-    marginVertical: 10,
-  },
-  sessionTitle: {
-    color: '#00b894',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
   sessionText: {
     fontSize: 16,
     color: '#333',
@@ -1348,6 +1503,21 @@ const styles = StyleSheet.create({
   connectionSection: {
     alignItems: 'center',
     marginTop: 20,
+    padding: 20,
+  },
+  connectionProblem: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#e74c3c',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  connectionHelp: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
   },
   reconnectButton: {
     backgroundColor: '#f39c12',
@@ -1381,6 +1551,68 @@ const styles = StyleSheet.create({
     color: '#666',
     fontFamily: 'monospace',
     lineHeight: 16,
+  },
+  sessionInfo: {
+    backgroundColor: 'white',
+    margin: 10,
+    padding: 15,
+    borderRadius: 8,
+    elevation: 2,
+  },
+  sessionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sessionDetails: {
+    flex: 1,
+  },
+  sessionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#00b894',
+    marginBottom: 4,
+  },
+  connectionStatusText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  sessionButton: {
+    backgroundColor: '#00b894',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  sessionButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  messageAlert: {
+    backgroundColor: '#e8f5e8',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: '#4CAF50',
+    elevation: 1,
+  },
+  messageAlertText: {
+    fontSize: 15,
+    color: '#1b5e20',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  sessionChangeButton: {
+    backgroundColor: '#00b894',
+    margin: 10,
+    padding: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  sessionChangeButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
   },
 });
 

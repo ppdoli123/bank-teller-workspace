@@ -41,6 +41,8 @@ export interface WebSocketMessage {
   customerData?: Customer;
   productData?: any;
   field?: any;
+  connected?: boolean;
+  timestamp?: number;
 }
 
 export interface SignatureData {

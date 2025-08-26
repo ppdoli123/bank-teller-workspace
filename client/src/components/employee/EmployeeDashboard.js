@@ -5,6 +5,7 @@ import axios from "axios";
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import Webcam from "react-webcam";
+import SessionQRCode from "./SessionQRCode";
 
 import ProductExplorer from "./ProductExplorer";
 import SimulationPanel from "./SimulationPanel";
@@ -451,7 +452,7 @@ const TabContent = styled.div`
 `;
 
 // 고객 정보 표시 컴포넌트
-const CustomerInfoDisplay = ({ customer, detailed = false }) => {
+const CustomerInfoDisplay = ({ customer, detailed = false, onSendToTablet }) => {
   if (!customer) {
     return (
       <div
@@ -582,6 +583,42 @@ const CustomerInfoDisplay = ({ customer, detailed = false }) => {
           </div>
         </div>
       )}
+      
+      {/* 태블릿에 보여주기 버튼 */}
+      {detailed && onSendToTablet && (
+        <div style={{ 
+          marginTop: "var(--hana-space-4)", 
+          textAlign: "center",
+          padding: "var(--hana-space-4)",
+          borderTop: "1px solid #eee"
+        }}>
+          <button
+            onClick={() => onSendToTablet(customer)}
+            style={{
+              background: "linear-gradient(135deg, var(--hana-primary), var(--hana-mint))",
+              color: "white",
+              border: "none",
+              borderRadius: "var(--hana-radius-md)",
+              padding: "12px 24px",
+              fontSize: "16px",
+              fontWeight: "600",
+              cursor: "pointer",
+              boxShadow: "var(--hana-shadow-light)",
+              transition: "all 0.2s ease",
+            }}
+            onMouseOver={(e) => {
+              e.target.style.transform = "translateY(-2px)";
+              e.target.style.boxShadow = "var(--hana-shadow-medium)";
+            }}
+            onMouseOut={(e) => {
+              e.target.style.transform = "translateY(0)";
+              e.target.style.boxShadow = "var(--hana-shadow-light)";
+            }}
+          >
+            📱 태블릿에 보여주기
+          </button>
+        </div>
+      )}
     </div>
   );
 };
@@ -603,20 +640,14 @@ const EmployeeDashboard = () => {
   const webcamRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  useEffect(() => {
-    // 로그인된 직원 정보 확인
-    const employeeData = localStorage.getItem("employee");
-    if (!employeeData) {
-      navigate("/employee/login");
-      return;
-    }
-
-    setEmployee(JSON.parse(employeeData));
-
-    // STOMP WebSocket 연결
+  // WebSocket 연결 함수
+  const connectWebSocket = (sessionId, employee) => {
     const client = new Client({
-      webSocketFactory: () =>
-        new SockJS("https://hana-backend-production.up.railway.app/api/ws"),
+      webSocketFactory: () => {
+        const wsUrl = "https://hana-backend-production.up.railway.app/api/ws";
+        console.log("WebSocket 연결 시도:", wsUrl);
+        return new SockJS(wsUrl);
+      },
       connectHeaders: {},
       debug: function (str) {
         console.log("STOMP Debug:", str);
@@ -633,43 +664,44 @@ const EmployeeDashboard = () => {
       // 전역 STOMP 클라이언트 설정 (ActualBankForm에서 사용)
       window.stompClient = client;
 
-      // 태블릿과 같은 세션 ID 사용
-      const sharedSessionId = "tablet_main";
-      setSessionId(sharedSessionId);
+      // 세션 ID 확인
+      console.log("사용할 세션 ID:", sessionId);
 
       // 세션 참여
       client.publish({
         destination: "/app/join-session",
         body: JSON.stringify({
-          sessionId: sharedSessionId,
+          sessionId: sessionId,
           userType: "employee",
-          userId: JSON.parse(employeeData).employeeId,
+          userId: employee.employeeId,
         }),
       });
 
       // 세션 메시지 구독 (태블릿과 통신용)
-      client.subscribe("/topic/session/" + sharedSessionId, function (message) {
+      client.subscribe("/topic/session/" + sessionId, function (message) {
         const data = JSON.parse(message.body);
         console.log("직원이 세션 메시지 수신:", data);
 
         // 메시지 타입별 처리
         switch (data.type) {
-          case "session-joined":
-            if (data.userType === "customer-tablet") {
-              console.log("태블릿이 세션에 참여했습니다:", data);
-            }
-            break;
-          case "start-consultation":
-            console.log("태블릿에서 상담 시작 요청:", data);
+          case "tablet-connected":
+            console.log("태블릿 연결됨:", data);
             break;
           case "customer-info-confirmed":
             console.log("태블릿에서 고객 정보 확인 완료:", data);
+            break;
+          case "customer-info-display":
+            console.log("고객 정보 표시 메시지 수신:", data);
+            // 태블릿에서 고객 정보 표시 요청을 받았을 때의 처리
+            if (data.data && data.data.customer) {
+              console.log("고객 정보:", data.data.customer);
+            }
             break;
           case "FIELD_INPUT_COMPLETED":
             console.log("태블릿에서 필드 입력 완료:", data);
             // 폼 필드 업데이트 처리
             if (data.field && window.updateFormField) {
-              window.updateFormField(data.field.id, data.field.value);
+              window.updateFormField(data.field, data.value);
             }
             break;
           default:
@@ -678,7 +710,7 @@ const EmployeeDashboard = () => {
         }
       });
 
-      console.log("직원 세션 참여:", sharedSessionId);
+      console.log("직원 세션 참여:", sessionId);
     };
 
     client.onStompError = function (frame) {
@@ -686,6 +718,82 @@ const EmployeeDashboard = () => {
     };
 
     client.activate();
+    return client;
+  };
+
+  // 태블릿에 고객 정보 전송
+  const sendCustomerInfoToTablet = (customerData) => {
+    console.log("=== 메시지 전송 시작 ===");
+    console.log("stompClient 상태:", !!stompClient);
+    console.log("stompClient.active:", stompClient?.active);
+    console.log("sessionId:", sessionId);
+    console.log("customerData:", customerData);
+    console.log("현재 시간:", new Date().toLocaleTimeString());
+    
+    if (stompClient && sessionId && stompClient.active) {
+      const messagePayload = {
+        sessionId: sessionId,
+        type: "customer-info-display",
+        data: {
+          customer: customerData,
+          timestamp: Date.now()
+        }
+      };
+      
+      console.log("전송할 메시지 페이로드:", JSON.stringify(messagePayload, null, 2));
+      console.log("전송 대상 토픽:", `/app/send-to-session`);
+      console.log("실제 브로드캐스트될 토픽:", `/topic/session/${sessionId}`);
+      
+      try {
+        stompClient.publish({
+          destination: "/app/send-to-session",
+          body: JSON.stringify(messagePayload)
+        });
+        
+        console.log("✅ 메시지 전송 완료");
+        console.log("전송된 세션 ID:", sessionId);
+        alert("고객 정보가 태블릿에 전송되었습니다!");
+      } catch (error) {
+        console.error("❌ 메시지 전송 실패:", error);
+        alert("메시지 전송에 실패했습니다: " + error.message);
+      }
+    } else {
+      console.error("❌ 연결 상태 확인:");
+      console.error("- stompClient 존재:", !!stompClient);
+      console.error("- sessionId 존재:", !!sessionId, "값:", sessionId);
+      console.error("- stompClient 활성화:", stompClient?.active);
+      alert("태블릿이 연결되어 있지 않습니다. 태블릿 연결을 확인해주세요.");
+    }
+  };
+
+  useEffect(() => {
+    // 로그인된 직원 정보 확인
+    const employeeData = localStorage.getItem("employee");
+    const sessionData = localStorage.getItem("sessionId");
+    if (!employeeData) {
+      navigate("/employee/login");
+      return;
+    }
+
+    const employee = JSON.parse(employeeData);
+    setEmployee(employee);
+    
+    // 기존 방식으로 되돌림 - Railway 백엔드와 호환
+    const finalSessionId = "tablet_main";
+    setSessionId(finalSessionId);
+    
+    // sessionId가 없었다면 localStorage에 저장
+    if (!sessionData) {
+      localStorage.setItem("sessionId", finalSessionId);
+      console.log("세션 ID 생성 및 저장:", finalSessionId);
+    } else {
+      console.log("기존 세션 ID 사용:", finalSessionId);
+    }
+
+    // WebSocket 연결
+    const client = connectWebSocket(finalSessionId, employee);
+
+
 
     // 테스트 고객 목록 가져오기
     fetchTestCustomers();
@@ -1034,6 +1142,14 @@ const EmployeeDashboard = () => {
   return (
     <DashboardContainer>
       <Sidebar>
+        {/* 태블릿 연결 상태 및 QR 코드 */}
+        {sessionId && employee && (
+          <SessionQRCode 
+            sessionId={sessionId} 
+            employeeName={employee.name}
+          />
+        )}
+        
         <Section>
           <SectionTitle>고객 인식</SectionTitle>
 
@@ -1195,7 +1311,11 @@ const EmployeeDashboard = () => {
         <TabContent>
           {activeTab === "customer" &&
             (currentCustomer ? (
-              <CustomerInfoDisplay customer={currentCustomer} detailed />
+              <CustomerInfoDisplay 
+                customer={currentCustomer} 
+                detailed 
+                onSendToTablet={sendCustomerInfoToTablet}
+              />
             ) : (
               <div
                 style={{

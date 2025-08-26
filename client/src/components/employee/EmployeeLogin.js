@@ -244,11 +244,14 @@ const EmployeeLogin = () => {
       );
 
       if (response.data.success) {
-        // 로그인 성공 시 직원 정보를 localStorage에 저장
+        // 로그인 성공 시 직원 정보와 세션 ID를 localStorage에 저장
         localStorage.setItem(
           "employee",
           JSON.stringify(response.data.employee)
         );
+        localStorage.setItem("sessionId", response.data.sessionId);
+        
+        console.log("로그인 성공, 세션 ID:", response.data.sessionId);
         navigate("/employee/dashboard");
       }
     } catch (error) {

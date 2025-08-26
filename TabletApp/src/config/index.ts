@@ -25,8 +25,9 @@ export const API_BASE_URL = isDevelopment
   ? 'https://hana-backend-production.up.railway.app'
   : 'https://hana-backend-production.up.railway.app';
 
-// WebSocket URL (context-path가 /api이므로 /ws만 추가)
-export const WS_URL = `${API_BASE_URL}/ws`;
+// WebSocket URLs
+export const HTTP_WS_URL = `${API_BASE_URL}/api/ws`; // SockJS용 HTTP URL
+export const WS_URL = `${API_BASE_URL}/api/websocket`.replace('https://', 'wss://'); // 네이티브 WebSocket용 WSS URL
 
 // 대체 IP 주소들
 export const ALTERNATIVE_IPS = DEVELOPMENT_IPS.slice(1);
