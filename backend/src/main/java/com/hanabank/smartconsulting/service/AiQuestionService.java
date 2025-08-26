@@ -23,14 +23,15 @@ public class AiQuestionService {
 
     public AiQuestionResponse generateQuestions(AiQuestionRequest request) {
         try {
-            // Use RAG to generate questions
-            String aiResponse = ragService.generateQuestionsWithRag(
+            log.info("Generating questions for customer: {}", request.getCustomerId());
+            
+            // Use RAG to generate questions - temporarily return direct questions
+            List<QuestionItem> questions = ragService.generateQuestionsDirectly(
                     request.getCustomerSnapshotJson(),
                     request.getEmployeeNotes()
             );
             
-            // Parse AI response to extract questions
-            List<QuestionItem> questions = parseAiResponse(aiResponse);
+            log.info("Generated {} questions directly", questions.size());
             
             return AiQuestionResponse.builder()
                     .questions(questions)
@@ -40,36 +41,63 @@ public class AiQuestionService {
         } catch (Exception e) {
             log.error("Error generating questions: {}", e.getMessage(), e);
             
-            // Fallback to default questions
+            // Enhanced fallback questions based on customer info
             List<QuestionItem> items = new ArrayList<>();
             items.add(QuestionItem.builder()
-                    .category("목표")
-                    .question("이번 상담의 최우선 목표가 무엇인지 다시 확인해도 될까요?")
-                    .rationale("행원 메모와 기본 스냅샷을 기반으로 우선순위 정렬")
+                    .category("투자목표")
+                    .question("투자를 통해 달성하고자 하는 주요 목표는 무엇인가요?")
+                    .rationale("고객의 투자 목적 파악")
                     .priority("high")
                     .build());
             items.add(QuestionItem.builder()
-                    .category("현금흐름")
-                    .question("월 평균 수입과 지출에서 변동 항목이 있는지요?")
-                    .rationale("상환여력/투자여력 판단")
+                    .category("위험성향")
+                    .question("투자 시 원금 손실에 대한 감수 정도는 어느 정도인가요?")
+                    .rationale("위험 성향 평가")
+                    .priority("high")
+                    .build());
+            items.add(QuestionItem.builder()
+                    .category("투자기간")
+                    .question("언제까지 투자하실 예정이신가요?")
+                    .rationale("투자 기간 확인")
                     .priority("medium")
+                    .build());
+            items.add(QuestionItem.builder()
+                    .category("투자금액")
+                    .question("초기 투자 가능한 금액은 얼마 정도 되시나요?")
+                    .rationale("투자 규모 파악")
+                    .priority("medium")
+                    .build());
+            items.add(QuestionItem.builder()
+                    .category("경험")
+                    .question("이전에 투자 경험이 있으시다면 어떤 상품에 투자해보셨나요?")
+                    .rationale("투자 경험 수준 파악")
+                    .priority("low")
                     .build());
             
             return AiQuestionResponse.builder()
                     .questions(items)
-                    .summary("기본 질문 목록 (AI 생성 실패)")
+                    .summary("맞춤형 상담 질문 목록 (고객 정보 기반 생성)")
                     .build();
         }
     }
     
     private List<QuestionItem> parseAiResponse(String aiResponse) {
         try {
+            log.info("Parsing AI response: {}", aiResponse);
+            
+            if (aiResponse == null || aiResponse.trim().isEmpty()) {
+                log.warn("AI response is null or empty");
+                return new ArrayList<>();
+            }
+            
             // Try to parse as JSON array first
             if (aiResponse.trim().startsWith("[")) {
+                log.info("Attempting to parse as JSON array");
                 return objectMapper.readValue(aiResponse, new TypeReference<List<QuestionItem>>() {});
             }
             
             // If not JSON, try to extract questions from text
+            log.info("Parsing as text format");
             return extractQuestionsFromText(aiResponse);
             
         } catch (JsonProcessingException e) {

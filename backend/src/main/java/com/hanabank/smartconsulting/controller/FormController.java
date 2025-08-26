@@ -10,20 +10,20 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api")
-@CrossOrigin(origins = "*")
+@RequestMapping("/forms")
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001", "http://192.168.123.9:3000", "http://192.168.123.9:3001"})
 public class FormController {
 
     @Autowired
     private ProductFormRepository productFormRepository;
 
-    @GetMapping("/product-forms/test")
+    @GetMapping("/test")
     public String test() {
         System.out.println("🎯 FormController /test 엔드포인트 호출됨!");
         return "FormController 테스트 성공! 🎉";
     }
 
-    @GetMapping("/product-forms/byType")
+    @GetMapping("/byType")
     public ResponseEntity<ApiResponse<?>> getFormsByType(@RequestParam String type) {
         try {
             System.out.println("📋 서식 조회 요청 - type: " + type);

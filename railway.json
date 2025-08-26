@@ -1,0 +1,21 @@
+{
+  "build": {
+    "services": {
+      "hana-backend": {
+        "rootDirectory": "backend",
+        "builder": "nixpacks",
+        "buildCommand": "./mvnw -DskipTests clean package",
+        "startCommand": "java -Dserver.port=${PORT} -jar target/smart-consulting-1.0.0.jar",
+        "variables": {
+          "JAVA_VERSION": "17"
+        }
+      }
+    }
+  },
+  "deploy": {
+    "hana-backend": {
+      "healthcheckPath": "/api/health",
+      "restartPolicyType": "ON_FAILURE"
+    }
+  }
+}

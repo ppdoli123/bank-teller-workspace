@@ -55,6 +55,10 @@ public class OpenAiService {
     
     public String generateQuestions(String prompt) {
         try {
+            log.info("Generating questions with OpenAI API...");
+            log.debug("API Key configured: {}", apiKey != null && !apiKey.isEmpty());
+            log.debug("API URL: {}", apiUrl);
+            
             ChatRequest request = new ChatRequest();
             request.setModel("gpt-4o-mini");
             request.setMessages(List.of(
@@ -63,6 +67,8 @@ public class OpenAiService {
             ));
             request.setMaxTokens(1000);
             request.setTemperature(0.7);
+            
+            log.info("Sending request to OpenAI...");
             
             ChatResponse response = webClient.post()
                     .uri(apiUrl + "/chat/completions")
@@ -73,10 +79,15 @@ public class OpenAiService {
                     .bodyToMono(ChatResponse.class)
                     .block();
             
+            log.info("Received response from OpenAI: {}", response != null);
+            
             if (response != null && response.getChoices() != null && !response.getChoices().isEmpty()) {
-                return response.getChoices().get(0).getMessage().getContent();
+                String content = response.getChoices().get(0).getMessage().getContent();
+                log.info("OpenAI response content length: {}", content != null ? content.length() : 0);
+                return content;
             }
             
+            log.warn("No valid response received from OpenAI");
             throw new RuntimeException("Failed to generate questions");
         } catch (Exception e) {
             log.error("Error generating questions: {}", e.getMessage(), e);

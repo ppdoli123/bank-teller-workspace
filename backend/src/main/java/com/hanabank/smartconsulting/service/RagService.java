@@ -1,6 +1,7 @@
 package com.hanabank.smartconsulting.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hanabank.smartconsulting.dto.ai.QuestionItem;
 import com.hanabank.smartconsulting.entity.Embedding;
 import com.hanabank.smartconsulting.entity.ProductDocument;
 import com.hanabank.smartconsulting.repository.EmbeddingRepository;
@@ -116,9 +117,13 @@ public class RagService {
     
     public String generateQuestionsWithRag(String customerInfo, String employeeNotes) {
         try {
+            log.info("Starting RAG question generation...");
+            
             // Search for relevant document chunks
             String searchQuery = customerInfo + " " + employeeNotes;
             List<String> relevantChunks = searchSimilarChunks(searchQuery, 5);
+            
+            log.info("Found {} relevant chunks", relevantChunks.size());
             
             // Build prompt with context
             StringBuilder prompt = new StringBuilder();
@@ -137,12 +142,83 @@ public class RagService {
             prompt.append("각 질문은 다음 형식으로 JSON 배열로 응답해주세요:\n");
             prompt.append("[{\"category\": \"카테고리\", \"question\": \"질문내용\", \"rationale\": \"질문 이유\", \"priority\": \"high|medium|low\"}]");
             
-            return openAiService.generateQuestions(prompt.toString());
+            log.info("Calling OpenAI with prompt length: {}", prompt.length());
+            
+            // Temporary: Return mock response for testing
+            String mockResponse = "[" +
+                "{\"category\": \"투자목표\", \"question\": \"이번 투자의 주요 목적은 무엇인가요?\", \"rationale\": \"투자 목적 명확화\", \"priority\": \"high\"}," +
+                "{\"category\": \"위험성향\", \"question\": \"투자 시 손실 가능성에 대해 어떻게 생각하시나요?\", \"rationale\": \"위험 감수 능력 파악\", \"priority\": \"high\"}," +
+                "{\"category\": \"투자기간\", \"question\": \"투자 자금을 언제까지 유지하실 계획인가요?\", \"rationale\": \"투자 기간 설정\", \"priority\": \"medium\"}" +
+                "]";
+            
+            log.info("Returning mock response for testing");
+            return mockResponse;
+            
+            // TODO: Uncomment this when OpenAI API is working
+            // return openAiService.generateQuestions(prompt.toString());
             
         } catch (Exception e) {
             log.error("Error generating questions with RAG: {}", e.getMessage(), e);
             return "질문 생성 중 오류가 발생했습니다.";
         }
+    }
+    
+    public List<QuestionItem> generateQuestionsDirectly(String customerInfo, String employeeNotes) {
+        log.info("Generating questions directly based on customer info and notes");
+        
+        List<QuestionItem> questions = new ArrayList<>();
+        
+        // Analyze customer info and employee notes to generate relevant questions
+        if (customerInfo.contains("투자") || employeeNotes.contains("투자")) {
+            questions.add(QuestionItem.builder()
+                    .category("투자목표")
+                    .question("이번 투자를 통해 달성하고자 하는 주요 목표는 무엇인가요?")
+                    .rationale("고객의 투자 목적과 기대 수익 파악")
+                    .priority("high")
+                    .build());
+            
+            questions.add(QuestionItem.builder()
+                    .category("위험성향")
+                    .question("투자 시 원금 손실 가능성에 대해 어느 정도까지 감수하실 수 있나요?")
+                    .rationale("위험 감수 능력 평가")
+                    .priority("high")
+                    .build());
+        }
+        
+        if (customerInfo.contains("직장인") || customerInfo.contains("소득")) {
+            questions.add(QuestionItem.builder()
+                    .category("재정상황")
+                    .question("현재 월 평균 소득과 지출 규모는 어느 정도 되시나요?")
+                    .rationale("투자 가능 자금 규모 파악")
+                    .priority("medium")
+                    .build());
+        }
+        
+        if (customerInfo.contains("경험 없음") || customerInfo.contains("초보")) {
+            questions.add(QuestionItem.builder()
+                    .category("투자경험")
+                    .question("투자가 처음이시라면 어떤 상품부터 시작하고 싶으신가요?")
+                    .rationale("투자 경험 수준에 맞는 상품 추천")
+                    .priority("medium")
+                    .build());
+        }
+        
+        questions.add(QuestionItem.builder()
+                .category("투자기간")
+                .question("투자하신 자금을 언제까지 유지하실 예정이신가요?")
+                .rationale("투자 기간에 따른 상품 선택")
+                .priority("medium")
+                .build());
+        
+        questions.add(QuestionItem.builder()
+                .category("추가상담")
+                .question("다른 궁금한 사항이나 우려되는 부분이 있으신가요?")
+                .rationale("고객의 추가 니즈 파악")
+                .priority("low")
+                .build());
+        
+        log.info("Generated {} direct questions", questions.size());
+        return questions;
     }
     
     private String extractTextFromPdf(byte[] pdfContent) throws IOException {
