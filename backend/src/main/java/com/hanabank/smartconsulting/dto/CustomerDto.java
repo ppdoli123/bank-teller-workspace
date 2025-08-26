@@ -24,3 +24,5 @@ public class CustomerDto {
     private String riskTolerance;
     private Integer investmentPeriod;
 }
+
+

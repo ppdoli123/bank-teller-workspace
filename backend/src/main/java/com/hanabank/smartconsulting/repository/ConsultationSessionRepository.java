@@ -18,3 +18,5 @@ public interface ConsultationSessionRepository extends JpaRepository<Consultatio
     
     List<ConsultationSession> findByEmployeeIdAndStatus(String employeeId, String status);
 }
+
+

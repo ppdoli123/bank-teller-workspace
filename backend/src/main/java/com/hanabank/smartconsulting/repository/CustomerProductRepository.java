@@ -23,3 +23,5 @@ public interface CustomerProductRepository extends JpaRepository<CustomerProduct
     @Query("SELECT COALESCE(SUM(ABS(cp.balance)), 0) FROM CustomerProduct cp WHERE cp.customer.customerId = :customerId AND cp.balance < 0")
     Long getTotalDebtsByCustomerId(@Param("customerId") String customerId);
 }
+
+

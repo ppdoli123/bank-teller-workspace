@@ -19,6 +19,7 @@ public class AuthService {
     
     private final EmployeeRepository employeeRepository;
     private final JwtService jwtService;
+    private final SessionService sessionService;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     
     public LoginResponse login(LoginRequest loginRequest) {
@@ -36,11 +37,14 @@ public class AuthService {
             
             // 비밀번호 검증 (임시로 단순 비교)
             if (!loginRequest.getPassword().equals(employee.getPasswordHash())) {
-                return new LoginResponse(false, "비밀번호가 일치하지 않습니다.", null, null);
+                return new LoginResponse(false, "비밀번호가 일치하지 않습니다.", null, null, null);
             }
             
             // JWT 토큰 생성
             String token = jwtService.generateToken(employee.getEmployeeId());
+            
+            // 행원 세션 생성
+            String sessionId = sessionService.createEmployeeSession(employee.getEmployeeId(), employee.getName());
             
             // EmployeeDto 생성
             EmployeeDto employeeDto = EmployeeDto.builder()
@@ -56,6 +60,7 @@ public class AuthService {
                     .message("로그인 성공")
                     .token(token)
                     .employee(employeeDto)
+                    .sessionId(sessionId)  // 세션 ID 추가
                     .build();
                     
         } catch (Exception e) {
@@ -75,3 +80,5 @@ public class AuthService {
         return jwtService.getEmployeeIdFromToken(token);
     }
 }
+
+

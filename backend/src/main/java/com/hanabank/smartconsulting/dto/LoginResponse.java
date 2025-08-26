@@ -15,4 +15,7 @@ public class LoginResponse {
     private String message;
     private String token;
     private EmployeeDto employee;
+    private String sessionId;  // WebSocket 세션 ID 추가
 }
+
+

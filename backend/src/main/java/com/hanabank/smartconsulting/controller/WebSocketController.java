@@ -1,5 +1,6 @@
 package com.hanabank.smartconsulting.controller;
 
+import com.hanabank.smartconsulting.service.SessionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -17,6 +18,7 @@ import java.util.Map;
 public class WebSocketController {
     
     private final SimpMessagingTemplate messagingTemplate;
+    private final SessionService sessionService;
     
     @MessageMapping("/join-session")
     public void joinSession(@Payload Map<String, Object> payload, SimpMessageHeaderAccessor headerAccessor) {
@@ -43,13 +45,31 @@ public class WebSocketController {
             log.warn("세션 속성 설정 실패: {}", e.getMessage());
         }
         
-        // 세션 참여 성공 알림
+        // 태블릿이 세션에 참여하는 경우 SessionService 사용
+        boolean joinSuccess = true;
+        if ("customer-tablet".equals(userType)) {
+            joinSuccess = sessionService.joinTabletToSession(sessionId);
+        }
+        
+        // 세션 참여 결과 응답
         Map<String, Object> response = new HashMap<>();
         response.put("type", "session-joined");
         response.put("userType", userType);
         response.put("userId", userId != null ? userId : "anonymous");
+        response.put("success", joinSuccess);
+        response.put("sessionId", sessionId);
         
-        messagingTemplate.convertAndSend("/topic/session/" + sessionId, response);
+        if (joinSuccess) {
+            // 성공한 경우 세션 참가자들에게 알림
+            sessionService.notifyParticipants(sessionId, "participant-joined", response);
+        } else {
+            // 실패한 경우 해당 클라이언트에게만 응답
+            messagingTemplate.convertAndSendToUser(
+                headerAccessor.getSessionId(), 
+                "/queue/reply", 
+                response
+            );
+        }
     }
     
     @MessageMapping("/customer-info-update")

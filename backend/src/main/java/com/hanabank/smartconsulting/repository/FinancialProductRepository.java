@@ -23,3 +23,5 @@ public interface FinancialProductRepository extends JpaRepository<FinancialProdu
     @Query("SELECT DISTINCT fp.productType FROM FinancialProduct fp WHERE fp.productType IS NOT NULL")
     List<String> findAllProductTypes();
 }
+
+
