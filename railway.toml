@@ -1,0 +1,10 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "java -Dserver.port=$PORT -jar target/smart-consulting-1.0.0.jar"
+healthcheckPath = "/api/health"
+restartPolicyType = "ON_FAILURE"
+
+[deploy.variables]
+JAVA_VERSION = "21"
