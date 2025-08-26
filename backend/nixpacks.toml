@@ -1,0 +1,12 @@
+[variables]
+JAVA_HOME = "/mise/installs/java/21.0.2"
+PATH = "/mise/installs/java/21.0.2/bin:/mise/installs/maven/3.9.11/bin:$PATH"
+
+[phases.setup]
+nixPkgs = ["...", "maven", "openjdk21"]
+
+[phases.build]
+cmds = ["chmod +x ./mvnw", "./mvnw -DskipTests clean package"]
+
+[start]
+cmd = "java -Dserver.port=$PORT -jar target/smart-consulting-1.0.0.jar"
