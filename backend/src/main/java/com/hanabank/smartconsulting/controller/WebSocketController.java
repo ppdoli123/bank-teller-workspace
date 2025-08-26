@@ -115,19 +115,35 @@ public class WebSocketController {
     
     @MessageMapping("/send-to-session")
     public void sendToSession(@Payload Map<String, Object> payload) {
-        String sessionId = (String) payload.get("sessionId");
-        String type = (String) payload.get("type");
-        Object data = payload.get("data");
-        
-        log.info("세션으로 데이터 전송 - sessionId: {}, type: {}", sessionId, type);
-        
-        // 태블릿으로 데이터 전송
-        Map<String, Object> response = new HashMap<>();
-        response.put("type", type);
-        response.put("data", data);
-        response.put("timestamp", System.currentTimeMillis());
-        
-        messagingTemplate.convertAndSend("/topic/session/" + sessionId, response);
+        try {
+            String sessionId = (String) payload.get("sessionId");
+            String type = (String) payload.get("type");
+            Object data = payload.get("data");
+            
+            log.info("=== 메시지 수신 ===");
+            log.info("세션으로 데이터 전송 - sessionId: {}, type: {}", sessionId, type);
+            log.info("전체 페이로드: {}", payload);
+            
+            if (sessionId == null || sessionId.trim().isEmpty()) {
+                log.error("세션 ID가 없습니다!");
+                return;
+            }
+            
+            // 태블릿으로 데이터 전송
+            Map<String, Object> response = new HashMap<>();
+            response.put("type", type);
+            response.put("data", data);
+            response.put("timestamp", System.currentTimeMillis());
+            
+            String destination = "/topic/session/" + sessionId;
+            log.info("메시지 전송 대상: {}", destination);
+            
+            messagingTemplate.convertAndSend(destination, response);
+            log.info("메시지 전송 완료");
+            
+        } catch (Exception e) {
+            log.error("메시지 처리 중 오류 발생: ", e);
+        }
     }
     
     @MessageMapping("/send-message")
