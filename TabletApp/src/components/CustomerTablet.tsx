@@ -136,38 +136,43 @@ const CustomerTablet: React.FC = () => {
 
   // 네트워크 연결 테스트 (다중 IP 지원)
   const testNetworkConnection = async () => {
-    addDebugInfo('=== 네트워크 연결 테스트 시작 ===');
-    setNetworkStatus('네트워크 테스트 중...');
+    addDebugInfo('=== 클라우드 백엔드 연결 테스트 시작 ===');
+    setNetworkStatus('클라우드 서버 연결 중...');
 
-    // 디바이스 네트워크 정보 출력
-    getDeviceNetworkInfo();
+    // 클라우드 백엔드 URL 테스트
+    const cloudUrl = `${API_BASE_URL}/api/health`;
+    addDebugInfo(`클라우드 URL: ${cloudUrl}`);
 
-    addDebugInfo(`기본 URL: ${API_BASE_URL}/api/health`);
-    addDebugInfo(`대체 IP 개수: ${ALTERNATIVE_IPS.length}개`);
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃
 
-    // 1. 기본 IP 테스트
-    const mainResult = await testSingleIP('192.168.123.7', 8000);
-    if (mainResult.success) {
-      addDebugInfo('🎯 기본 IP로 연결 성공!');
-      return true;
-    }
+      const response = await fetch(cloudUrl, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+      });
 
-    // 2. 대체 IP들 테스트
-    addDebugInfo('🔄 대체 IP 주소들 테스트 중...');
-    for (const ip of ALTERNATIVE_IPS) {
-      const result = await testSingleIP(ip, 5000);
-      if (result.success) {
-        addDebugInfo(`🎯 대체 IP ${ip}로 연결 성공!`);
-        return true;
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+
+      const data = await response.json();
+      addDebugInfo('✅ 클라우드 백엔드 연결 성공!');
+      addDebugInfo(`서버 상태: ${data.message || 'OK'}`);
+      setNetworkStatus('클라우드 연결됨');
+      return true;
+    } catch (error) {
+      addDebugInfo(`❌ 클라우드 연결 실패: ${error.message}`);
+      setNetworkStatus('클라우드 연결 실패');
+      addDebugInfo('확인: 인터넷 연결? 서버 상태?');
+      return false;
     }
-
-    // 3. 모든 IP 실패
-    addDebugInfo('❌ 모든 IP 주소 연결 실패');
-    setNetworkStatus('연결 실패');
-    addDebugInfo('확인: 같은 WiFi? 서버 실행? 방화벽?');
-
-    return false;
   };
 
   useEffect(() => {
@@ -200,22 +205,44 @@ const CustomerTablet: React.FC = () => {
     console.log('개발 머신 IP:', '192.168.123.7');
 
     try {
-      const socket = new SockJS(WS_URL);
+      // SockJS 옵션 설정
+      const sockJSOptions = {
+        timeout: 30000,
+        transports: ['websocket', 'xhr-streaming', 'xhr-polling'],
+      };
+
+      const socket = new SockJS(WS_URL, null, sockJSOptions);
 
       // SockJS 이벤트 로깅
-      socket.onopen = () => console.log('SockJS 연결 성공');
-      socket.onclose = e => console.log('SockJS 연결 종료:', e);
-      socket.onerror = e => console.error('SockJS 오류:', e);
+      socket.onopen = () => {
+        console.log('SockJS 연결 성공');
+        addDebugInfo('🔗 SockJS 연결 성공');
+      };
+      socket.onclose = e => {
+        console.log('SockJS 연결 종료:', e);
+        addDebugInfo(
+          `❌ SockJS 연결 종료: ${e.code} ${e.reason || 'No reason'}`,
+        );
+      };
+      socket.onerror = e => {
+        console.error('SockJS 오류:', e);
+        addDebugInfo(`⚠️ SockJS 오류: ${e.type || 'Unknown error'}`);
+      };
 
       const client = new Client({
         webSocketFactory: () => socket,
-        debug: str => console.log('STOMP:', str),
+        debug: str => {
+          console.log('STOMP:', str);
+          addDebugInfo(`STOMP: ${str.substring(0, 50)}...`);
+        },
         reconnectDelay: CONFIG.RECONNECT_DELAY,
         heartbeatIncoming: CONFIG.HEARTBEAT_INCOMING,
         heartbeatOutgoing: CONFIG.HEARTBEAT_OUTGOING,
         onConnect: frame => {
           console.log('STOMP 연결 성공:', frame);
           console.log('연결된 서버:', WS_URL);
+          addDebugInfo('🎉 STOMP 연결 성공!');
+          addDebugInfo(`서버: ${WS_URL}`);
           setStompClient(client);
           setIsConnected(true);
 
@@ -243,23 +270,36 @@ const CustomerTablet: React.FC = () => {
         },
         onDisconnect: () => {
           console.log('WebSocket 연결 해제됨');
+          addDebugInfo('🔌 WebSocket 연결 해제됨');
           setIsConnected(false);
           setIsWaitingForEmployee(true);
         },
         onStompError: frame => {
           console.error('STOMP 오류:', frame.headers['message']);
           console.error('STOMP 오류 상세:', frame);
+          addDebugInfo(
+            `❌ STOMP 오류: ${frame.headers['message'] || 'Unknown'}`,
+          );
           setIsConnected(false);
           setIsWaitingForEmployee(true);
         },
       });
 
       console.log('STOMP 클라이언트 활성화 중...');
+      addDebugInfo('🚀 STOMP 클라이언트 활성화 시도...');
+
       client.activate();
     } catch (error) {
       console.error('WebSocket 설정 오류:', error);
+      addDebugInfo(`💥 WebSocket 설정 오류: ${error.message}`);
       setIsConnected(false);
       setIsWaitingForEmployee(true);
+
+      // 5초 후 재시도
+      setTimeout(() => {
+        addDebugInfo('🔄 WebSocket 재시도...');
+        setupWebSocket();
+      }, 5000);
     }
   };
 

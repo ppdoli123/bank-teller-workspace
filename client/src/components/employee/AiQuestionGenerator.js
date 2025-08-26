@@ -18,24 +18,27 @@ const AiQuestionGenerator = ({ customerInfo, onQuestionsGenerated }) => {
     setError(null);
 
     try {
-      const response = await fetch("http://localhost:8080/api/ai/questions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          customerId: customerInfo?.customerId || "CUST-0001",
-          employeeNotes: employeeNotes,
-          customerSnapshotJson: JSON.stringify(
-            customerInfo || {
-              age: 35,
-              income: 4200,
-              assets: 28600000,
-              goals: ["주택구매"],
-            }
-          ),
-        }),
-      });
+      const response = await fetch(
+        "https://hana-backend-production.up.railway.app/api/ai/questions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            customerId: customerInfo?.customerId || "CUST-0001",
+            employeeNotes: employeeNotes,
+            customerSnapshotJson: JSON.stringify(
+              customerInfo || {
+                age: 35,
+                income: 4200,
+                assets: 28600000,
+                goals: ["주택구매"],
+              }
+            ),
+          }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("질문 생성에 실패했습니다.");

@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import styled from "styled-components";
+import axios from "axios";
 
 // 한글-영어 매핑
 const FORM_TYPE_MAPPING = {
-  '예금': 'deposit',
-  '적금': 'savings', 
-  '대출': 'loan',
-  '투자': 'investment'
+  예금: "deposit",
+  적금: "savings",
+  대출: "loan",
+  투자: "investment",
 };
 
 const FormSelectorContainer = styled.div`
@@ -32,13 +32,15 @@ const FormTypeGrid = styled.div`
 `;
 
 const FormTypeCard = styled.div`
-  border: 2px solid ${props => props.selected ? 'var(--hana-mint)' : '#e9ecef'};
+  border: 2px solid
+    ${(props) => (props.selected ? "var(--hana-mint)" : "#e9ecef")};
   border-radius: 8px;
   padding: 1rem;
   cursor: pointer;
   text-align: center;
   transition: all 0.3s ease;
-  background: ${props => props.selected ? 'var(--hana-mint-light)' : 'white'};
+  background: ${(props) =>
+    props.selected ? "var(--hana-mint-light)" : "white"};
 
   &:hover {
     border-color: var(--hana-mint);
@@ -70,11 +72,13 @@ const FormItem = styled.div`
   justify-content: between;
   align-items: center;
   padding: 0.75rem;
-  border: 1px solid ${props => props.selected ? 'var(--hana-mint)' : '#e9ecef'};
+  border: 1px solid
+    ${(props) => (props.selected ? "var(--hana-mint)" : "#e9ecef")};
   border-radius: 6px;
   margin-bottom: 0.5rem;
   cursor: pointer;
-  background: ${props => props.selected ? 'var(--hana-mint-light)' : 'white'};
+  background: ${(props) =>
+    props.selected ? "var(--hana-mint-light)" : "white"};
   transition: all 0.3s ease;
 
   &:hover {
@@ -120,15 +124,20 @@ const ActionButton = styled.button`
   }
 `;
 
-const FormSelector = ({ selectedProduct, onFormSelected, sessionId, stompClient }) => {
+const FormSelector = ({
+  selectedProduct,
+  onFormSelected,
+  sessionId,
+  stompClient,
+}) => {
   const [formTypes] = useState([
-    { type: '예금', icon: '💰', name: '예금 서식' },
-    { type: '적금', icon: '🏦', name: '적금 서식' },
-    { type: '대출', icon: '💳', name: '대출 서식' },
-    { type: '투자', icon: '📈', name: '투자 서식' }
+    { type: "예금", icon: "💰", name: "예금 서식" },
+    { type: "적금", icon: "🏦", name: "적금 서식" },
+    { type: "대출", icon: "💳", name: "대출 서식" },
+    { type: "투자", icon: "📈", name: "투자 서식" },
   ]);
 
-  const [selectedFormType, setSelectedFormType] = useState('');
+  const [selectedFormType, setSelectedFormType] = useState("");
   const [availableForms, setAvailableForms] = useState([]);
   const [selectedForm, setSelectedForm] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -139,7 +148,9 @@ const FormSelector = ({ selectedProduct, onFormSelected, sessionId, stompClient 
       setLoading(true);
       // 한글을 영어로 변환
       const englishType = FORM_TYPE_MAPPING[formType] || formType;
-      const response = await axios.get(`http://localhost:8080/api/test-forms/by-type?type=${englishType}`);
+      const response = await axios.get(
+        `https://hana-backend-production.up.railway.app/api/test-forms/by-type?type=${englishType}`
+      );
       if (response.data.success) {
         setAvailableForms(response.data.data);
       } else {
@@ -147,7 +158,7 @@ const FormSelector = ({ selectedProduct, onFormSelected, sessionId, stompClient 
         setAvailableForms(response.data);
       }
     } catch (error) {
-      console.error('서식 목록 조회 실패:', error);
+      console.error("서식 목록 조회 실패:", error);
       setAvailableForms([]);
     } finally {
       setLoading(false);
@@ -169,62 +180,61 @@ const FormSelector = ({ selectedProduct, onFormSelected, sessionId, stompClient 
   // 서식 적용
   const handleApplyForm = async () => {
     if (!selectedForm) {
-      alert('서식을 선택해주세요.');
+      alert("서식을 선택해주세요.");
       return;
     }
 
-    console.log('서식 전송 시작:', {
+    console.log("서식 전송 시작:", {
       selectedForm,
       selectedProduct,
       sessionId,
-      stompClient: !!stompClient
+      stompClient: !!stompClient,
     });
 
     try {
       setLoading(true);
-      
+
       // 서식 데이터 준비 (상품 정보 없이도 가능)
       const formData = {
         formType: selectedFormType,
         formName: selectedForm.formName,
         formTemplate: selectedForm.formTemplate,
         description: selectedForm.description,
-        productInfo: selectedProduct || null // 상품이 선택되지 않아도 null로 전송
+        productInfo: selectedProduct || null, // 상품이 선택되지 않아도 null로 전송
       };
 
       // 태블릿으로 서식 전송
       if (stompClient && sessionId) {
-        console.log('WebSocket으로 서식 전송:', formData);
-        
+        console.log("WebSocket으로 서식 전송:", formData);
+
         stompClient.publish({
-          destination: '/app/send-to-session',
+          destination: "/app/send-to-session",
           body: JSON.stringify({
             sessionId: sessionId,
-            type: 'form-display',
-            data: formData
-          })
+            type: "form-display",
+            data: formData,
+          }),
         });
 
-        alert('서식이 태블릿으로 전송되었습니다.');
+        alert("서식이 태블릿으로 전송되었습니다.");
       } else {
-        console.error('WebSocket 연결 또는 세션 ID가 없습니다:', {
+        console.error("WebSocket 연결 또는 세션 ID가 없습니다:", {
           stompClient: !!stompClient,
-          sessionId
+          sessionId,
         });
-        alert('WebSocket 연결이 필요합니다.');
+        alert("WebSocket 연결이 필요합니다.");
       }
 
       if (onFormSelected) {
         onFormSelected({
           form: selectedForm,
           filledContent: selectedForm.formTemplate,
-          productInfo: selectedProduct
+          productInfo: selectedProduct,
         });
       }
-
     } catch (error) {
-      console.error('서식 전송 실패:', error);
-      alert('서식 전송에 실패했습니다.');
+      console.error("서식 전송 실패:", error);
+      alert("서식 전송에 실패했습니다.");
     } finally {
       setLoading(false);
     }
@@ -233,7 +243,7 @@ const FormSelector = ({ selectedProduct, onFormSelected, sessionId, stompClient 
   return (
     <FormSelectorContainer>
       <SectionTitle>📋 서식 선택</SectionTitle>
-      
+
       {/* 서식 타입 선택 */}
       <FormTypeGrid>
         {formTypes.map((formType) => (
@@ -254,7 +264,7 @@ const FormSelector = ({ selectedProduct, onFormSelected, sessionId, stompClient 
           <SectionTitle>{selectedFormType} 서식 목록</SectionTitle>
           <FormList>
             {loading ? (
-              <div style={{ textAlign: 'center', padding: '2rem' }}>
+              <div style={{ textAlign: "center", padding: "2rem" }}>
                 서식을 불러오는 중...
               </div>
             ) : availableForms.length > 0 ? (
@@ -271,7 +281,9 @@ const FormSelector = ({ selectedProduct, onFormSelected, sessionId, stompClient 
                 </FormItem>
               ))
             ) : (
-              <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+              <div
+                style={{ textAlign: "center", padding: "2rem", color: "#666" }}
+              >
                 해당 타입의 서식이 없습니다.
               </div>
             )}
@@ -281,21 +293,23 @@ const FormSelector = ({ selectedProduct, onFormSelected, sessionId, stompClient 
             onClick={handleApplyForm}
             disabled={!selectedForm || loading}
           >
-            {loading ? '처리 중...' : '서식 태블릿으로 전송'}
+            {loading ? "처리 중..." : "서식 태블릿으로 전송"}
           </ActionButton>
         </>
       )}
 
       {!selectedProduct && (
-        <div style={{ 
-          background: '#e3f2fd', 
-          border: '1px solid #90caf9', 
-          borderRadius: '6px',
-          padding: '1rem',
-          marginTop: '1rem',
-          textAlign: 'center',
-          color: '#1565c0'
-        }}>
+        <div
+          style={{
+            background: "#e3f2fd",
+            border: "1px solid #90caf9",
+            borderRadius: "6px",
+            padding: "1rem",
+            marginTop: "1rem",
+            textAlign: "center",
+            color: "#1565c0",
+          }}
+        >
           💡 상품을 선택하면 더 자세한 서식 정보를 제공할 수 있습니다.
         </div>
       )}

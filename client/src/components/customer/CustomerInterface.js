@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
-import styled from 'styled-components';
-import io from 'socket.io-client';
-import SignatureCanvas from 'react-signature-canvas';
-import axios from 'axios';
+import React, { useState, useEffect, useRef } from "react";
+import { useParams } from "react-router-dom";
+import styled from "styled-components";
+import io from "socket.io-client";
+import SignatureCanvas from "react-signature-canvas";
+import axios from "axios";
 
 const CustomerContainer = styled.div`
   min-height: calc(100vh - 120px);
@@ -12,7 +12,11 @@ const CustomerContainer = styled.div`
 `;
 
 const WelcomeCard = styled.div`
-  background: linear-gradient(135deg, var(--hana-mint) 0%, var(--hana-mint-dark) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--hana-mint) 0%,
+    var(--hana-mint-dark) 100%
+  );
   color: white;
   padding: 3rem;
   border-radius: 20px;
@@ -22,7 +26,7 @@ const WelcomeCard = styled.div`
   overflow: hidden;
 
   &::before {
-    content: '👋';
+    content: "👋";
     position: absolute;
     right: 3rem;
     top: 50%;
@@ -83,7 +87,7 @@ const ProductCard = styled.div`
   border-radius: 12px;
   padding: 1.5rem;
   transition: all 0.3s ease;
-  
+
   &:hover {
     border-color: var(--hana-mint);
     box-shadow: 0 4px 12px rgba(0, 132, 133, 0.1);
@@ -116,7 +120,11 @@ const ProductRate = styled.div`
 `;
 
 const SimulationResult = styled.div`
-  background: linear-gradient(135deg, var(--hana-mint-light) 0%, var(--hana-mint) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--hana-mint-light) 0%,
+    var(--hana-mint) 100%
+  );
   color: white;
   padding: 2rem;
   border-radius: 12px;
@@ -184,21 +192,21 @@ const Button = styled.button`
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
-  
+
   &.primary {
     background: var(--hana-mint);
     color: white;
-    
+
     &:hover {
       background: var(--hana-mint-dark);
     }
   }
-  
+
   &.secondary {
     background: var(--hana-white);
     color: var(--hana-mint);
     border: 2px solid var(--hana-mint);
-    
+
     &:hover {
       background: var(--hana-mint);
       color: white;
@@ -234,12 +242,12 @@ const StatusBadge = styled.div`
   font-size: 0.9rem;
   font-weight: 500;
   margin-bottom: 1rem;
-  
+
   &.connected {
     background: var(--hana-success);
     color: white;
   }
-  
+
   &.waiting {
     background: var(--hana-warning);
     color: var(--hana-black);
@@ -247,17 +255,17 @@ const StatusBadge = styled.div`
 `;
 
 const formatRate = (rate) => {
-  return rate ? rate.toFixed(2) + '%' : '0.00%';
+  return rate ? rate.toFixed(2) + "%" : "0.00%";
 };
 
 const CustomerInterface = () => {
   const { sessionId } = useParams();
   const [socket, setSocket] = useState(null);
   const [connected, setConnected] = useState(false);
-  const [currentScreen, setCurrentScreen] = useState('welcome');
+  const [currentScreen, setCurrentScreen] = useState("welcome");
   const [screenData, setScreenData] = useState(null);
   const [loading, setLoading] = useState(false);
-  
+
   const signatureRef = useRef();
 
   useEffect(() => {
@@ -266,25 +274,25 @@ const CustomerInterface = () => {
     setSocket(newSocket);
 
     // 세션 참여
-    newSocket.emit('join-session', {
+    newSocket.emit("join-session", {
       sessionId,
-      userType: 'customer',
-      userId: 'customer'
+      userType: "customer",
+      userId: "customer",
     });
 
     // 이벤트 리스너 설정
-    newSocket.on('session-joined', () => {
+    newSocket.on("session-joined", () => {
       setConnected(true);
     });
 
-    newSocket.on('screen-updated', (data) => {
+    newSocket.on("screen-updated", (data) => {
       setScreenData(data);
       setCurrentScreen(data.type);
     });
 
-    newSocket.on('simulation-updated', (data) => {
+    newSocket.on("simulation-updated", (data) => {
       setScreenData(data);
-      setCurrentScreen('simulation');
+      setCurrentScreen("simulation");
     });
 
     return () => newSocket.close();
@@ -293,21 +301,24 @@ const CustomerInterface = () => {
   const handleSignature = async () => {
     if (!signatureRef.current.isEmpty()) {
       setLoading(true);
-      
+
       try {
         const signatureData = signatureRef.current.toDataURL();
-        
-        await axios.post('http://localhost:8080/api/signature/submit', {
-          customerId: screenData?.customerId,
-          sessionId: sessionId,
-          productId: screenData?.product?.ProductID,
-          signatureData: signatureData
-        });
-        
-        setCurrentScreen('completion');
+
+        await axios.post(
+          "https://hana-backend-production.up.railway.app/api/signature/submit",
+          {
+            customerId: screenData?.customerId,
+            sessionId: sessionId,
+            productId: screenData?.product?.ProductID,
+            signatureData: signatureData,
+          }
+        );
+
+        setCurrentScreen("completion");
       } catch (error) {
-        console.error('서명 처리 오류:', error);
-        alert('서명 처리 중 오류가 발생했습니다.');
+        console.error("서명 처리 오류:", error);
+        alert("서명 처리 중 오류가 발생했습니다.");
       } finally {
         setLoading(false);
       }
@@ -326,16 +337,16 @@ const CustomerInterface = () => {
           전문 상담사가 고객님께 최적의 금융 솔루션을 제안해드리겠습니다.
         </WelcomeSubtitle>
       </WelcomeCard>
-      
+
       <ContentCard>
         <ContentHeader>
           <ContentTitle>상담 준비 중</ContentTitle>
           <ContentSubtitle>잠시만 기다려주세요...</ContentSubtitle>
         </ContentHeader>
         <ContentBody>
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
-            <StatusBadge className={connected ? 'connected' : 'waiting'}>
-              {connected ? '✓ 상담사와 연결됨' : '⏳ 연결 대기 중'}
+          <div style={{ textAlign: "center", padding: "2rem" }}>
+            <StatusBadge className={connected ? "connected" : "waiting"}>
+              {connected ? "✓ 상담사와 연결됨" : "⏳ 연결 대기 중"}
             </StatusBadge>
             <p>상담사가 고객님의 신분증을 확인하고 있습니다.</p>
           </div>
@@ -358,16 +369,28 @@ const CustomerInterface = () => {
               <ProductDescription>{product.Description}</ProductDescription>
               <ProductDetails>
                 <div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--hana-dark-gray)' }}>
+                  <div
+                    style={{
+                      fontSize: "0.8rem",
+                      color: "var(--hana-dark-gray)",
+                    }}
+                  >
                     기본 금리
                   </div>
-                  <ProductRate>{formatRate(product.BaseInterestRate)}</ProductRate>
+                  <ProductRate>
+                    {formatRate(product.BaseInterestRate)}
+                  </ProductRate>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--hana-dark-gray)' }}>
+                <div style={{ textAlign: "right" }}>
+                  <div
+                    style={{
+                      fontSize: "0.8rem",
+                      color: "var(--hana-dark-gray)",
+                    }}
+                  >
                     상품 유형
                   </div>
-                  <div style={{ fontWeight: '600' }}>{product.ProductType}</div>
+                  <div style={{ fontWeight: "600" }}>{product.ProductType}</div>
                 </div>
               </ProductDetails>
             </ProductCard>
@@ -382,32 +405,39 @@ const CustomerInterface = () => {
       <ContentCard>
         <ContentHeader>
           <ContentTitle>혜택 시뮬레이션 결과</ContentTitle>
-          <ContentSubtitle>{screenData?.data?.product?.ProductName}</ContentSubtitle>
+          <ContentSubtitle>
+            {screenData?.data?.product?.ProductName}
+          </ContentSubtitle>
         </ContentHeader>
         <ContentBody>
           <SimulationResult>
             <ResultGrid>
               <ResultItem>
                 <ResultLabel>기본 금리</ResultLabel>
-                <ResultValue>{formatRate(screenData?.data?.result?.baseInterestRate)}</ResultValue>
+                <ResultValue>
+                  {formatRate(screenData?.data?.result?.baseInterestRate)}
+                </ResultValue>
               </ResultItem>
               <ResultItem>
                 <ResultLabel>최종 금리</ResultLabel>
-                <ResultValue>{formatRate(screenData?.data?.result?.totalInterestRate)}</ResultValue>
+                <ResultValue>
+                  {formatRate(screenData?.data?.result?.totalInterestRate)}
+                </ResultValue>
               </ResultItem>
               <ResultItem>
                 <ResultLabel>우대 혜택</ResultLabel>
                 <ResultValue>
-                  +{formatRate(
-                    (screenData?.data?.result?.totalInterestRate || 0) - 
-                    (screenData?.data?.result?.baseInterestRate || 0)
+                  +
+                  {formatRate(
+                    (screenData?.data?.result?.totalInterestRate || 0) -
+                      (screenData?.data?.result?.baseInterestRate || 0)
                   )}
                 </ResultValue>
               </ResultItem>
             </ResultGrid>
-            
-            <div style={{ textAlign: 'center' }}>
-              <h4 style={{ marginBottom: '1rem' }}>🎉 축하합니다!</h4>
+
+            <div style={{ textAlign: "center" }}>
+              <h4 style={{ marginBottom: "1rem" }}>🎉 축하합니다!</h4>
               <p>고객님의 조건으로 최대 우대혜택을 받으실 수 있습니다.</p>
             </div>
           </SimulationResult>
@@ -420,34 +450,50 @@ const CustomerInterface = () => {
     <ContentCard>
       <ContentHeader>
         <ContentTitle>상품 가입 신청</ContentTitle>
-        <ContentSubtitle>{screenData?.data?.product?.ProductName}</ContentSubtitle>
+        <ContentSubtitle>
+          {screenData?.data?.product?.ProductName}
+        </ContentSubtitle>
       </ContentHeader>
       <ContentBody>
-        <div style={{ marginBottom: '2rem' }}>
-          <h4 style={{ color: 'var(--hana-mint)', marginBottom: '1rem' }}>가입 조건</h4>
-          <div style={{ background: 'var(--hana-gray)', padding: '1rem', borderRadius: '8px' }}>
-            <p><strong>최종 금리:</strong> {formatRate(screenData?.data?.simulation?.totalInterestRate)}</p>
-            <p><strong>적용 혜택:</strong> {screenData?.data?.simulation?.benefits?.length || 0}개</p>
+        <div style={{ marginBottom: "2rem" }}>
+          <h4 style={{ color: "var(--hana-mint)", marginBottom: "1rem" }}>
+            가입 조건
+          </h4>
+          <div
+            style={{
+              background: "var(--hana-gray)",
+              padding: "1rem",
+              borderRadius: "8px",
+            }}
+          >
+            <p>
+              <strong>최종 금리:</strong>{" "}
+              {formatRate(screenData?.data?.simulation?.totalInterestRate)}
+            </p>
+            <p>
+              <strong>적용 혜택:</strong>{" "}
+              {screenData?.data?.simulation?.benefits?.length || 0}개
+            </p>
           </div>
         </div>
-        
+
         <SignatureSection>
           <SignatureTitle>전자 서명</SignatureTitle>
-          <p style={{ marginBottom: '1rem', color: 'var(--hana-dark-gray)' }}>
+          <p style={{ marginBottom: "1rem", color: "var(--hana-dark-gray)" }}>
             아래 서명란에 서명해주세요
           </p>
-          
+
           <SignatureCanvasContainer>
             <SignatureCanvas
               ref={signatureRef}
               canvasProps={{
                 width: 400,
                 height: 200,
-                className: 'signature-canvas'
+                className: "signature-canvas",
               }}
             />
           </SignatureCanvasContainer>
-          
+
           <SignatureButtons>
             <Button className="secondary" onClick={clearSignature}>
               다시 작성
@@ -468,12 +514,12 @@ const CustomerInterface = () => {
         <ContentSubtitle>상품 가입이 성공적으로 완료되었습니다</ContentSubtitle>
       </ContentHeader>
       <ContentBody>
-        <div style={{ textAlign: 'center', padding: '3rem' }}>
-          <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>✅</div>
-          <h3 style={{ color: 'var(--hana-mint)', marginBottom: '1rem' }}>
+        <div style={{ textAlign: "center", padding: "3rem" }}>
+          <div style={{ fontSize: "4rem", marginBottom: "1rem" }}>✅</div>
+          <h3 style={{ color: "var(--hana-mint)", marginBottom: "1rem" }}>
             가입 신청이 완료되었습니다
           </h3>
-          <p style={{ color: 'var(--hana-dark-gray)' }}>
+          <p style={{ color: "var(--hana-dark-gray)" }}>
             영업일 기준 1-2일 내에 처리 결과를 안내드리겠습니다.
           </p>
         </div>
@@ -483,17 +529,18 @@ const CustomerInterface = () => {
 
   return (
     <CustomerContainer>
-      {currentScreen === 'welcome' && renderWelcomeScreen()}
-      {currentScreen === 'product-comparison-updated' && renderProductComparison()}
-      {currentScreen === 'simulation-result' && renderSimulationResult()}
-      {currentScreen === 'show-application-form' && renderApplicationForm()}
-      {currentScreen === 'completion' && renderCompletionScreen()}
-      
+      {currentScreen === "welcome" && renderWelcomeScreen()}
+      {currentScreen === "product-comparison-updated" &&
+        renderProductComparison()}
+      {currentScreen === "simulation-result" && renderSimulationResult()}
+      {currentScreen === "show-application-form" && renderApplicationForm()}
+      {currentScreen === "completion" && renderCompletionScreen()}
+
       {loading && (
         <LoadingOverlay>
           <LoadingCard>
             <div className="spinner"></div>
-            <h3 style={{ marginTop: '1rem' }}>처리 중...</h3>
+            <h3 style={{ marginTop: "1rem" }}>처리 중...</h3>
             <p>잠시만 기다려주세요</p>
           </LoadingCard>
         </LoadingOverlay>
@@ -502,4 +549,4 @@ const CustomerInterface = () => {
   );
 };
 
-export default CustomerInterface; 
+export default CustomerInterface;

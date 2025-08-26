@@ -22,8 +22,8 @@ const DEFAULT_IP = DEVELOPMENT_IPS[0];
 
 // API 기본 URL
 export const API_BASE_URL = isDevelopment
-  ? `http://${DEFAULT_IP}:8080`
-  : 'http://localhost:8080';
+  ? 'https://hana-backend-production.up.railway.app'
+  : 'https://hana-backend-production.up.railway.app';
 
 // WebSocket URL (context-path가 /api이므로 /ws만 추가)
 export const WS_URL = `${API_BASE_URL}/ws`;

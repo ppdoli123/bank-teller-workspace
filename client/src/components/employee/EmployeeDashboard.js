@@ -615,7 +615,8 @@ const EmployeeDashboard = () => {
 
     // STOMP WebSocket 연결
     const client = new Client({
-      webSocketFactory: () => new SockJS("http://localhost:8080/api/ws"),
+      webSocketFactory: () =>
+        new SockJS("https://hana-backend-production.up.railway.app/api/ws"),
       connectHeaders: {},
       debug: function (str) {
         console.log("STOMP Debug:", str);
@@ -644,6 +645,37 @@ const EmployeeDashboard = () => {
           userType: "employee",
           userId: JSON.parse(employeeData).employeeId,
         }),
+      });
+
+      // 세션 메시지 구독 (태블릿과 통신용)
+      client.subscribe("/topic/session/" + sharedSessionId, function (message) {
+        const data = JSON.parse(message.body);
+        console.log("직원이 세션 메시지 수신:", data);
+
+        // 메시지 타입별 처리
+        switch (data.type) {
+          case "session-joined":
+            if (data.userType === "customer-tablet") {
+              console.log("태블릿이 세션에 참여했습니다:", data);
+            }
+            break;
+          case "start-consultation":
+            console.log("태블릿에서 상담 시작 요청:", data);
+            break;
+          case "customer-info-confirmed":
+            console.log("태블릿에서 고객 정보 확인 완료:", data);
+            break;
+          case "FIELD_INPUT_COMPLETED":
+            console.log("태블릿에서 필드 입력 완료:", data);
+            // 폼 필드 업데이트 처리
+            if (data.field && window.updateFormField) {
+              window.updateFormField(data.field.id, data.field.value);
+            }
+            break;
+          default:
+            console.log("알 수 없는 메시지 타입:", data.type);
+            break;
+        }
       });
 
       console.log("직원 세션 참여:", sharedSessionId);
@@ -856,7 +888,7 @@ const EmployeeDashboard = () => {
       formData.append("idCard", imageFile);
 
       const response = await axios.post(
-        "http://localhost:8080/api/ocr/id-card",
+        "https://hana-backend-production.up.railway.app/api/ocr/id-card",
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -918,7 +950,7 @@ const EmployeeDashboard = () => {
   const createConsultationSession = async (customerId) => {
     try {
       const response = await axios.post(
-        "http://localhost:8080/api/consultation/sessions",
+        "https://hana-backend-production.up.railway.app/api/consultation/sessions",
         {
           employeeId: employee.employeeId,
           customerId: customerId,
@@ -941,7 +973,7 @@ const EmployeeDashboard = () => {
 
         // 고객 상세 정보 조회
         const customerResponse = await axios.get(
-          `http://localhost:8080/api/customers/${customerId}`
+          `https://hana-backend-production.up.railway.app/api/customers/${customerId}`
         );
         const backendCustomerData = customerResponse.data.data;
 
@@ -1229,10 +1261,13 @@ const EmployeeDashboard = () => {
                 // 백엔드에 폼 데이터 저장
                 if (currentCustomer) {
                   axios
-                    .post("http://localhost:8080/api/forms/submit", {
-                      customerId: currentCustomer.CustomerID,
-                      ...formData,
-                    })
+                    .post(
+                      "https://hana-backend-production.up.railway.app/api/forms/submit",
+                      {
+                        customerId: currentCustomer.CustomerID,
+                        ...formData,
+                      }
+                    )
                     .catch((error) => console.error("폼 제출 오류:", error));
                 }
               }}
