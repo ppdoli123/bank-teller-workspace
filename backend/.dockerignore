@@ -1,0 +1,29 @@
+# Maven
+target/
+!target/*.jar
+!target/classes/
+!target/maven-status/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment files
+.env
+application-local.properties
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+README.md
+*.md
