@@ -8,18 +8,26 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Controller
 @RequiredArgsConstructor
 @Slf4j
-public class WebSocketController {
+public class WebSocketController extends TextWebSocketHandler {
     
     private final SimpMessagingTemplate messagingTemplate;
     private final SessionService sessionService;
     
+    // 단순 WebSocket 세션 저장소
+    private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
+
+    // STOMP 메시지 핸들러들
     @MessageMapping("/join-session")
     public void joinSession(@Payload Map<String, Object> payload, SimpMessageHeaderAccessor headerAccessor) {
         String sessionId = (String) payload.get("sessionId");
@@ -157,5 +165,46 @@ public class WebSocketController {
             "type", "receive-message",
             "data", payload
         ));
+    }
+
+    // 단순 WebSocket 핸들러들 (STOMP 없이)
+    @Override
+    public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+        log.info("단순 WebSocket 연결 성공: {}", session.getId());
+        sessions.put(session.getId(), session);
+        
+        // 연결 확인 메시지 전송
+        session.sendMessage(new TextMessage("{\"type\":\"connection-established\",\"sessionId\":\"" + session.getId() + "\"}"));
+    }
+
+    @Override
+    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+        log.info("단순 WebSocket 메시지 수신: {}", message.getPayload());
+        
+        try {
+            // JSON 파싱 및 처리
+            String payload = message.getPayload();
+            
+            // 간단한 응답 메시지 전송
+            String response = "{\"type\":\"message-received\",\"originalMessage\":\"" + payload + "\",\"timestamp\":\"" + System.currentTimeMillis() + "\"}";
+            session.sendMessage(new TextMessage(response));
+            
+            // 다른 세션들에게도 브로드캐스트 (옵션)
+            for (WebSocketSession otherSession : sessions.values()) {
+                if (!otherSession.getId().equals(session.getId()) && otherSession.isOpen()) {
+                    otherSession.sendMessage(new TextMessage("{\"type\":\"broadcast\",\"message\":\"다른 클라이언트에서 메시지를 보냈습니다.\"}"));
+                }
+            }
+            
+        } catch (Exception e) {
+            log.error("메시지 처리 오류", e);
+            session.sendMessage(new TextMessage("{\"type\":\"error\",\"message\":\"메시지 처리 중 오류가 발생했습니다.\"}"));
+        }
+    }
+
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, org.springframework.web.socket.CloseStatus status) throws Exception {
+        log.info("단순 WebSocket 연결 종료: {} - {}", session.getId(), status);
+        sessions.remove(session.getId());
     }
 }

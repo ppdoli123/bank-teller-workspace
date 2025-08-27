@@ -3,6 +3,7 @@ const isDevelopment = __DEV__;
 
 // 개발 머신 IP 주소들 (우선순위 순) - 태블릿에서 노트북으로 연결
 const DEVELOPMENT_IPS = [
+  '10.0.2.2', // 애뮬레이터에서 호스트 접근용 (가장 중요!)
   '192.168.123.7', // 노트북 IP (백엔드 서버 실행 중)
   '192.168.123.1', // 라우터 IP (백업)
   '192.168.123.10', // 같은 대역 다른 IP들
@@ -33,6 +34,11 @@ export const HTTP_WS_URL = isDevelopment
 export const WS_URL = isDevelopment
   ? `ws://${DEFAULT_IP}:8080/api/websocket` // 네이티브 WebSocket용 WS URL
   : 'wss://hana-backend-production.up.railway.app/api/websocket';
+
+// 단순 WebSocket URL (STOMP 없이)
+export const SIMPLE_WS_URL = isDevelopment
+  ? `ws://${DEFAULT_IP}:8080/api/simple-ws` // 단순 WebSocket용 URL
+  : 'wss://hana-backend-production.up.railway.app/api/simple-ws';
 
 // 대체 IP 주소들
 export const ALTERNATIVE_IPS = DEVELOPMENT_IPS.slice(1);

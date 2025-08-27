@@ -276,6 +276,37 @@ const Button = styled.button`
   }
 `;
 
+const NavigationTabs = styled.div`
+  display: flex;
+  gap: var(--hana-space-2);
+  margin: 0;
+`;
+
+const NavTab = styled.button`
+  padding: var(--hana-space-2) var(--hana-space-4);
+  background: ${(props) =>
+    props.active ? "rgba(255, 255, 255, 0.2)" : "transparent"};
+  border: 2px solid
+    ${(props) =>
+      props.active ? "rgba(255, 255, 255, 0.4)" : "rgba(255, 255, 255, 0.2)"};
+  border-radius: var(--hana-radius-full);
+  color: var(--hana-white);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: var(--hana-font-size-sm);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+`;
+
 const TabContainer = styled.div`
   display: flex;
   background: var(--hana-white);
@@ -452,7 +483,11 @@ const TabContent = styled.div`
 `;
 
 // 고객 정보 표시 컴포넌트
-const CustomerInfoDisplay = ({ customer, detailed = false, onSendToTablet }) => {
+const CustomerInfoDisplay = ({
+  customer,
+  detailed = false,
+  onSendToTablet,
+}) => {
   if (!customer) {
     return (
       <div
@@ -583,19 +618,22 @@ const CustomerInfoDisplay = ({ customer, detailed = false, onSendToTablet }) => 
           </div>
         </div>
       )}
-      
+
       {/* 태블릿에 보여주기 버튼 */}
       {detailed && onSendToTablet && (
-        <div style={{ 
-          marginTop: "var(--hana-space-4)", 
-          textAlign: "center",
-          padding: "var(--hana-space-4)",
-          borderTop: "1px solid #eee"
-        }}>
+        <div
+          style={{
+            marginTop: "var(--hana-space-4)",
+            textAlign: "center",
+            padding: "var(--hana-space-4)",
+            borderTop: "1px solid #eee",
+          }}
+        >
           <button
             onClick={() => onSendToTablet(customer)}
             style={{
-              background: "linear-gradient(135deg, var(--hana-primary), var(--hana-mint))",
+              background:
+                "linear-gradient(135deg, var(--hana-primary), var(--hana-mint))",
               color: "white",
               border: "none",
               borderRadius: "var(--hana-radius-md)",
@@ -645,8 +683,8 @@ const EmployeeDashboard = () => {
     const client = new Client({
       webSocketFactory: () => {
         // 로컬 개발 환경에서는 로컬 서버 사용
-        const isDevelopment = process.env.NODE_ENV === 'development';
-        const wsUrl = isDevelopment 
+        const isDevelopment = process.env.NODE_ENV === "development";
+        const wsUrl = isDevelopment
           ? "http://localhost:8080/api/ws"
           : "https://hana-backend-production.up.railway.app/api/ws";
         console.log("WebSocket 연결 시도:", wsUrl);
@@ -733,27 +771,30 @@ const EmployeeDashboard = () => {
     console.log("sessionId:", sessionId);
     console.log("customerData:", customerData);
     console.log("현재 시간:", new Date().toLocaleTimeString());
-    
+
     if (stompClient && sessionId && stompClient.active) {
       const messagePayload = {
         sessionId: sessionId,
         type: "customer-info-display",
         data: {
           customer: customerData,
-          timestamp: Date.now()
-        }
+          timestamp: Date.now(),
+        },
       };
-      
-      console.log("전송할 메시지 페이로드:", JSON.stringify(messagePayload, null, 2));
+
+      console.log(
+        "전송할 메시지 페이로드:",
+        JSON.stringify(messagePayload, null, 2)
+      );
       console.log("전송 대상 토픽:", `/app/send-to-session`);
       console.log("실제 브로드캐스트될 토픽:", `/topic/session/${sessionId}`);
-      
+
       try {
         stompClient.publish({
           destination: "/app/send-to-session",
-          body: JSON.stringify(messagePayload)
+          body: JSON.stringify(messagePayload),
         });
-        
+
         console.log("✅ 메시지 전송 완료");
         console.log("전송된 세션 ID:", sessionId);
         alert("고객 정보가 태블릿에 전송되었습니다!");
@@ -781,11 +822,11 @@ const EmployeeDashboard = () => {
 
     const employee = JSON.parse(employeeData);
     setEmployee(employee);
-    
+
     // 기존 방식으로 되돌림 - Railway 백엔드와 호환
     const finalSessionId = "tablet_main";
     setSessionId(finalSessionId);
-    
+
     // sessionId가 없었다면 localStorage에 저장
     if (!sessionData) {
       localStorage.setItem("sessionId", finalSessionId);
@@ -796,8 +837,6 @@ const EmployeeDashboard = () => {
 
     // WebSocket 연결
     const client = connectWebSocket(finalSessionId, employee);
-
-
 
     // 테스트 고객 목록 가져오기
     fetchTestCustomers();
@@ -1148,12 +1187,9 @@ const EmployeeDashboard = () => {
       <Sidebar>
         {/* 태블릿 연결 상태 및 QR 코드 */}
         {sessionId && employee && (
-          <SessionQRCode 
-            sessionId={sessionId} 
-            employeeName={employee.name}
-          />
+          <SessionQRCode sessionId={sessionId} employeeName={employee.name} />
         )}
-        
+
         <Section>
           <SectionTitle>고객 인식</SectionTitle>
 
@@ -1241,32 +1277,79 @@ const EmployeeDashboard = () => {
 
       <MainContent>
         <TopBar>
-          <HanaLogo>
-            <img
-              src="/hana-logo.svg"
-              alt="Hana"
-              style={{ width: "40px", height: "40px" }}
-            />
-            <div className="logo-text">하나금융그룹 스마트 상담</div>
-          </HanaLogo>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "var(--hana-space-6)",
+            }}
+          >
+            <HanaLogo>
+              <img
+                src="/hana-logo.svg"
+                alt="Hana"
+                style={{ width: "40px", height: "40px" }}
+              />
+              <div className="logo-text">하나금융그룹 스마트 상담</div>
+            </HanaLogo>
 
-          <EmployeeInfo>
-            <Avatar>{employee.name.charAt(0)}</Avatar>
-            <EmployeeDetails>
-              <div className="name">
-                {employee.name} {employee.position}
-              </div>
-              <div className="role">{employee.department}</div>
-            </EmployeeDetails>
-          </EmployeeInfo>
+            <NavigationTabs>
+              <NavTab
+                active={activeTab === "customer"}
+                onClick={() => setActiveTab("customer")}
+              >
+                고객 정보
+              </NavTab>
+              <NavTab
+                active={activeTab === "products"}
+                onClick={() => setActiveTab("products")}
+              >
+                상품 탐색
+              </NavTab>
+              <NavTab
+                active={activeTab === "forms"}
+                onClick={() => setActiveTab("forms")}
+              >
+                서식 선택
+              </NavTab>
+              <NavTab
+                active={activeTab === "pdf-forms"}
+                onClick={() => setActiveTab("pdf-forms")}
+              >
+                📝 PDF 서식 작성
+              </NavTab>
+              <NavTab
+                active={activeTab === "simulation"}
+                onClick={() => setActiveTab("simulation")}
+              >
+                혜택 시뮬레이션
+              </NavTab>
+              <NavTab
+                active={activeTab === "ai"}
+                onClick={() => setActiveTab("ai")}
+              >
+                🤖 AI 질문 생성
+              </NavTab>
+            </NavigationTabs>
+          </div>
 
           <div
             style={{
               display: "flex",
-              gap: "var(--hana-space-4)",
               alignItems: "center",
+              gap: "var(--hana-space-4)",
             }}
           >
+            <EmployeeInfo>
+              <Avatar>{employee.name.charAt(0)}</Avatar>
+              <EmployeeDetails>
+                <div className="name">
+                  {employee.name} {employee.position}
+                </div>
+                <div className="role">{employee.department}</div>
+              </EmployeeDetails>
+            </EmployeeInfo>
+
             <SessionStatus active={!!sessionId}>
               {sessionId ? `세션 활성: ${sessionId.slice(-8)}` : "대기 중"}
             </SessionStatus>
@@ -1276,48 +1359,12 @@ const EmployeeDashboard = () => {
           </div>
         </TopBar>
 
-        <TabContainer>
-          <Tab
-            active={activeTab === "customer"}
-            onClick={() => setActiveTab("customer")}
-          >
-            고객 정보
-          </Tab>
-          <Tab
-            active={activeTab === "products"}
-            onClick={() => setActiveTab("products")}
-          >
-            상품 탐색
-          </Tab>
-          <Tab
-            active={activeTab === "forms"}
-            onClick={() => setActiveTab("forms")}
-          >
-            서식 선택
-          </Tab>
-          <Tab
-            active={activeTab === "pdf-forms"}
-            onClick={() => setActiveTab("pdf-forms")}
-          >
-            📝 PDF 서식 작성
-          </Tab>
-          <Tab
-            active={activeTab === "simulation"}
-            onClick={() => setActiveTab("simulation")}
-          >
-            혜택 시뮬레이션
-          </Tab>
-          <Tab active={activeTab === "ai"} onClick={() => setActiveTab("ai")}>
-            🤖 AI 질문 생성
-          </Tab>
-        </TabContainer>
-
         <TabContent>
           {activeTab === "customer" &&
             (currentCustomer ? (
-              <CustomerInfoDisplay 
-                customer={currentCustomer} 
-                detailed 
+              <CustomerInfoDisplay
+                customer={currentCustomer}
+                detailed
                 onSendToTablet={sendCustomerInfoToTablet}
               />
             ) : (
