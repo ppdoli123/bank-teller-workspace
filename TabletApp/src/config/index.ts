@@ -20,14 +20,19 @@ const DEVELOPMENT_IPS = [
 // 기본 IP (첫 번째 IP 사용)
 const DEFAULT_IP = DEVELOPMENT_IPS[0];
 
-// API 기본 URL
+// API 기본 URL - 로컬로 변경
 export const API_BASE_URL = isDevelopment
-  ? 'https://hana-backend-production.up.railway.app'
-  : 'https://hana-backend-production.up.railway.app';
+  ? `http://${DEFAULT_IP}:8080/api`
+  : 'https://hana-backend-production.up.railway.app/api';
 
-// WebSocket URLs
-export const HTTP_WS_URL = `${API_BASE_URL}/api/ws`; // SockJS용 HTTP URL
-export const WS_URL = `${API_BASE_URL}/api/websocket`.replace('https://', 'wss://'); // 네이티브 WebSocket용 WSS URL
+// WebSocket URLs - 로컬로 변경
+export const HTTP_WS_URL = isDevelopment
+  ? `http://${DEFAULT_IP}:8080/api/ws` // SockJS용 HTTP URL
+  : 'https://hana-backend-production.up.railway.app/api/ws';
+
+export const WS_URL = isDevelopment
+  ? `ws://${DEFAULT_IP}:8080/api/websocket` // 네이티브 WebSocket용 WS URL
+  : 'wss://hana-backend-production.up.railway.app/api/websocket';
 
 // 대체 IP 주소들
 export const ALTERNATIVE_IPS = DEVELOPMENT_IPS.slice(1);

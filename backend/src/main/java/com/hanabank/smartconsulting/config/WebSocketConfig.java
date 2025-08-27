@@ -6,6 +6,7 @@ import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketTransportRegistration;
 
 @Configuration
 @EnableWebSocketMessageBroker
@@ -20,6 +21,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         config.enableSimpleBroker("/topic", "/queue");
         // 클라이언트에서 메시지를 보낼 때 사용할 경로 설정
         config.setApplicationDestinationPrefixes("/app");
+        
+        // STOMP 설정 개선
+        config.setPreservePublishOrder(true);
     }
 
     @Override
@@ -27,10 +31,23 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // SockJS WebSocket 엔드포인트 (웹 브라우저용)
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("*") // 개발 중이므로 모든 오리진 허용
-                .withSockJS();
+                .withSockJS()
+                .setHeartbeatTime(25000)
+                .setDisconnectDelay(5000)
+                .setHttpMessageCacheSize(1000)
+                .setWebSocketEnabled(true)
+                .setSessionCookieNeeded(false);
                 
         // 네이티브 WebSocket 엔드포인트 (React Native용)
         registry.addEndpoint("/websocket")
                 .setAllowedOriginPatterns("*"); // SockJS 없이 순수 WebSocket
+    }
+    
+    @Override
+    public void configureWebSocketTransport(WebSocketTransportRegistration registration) {
+        // WebSocket 전송 설정 개선
+        registration.setMessageSizeLimit(64 * 1024) // 64KB
+                   .setSendBufferSizeLimit(512 * 1024) // 512KB
+                   .setSendTimeLimit(20000); // 20초
     }
 }

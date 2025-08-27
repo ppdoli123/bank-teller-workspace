@@ -243,9 +243,8 @@ const CustomerTablet: React.FC = () => {
           console.log('SockJS URL:', HTTP_WS_URL);
           
           const sockjs = new SockJS(HTTP_WS_URL, null, {
-            timeout: 10000,
-            transports: ['websocket', 'xhr-streaming', 'xhr-polling'],
-            debug: true
+            timeout: 15000,
+            transports: ['websocket', 'xhr-streaming', 'xhr-polling']
           });
           
           sockjs.onopen = () => {

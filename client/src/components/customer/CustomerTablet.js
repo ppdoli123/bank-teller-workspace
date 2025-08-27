@@ -123,8 +123,15 @@ const CustomerTablet = () => {
 
     // STOMP WebSocket 연결
     const client = new Client({
-      webSocketFactory: () =>
-        new SockJS("https://hana-backend-production.up.railway.app/api/ws"),
+      webSocketFactory: () => {
+        // 로컬 개발 환경에서는 로컬 서버 사용
+        const isDevelopment = process.env.NODE_ENV === 'development';
+        const wsUrl = isDevelopment 
+          ? "http://localhost:8080/api/ws"
+          : "https://hana-backend-production.up.railway.app/api/ws";
+        console.log("WebSocket 연결 시도:", wsUrl);
+        return new SockJS(wsUrl);
+      },
       connectHeaders: {},
       debug: function (str) {
         console.log("STOMP Debug:", str);
