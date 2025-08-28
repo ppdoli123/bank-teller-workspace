@@ -1,8 +1,8 @@
 package com.hanabank.smartconsulting.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hanabank.smartconsulting.entity.Embedding;
-import com.hanabank.smartconsulting.repository.EmbeddingRepository;
+// import com.hanabank.smartconsulting.entity.Embedding;
+// import com.hanabank.smartconsulting.repository.EmbeddingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -23,7 +23,7 @@ public class DocumentInitializationService {
     
     private final SupabaseStorageService supabaseStorageService;
     private final OpenAiService openAiService;
-    private final EmbeddingRepository embeddingRepository;
+    // private final EmbeddingRepository embeddingRepository;
     private final ObjectMapper objectMapper;
     
     /**
@@ -51,12 +51,12 @@ public class DocumentInitializationService {
         try {
             log.info("=== Supabase Storage PDF 문서 임베딩 시작 ===");
             
-            // 기존 임베딩 데이터가 있는지 확인
-            long existingCount = embeddingRepository.count();
-            if (existingCount > 0) {
-                log.info("이미 {} 개의 임베딩이 존재합니다. 스킵합니다.", existingCount);
-                return;
-            }
+            // 기존 임베딩 데이터가 있는지 확인 (비활성화)
+            // long existingCount = embeddingRepository.count();
+            // if (existingCount > 0) {
+            //     log.info("이미 {} 개의 임베딩이 존재합니다. 스킵합니다.", existingCount);
+            //     return;
+            // }
             
             // Supabase Storage에서 모든 PDF 파일 가져오기
             List<String> pdfFiles = supabaseStorageService.getAllPdfFiles();
@@ -64,7 +64,7 @@ public class DocumentInitializationService {
             
             if (pdfFiles.isEmpty()) {
                 log.warn("Supabase Storage에서 PDF 파일을 찾을 수 없습니다.");
-                createSampleEmbeddings(); // 샘플 데이터 생성
+                // createSampleEmbeddings(); // 샘플 데이터 생성 비활성화
                 return;
             }
             
@@ -87,7 +87,7 @@ public class DocumentInitializationService {
             
         } catch (Exception e) {
             log.error("PDF 문서 처리 중 전체 오류", e);
-            createSampleEmbeddings(); // 실패 시 샘플 데이터 생성
+            // createSampleEmbeddings(); // 실패 시 샘플 데이터 생성 비활성화
         }
     }
     
@@ -114,7 +114,8 @@ public class DocumentInitializationService {
         List<String> chunks = splitIntoChunks(text, 1000, 200);
         log.info("문서 청크 개수: {} - {}", chunks.size(), filePath);
         
-        // 4. 각 청크를 임베딩
+        // 4. 각 청크를 임베딩 (비활성화)
+        /*
         for (int i = 0; i < chunks.size(); i++) {
             String chunk = chunks.get(i);
             
@@ -141,6 +142,7 @@ public class DocumentInitializationService {
             
             embeddingRepository.save(embeddingEntity);
         }
+        */
         
         log.info("문서 처리 완료: {} ({} 청크)", filePath, chunks.size());
     }
@@ -201,8 +203,9 @@ public class DocumentInitializationService {
     }
     
     /**
-     * Supabase 연결 실패 시 샘플 임베딩 데이터 생성
+     * Supabase 연결 실패 시 샘플 임베딩 데이터 생성 (비활성화)
      */
+    /*
     private void createSampleEmbeddings() {
         try {
             log.info("샘플 임베딩 데이터 생성 시작...");
@@ -243,5 +246,6 @@ public class DocumentInitializationService {
             log.error("샘플 데이터 생성 실패", e);
         }
     }
+    */
 }
 

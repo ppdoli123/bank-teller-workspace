@@ -1,5 +1,4 @@
 com/hanabank/smartconsulting/entity/ProductForm.class
-com/hanabank/smartconsulting/service/RagService.class
 com/hanabank/smartconsulting/controller/HealthController.class
 com/hanabank/smartconsulting/service/ProductRecommendationService.class
 com/hanabank/smartconsulting/dto/ApiResponse.class
@@ -14,6 +13,7 @@ com/hanabank/smartconsulting/repository/CustomerProductRepository.class
 com/hanabank/smartconsulting/entity/ProductForm$ProductFormBuilder.class
 com/hanabank/smartconsulting/dto/ai/AiQuestionResponse$AiQuestionResponseBuilder.class
 com/hanabank/smartconsulting/repository/ConsultationSessionRepository.class
+com/hanabank/smartconsulting/config/WebSocketConfig.class
 com/hanabank/smartconsulting/dto/EmployeeDto.class
 com/hanabank/smartconsulting/entity/Customer$CustomerBuilder.class
 com/hanabank/smartconsulting/service/JwtService.class
@@ -35,8 +35,8 @@ com/hanabank/smartconsulting/controller/FormController.class
 com/hanabank/smartconsulting/repository/EmployeeRepository.class
 com/hanabank/smartconsulting/service/CustomerService.class
 com/hanabank/smartconsulting/dto/ProductRecommendationRequest$ProductRecommendationRequestBuilder.class
-com/hanabank/smartconsulting/controller/AiController.class
 com/hanabank/smartconsulting/repository/FinancialProductRepository.class
+com/hanabank/smartconsulting/config/WebSocketConfig$SimpleWebSocketHandler.class
 com/hanabank/smartconsulting/config/WebConfig.class
 com/hanabank/smartconsulting/entity/CustomerProduct$CustomerProductBuilder.class
 com/hanabank/smartconsulting/entity/Embedding$EmbeddingBuilder.class
@@ -48,16 +48,13 @@ com/hanabank/smartconsulting/SmartConsultingApplication.class
 com/hanabank/smartconsulting/entity/Employee.class
 com/hanabank/smartconsulting/service/SessionService.class
 com/hanabank/smartconsulting/dto/CustomerDto.class
-com/hanabank/smartconsulting/repository/EmbeddingRepository.class
 com/hanabank/smartconsulting/controller/WebSocketController.class
 com/hanabank/smartconsulting/service/AuthService.class
 com/hanabank/smartconsulting/dto/ProductRecommendationRequest$QuestionAnswer.class
 com/hanabank/smartconsulting/entity/FinancialProduct$FinancialProductBuilder.class
-com/hanabank/smartconsulting/service/AiQuestionService.class
 com/hanabank/smartconsulting/entity/FinancialProduct.class
 com/hanabank/smartconsulting/service/OpenAiService$ChatMessage.class
 com/hanabank/smartconsulting/dto/CustomerDto$CustomerDtoBuilder.class
-com/hanabank/smartconsulting/service/AiQuestionService$1.class
 com/hanabank/smartconsulting/service/OpenAiService$ChatResponse.class
 com/hanabank/smartconsulting/service/OpenAiService$EmbeddingRequest.class
 com/hanabank/smartconsulting/repository/CustomerRepository.class
@@ -72,7 +69,6 @@ com/hanabank/smartconsulting/controller/ConsultationController.class
 com/hanabank/smartconsulting/controller/DocumentController.class
 com/hanabank/smartconsulting/service/ProductService.class
 com/hanabank/smartconsulting/dto/EmployeeDto$EmployeeDtoBuilder.class
-com/hanabank/smartconsulting/service/VectorDatabaseService.class
 com/hanabank/smartconsulting/entity/ProductDocument$DocumentStatus.class
 com/hanabank/smartconsulting/service/OpenAiService$ChatRequest.class
 com/hanabank/smartconsulting/dto/ProductFormDto.class
@@ -83,4 +79,3 @@ com/hanabank/smartconsulting/entity/ConsultationSession$ConsultationSessionBuild
 com/hanabank/smartconsulting/entity/Embedding.class
 com/hanabank/smartconsulting/controller/ProductController.class
 com/hanabank/smartconsulting/service/DocumentInitializationService.class
-com/hanabank/smartconsulting/service/VectorDatabaseService$EmbeddingWithScore.class

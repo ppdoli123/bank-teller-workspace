@@ -104,6 +104,7 @@ const CustomerTablet = () => {
   const [employeeName, setEmployeeName] = useState("");
   const [stompClient, setStompClient] = useState(null);
   const [currentCustomer, setCurrentCustomer] = useState(null);
+  const [allCustomers, setAllCustomers] = useState([]);
   const [isWaitingForEmployee, setIsWaitingForEmployee] = useState(true);
   const [customerProducts, setCustomerProducts] = useState([]);
   const [productSummary, setProductSummary] = useState(null);
@@ -125,8 +126,8 @@ const CustomerTablet = () => {
     const client = new Client({
       webSocketFactory: () => {
         // 로컬 개발 환경에서는 로컬 서버 사용
-        const isDevelopment = process.env.NODE_ENV === 'development';
-        const wsUrl = isDevelopment 
+        const isDevelopment = process.env.NODE_ENV === "development";
+        const wsUrl = isDevelopment
           ? "http://localhost:8080/api/ws"
           : "https://hana-backend-production.up.railway.app/api/ws";
         console.log("WebSocket 연결 시도:", wsUrl);
@@ -145,6 +146,12 @@ const CustomerTablet = () => {
       console.log("STOMP 연결 성공:", frame);
       setStompClient(client);
 
+      // STOMP 연결 성공 시 직원 연결 상태로 설정
+      setConnected(true);
+      setEmployeeName("직원");
+      setIsWaitingForEmployee(false);
+      console.log("✅ STOMP 연결 성공 - 직원 연결 상태로 설정");
+
       // 태블릿 세션 참여
       client.publish({
         destination: "/app/join-session",
@@ -153,6 +160,12 @@ const CustomerTablet = () => {
           userType: "customer-tablet",
         }),
       });
+
+      // 실제 고객 정보 자동 로드 (연결 성공 시)
+      setTimeout(() => {
+        // DB에서 첫 번째 고객 정보 가져오기
+        fetchCustomerInfo();
+      }, 1000);
 
       // 메시지 구독 설정
       client.subscribe("/topic/session/" + urlSessionId, function (message) {
@@ -180,10 +193,33 @@ const CustomerTablet = () => {
             setEmployeeName(messageData.employeeName);
             setIsWaitingForEmployee(false);
             break;
+          case "tablet-connected":
+            // 태블릿 연결 성공 메시지
+            console.log("태블릿 연결 성공:", messageData);
+            break;
+          case "participant-joined":
+            // 참가자 참여 메시지 (직원이 참여한 경우)
+            if (messageData.userType === "employee") {
+              setConnected(true);
+              setEmployeeName(messageData.userId || "직원");
+              setIsWaitingForEmployee(false);
+              console.log("직원 참여 감지:", messageData.userId);
+            }
+            break;
           case "customer-info-updated":
             setCurrentCustomer(messageData.customerData);
             if (messageData.customerData.CustomerID) {
               fetchCustomerProducts(messageData.customerData.CustomerID);
+            }
+            break;
+          case "customer-info-display":
+            console.log("고객 정보 표시 메시지 수신:", messageData);
+            // 직원이 보낸 고객 정보를 태블릿에 표시
+            if (messageData.data && messageData.data.customer) {
+              const customerData = messageData.data.customer;
+              setCurrentCustomer(customerData);
+              fetchCustomerProducts(customerData.CustomerID);
+              console.log("✅ 직원이 보낸 고객 정보 표시:", customerData.Name);
             }
             break;
           case "product-detail-sync":
@@ -260,10 +296,47 @@ const CustomerTablet = () => {
     };
   }, []);
 
+  // 실제 고객 정보 가져오기
+  const fetchCustomerInfo = async () => {
+    try {
+      const response = await axios.get(`http://localhost:8080/customers`);
+      if (response.data.success && response.data.data.length > 0) {
+        setAllCustomers(response.data.data);
+        const customer = response.data.data[0]; // 첫 번째 고객
+        setCurrentCustomer(customer);
+        fetchCustomerProducts(customer.CustomerID);
+        console.log("✅ 실제 고객 정보 로드:", customer.Name);
+      } else {
+        console.log("고객 정보가 없습니다.");
+      }
+    } catch (error) {
+      console.error("고객 정보 조회 실패:", error);
+    }
+  };
+
+  // 고객 선택 핸들러
+  const handleCustomerSelect = (customer) => {
+    setCurrentCustomer(customer);
+    fetchCustomerProducts(customer.CustomerID);
+    console.log("✅ 고객 선택됨:", customer.Name);
+
+    // 직원에게 고객 선택 알림
+    if (stompClient && stompClient.active) {
+      stompClient.publish({
+        destination: "/app/send-message",
+        body: JSON.stringify({
+          sessionId: sessionId,
+          type: "customer-selected",
+          customerData: customer,
+        }),
+      });
+    }
+  };
+
   const fetchCustomerProducts = async (customerId) => {
     try {
       const response = await axios.get(
-        `https://hana-backend-production.up.railway.app/api/customers/${customerId}/products`
+        `http://localhost:8080/customers/${customerId}/products`
       );
       if (response.data.success) {
         setCustomerProducts(response.data.data.products);
@@ -354,6 +427,31 @@ const CustomerTablet = () => {
           </StatusText>
         </StatusCard>
 
+        {/* 연결 성공 시 환영 메시지 */}
+        {connected && (
+          <div
+            style={{
+              background: "#e8f5e8",
+              border: "2px solid #4caf50",
+              borderRadius: "12px",
+              padding: "1rem",
+              margin: "1rem 0",
+              textAlign: "center",
+            }}
+          >
+            <p
+              style={{
+                color: "#2e7d32",
+                fontWeight: "bold",
+                margin: 0,
+                fontSize: "1.1rem",
+              }}
+            >
+              🎉 연결 성공! 이제 직원과 상담을 시작할 수 있습니다.
+            </p>
+          </div>
+        )}
+
         {sessionId && (
           <SessionInfo>
             <h3>세션 정보</h3>
@@ -366,21 +464,124 @@ const CustomerTablet = () => {
           </SessionInfo>
         )}
 
+        {allCustomers.length > 0 && (
+          <SessionInfo>
+            <h3>👥 고객 선택</h3>
+            <div style={{ marginBottom: "1rem" }}>
+              <p style={{ color: "#666", marginBottom: "1rem" }}>
+                상담할 고객을 선택해주세요:
+              </p>
+              <div style={{ maxHeight: "200px", overflowY: "auto" }}>
+                {allCustomers.map((customer) => (
+                  <div
+                    key={customer.CustomerID}
+                    onClick={() => handleCustomerSelect(customer)}
+                    style={{
+                      border:
+                        currentCustomer?.CustomerID === customer.CustomerID
+                          ? "2px solid var(--hana-mint)"
+                          : "1px solid #ddd",
+                      borderRadius: "8px",
+                      padding: "1rem",
+                      margin: "0.5rem 0",
+                      background:
+                        currentCustomer?.CustomerID === customer.CustomerID
+                          ? "#e8f5e8"
+                          : "#f8f9fa",
+                      cursor: "pointer",
+                      transition: "all 0.3s ease",
+                    }}
+                  >
+                    <div
+                      style={{ fontWeight: "bold", color: "var(--hana-mint)" }}
+                    >
+                      {customer.Name}
+                    </div>
+                    <div style={{ fontSize: "0.9rem", color: "#666" }}>
+                      {customer.Phone} | {customer.Age}세
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </SessionInfo>
+        )}
+
         {currentCustomer && (
           <>
             <SessionInfo>
-              <h3>고객 정보 확인</h3>
-              <p>
-                <strong>성함:</strong> {currentCustomer.Name}
-              </p>
-              <p>
-                <strong>연락처:</strong> {currentCustomer.Phone}
-              </p>
-              <p>
-                <strong>나이:</strong> {currentCustomer.Age}세
-              </p>
+              <h3>👤 고객 정보 확인</h3>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "1rem",
+                  margin: "1rem 0",
+                }}
+              >
+                <div
+                  style={{
+                    background: "#f8f9fa",
+                    padding: "1rem",
+                    borderRadius: "8px",
+                    textAlign: "center",
+                  }}
+                >
+                  <div style={{ fontSize: "0.9rem", color: "#666" }}>성함</div>
+                  <div
+                    style={{
+                      fontSize: "1.1rem",
+                      fontWeight: "bold",
+                      color: "var(--hana-mint)",
+                    }}
+                  >
+                    {currentCustomer.Name}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    background: "#f8f9fa",
+                    padding: "1rem",
+                    borderRadius: "8px",
+                    textAlign: "center",
+                  }}
+                >
+                  <div style={{ fontSize: "0.9rem", color: "#666" }}>
+                    연락처
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "1.1rem",
+                      fontWeight: "bold",
+                      color: "var(--hana-mint)",
+                    }}
+                  >
+                    {currentCustomer.Phone}
+                  </div>
+                </div>
+              </div>
+              <div
+                style={{
+                  background: "#f8f9fa",
+                  padding: "1rem",
+                  borderRadius: "8px",
+                  textAlign: "center",
+                  margin: "1rem 0",
+                }}
+              >
+                <div style={{ fontSize: "0.9rem", color: "#666" }}>나이</div>
+                <div
+                  style={{
+                    fontSize: "1.1rem",
+                    fontWeight: "bold",
+                    color: "var(--hana-mint)",
+                  }}
+                >
+                  {currentCustomer.Age}세
+                </div>
+              </div>
               <ActionButton onClick={handleCustomerInfoConfirm}>
-                정보 확인 완료
+                ✅ 정보 확인 완료
               </ActionButton>
             </SessionInfo>
 
@@ -527,22 +728,66 @@ const CustomerTablet = () => {
           </>
         )}
 
-        {connected && !currentCustomer && (
-          <div>
-            <p style={{ color: "#666", margin: "1rem 0" }}>
-              직원이 신분증을 확인하는 동안 잠시 기다려 주세요.
+        {connected && !currentCustomer && allCustomers.length === 0 && (
+          <div
+            style={{
+              background: "#fff3e0",
+              border: "2px solid #ff9800",
+              borderRadius: "12px",
+              padding: "1.5rem",
+              margin: "1rem 0",
+              textAlign: "center",
+            }}
+          >
+            <p
+              style={{ color: "#f57c00", margin: "1rem 0", fontWeight: "bold" }}
+            >
+              🎯 고객 정보를 불러오는 중입니다...
             </p>
-            <ActionButton onClick={handleStartConsultation}>
-              상담 준비 완료
+            <ActionButton onClick={fetchCustomerInfo}>
+              🔄 고객 정보 새로고침
             </ActionButton>
           </div>
         )}
 
-        {isWaitingForEmployee && (
-          <div style={{ marginTop: "2rem" }}>
-            <p style={{ color: "#888" }}>
-              직원이 시스템에 접속하면 자동으로 연결됩니다.
+        {connected && !currentCustomer && allCustomers.length > 0 && (
+          <div
+            style={{
+              background: "#e3f2fd",
+              border: "2px solid #2196f3",
+              borderRadius: "12px",
+              padding: "1.5rem",
+              margin: "1rem 0",
+              textAlign: "center",
+            }}
+          >
+            <p
+              style={{ color: "#1976d2", margin: "1rem 0", fontWeight: "bold" }}
+            >
+              👆 위에서 상담할 고객을 선택해주세요.
             </p>
+          </div>
+        )}
+
+        {isWaitingForEmployee && !connected && (
+          <div
+            style={{
+              background: "#e3f2fd",
+              border: "2px solid #2196f3",
+              borderRadius: "12px",
+              padding: "1.5rem",
+              margin: "1rem 0",
+              textAlign: "center",
+            }}
+          >
+            <p
+              style={{ color: "#1976d2", margin: "1rem 0", fontWeight: "bold" }}
+            >
+              🔄 직원이 시스템에 접속하면 자동으로 연결됩니다.
+            </p>
+            <div style={{ fontSize: "0.9rem", color: "#666" }}>
+              연결 중... 잠시만 기다려 주세요.
+            </div>
           </div>
         )}
 

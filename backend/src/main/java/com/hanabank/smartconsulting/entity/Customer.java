@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "customers")
+@Table(name = "bank_teller_customers")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -19,9 +19,6 @@ import java.util.List;
 public class Customer {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
     @Column(name = "customer_id", unique = true, nullable = false)
     private String customerId;
     

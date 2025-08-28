@@ -1,6 +1,7 @@
 package com.hanabank.smartconsulting.controller;
 
 import com.hanabank.smartconsulting.service.SessionService;
+import com.hanabank.smartconsulting.config.WebSocketConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+import com.hanabank.smartconsulting.config.WebSocketConfig;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -80,17 +82,43 @@ public class WebSocketController extends TextWebSocketHandler {
         }
     }
     
+    @MessageMapping("/customer-selected")
+    public void customerSelected(@Payload Map<String, Object> payload) {
+        String sessionId = (String) payload.get("sessionId");
+        Map<String, Object> customerData = (Map<String, Object>) payload.get("customerData");
+        
+        log.info("고객 선택됨 - sessionId: {}, 고객: {}", sessionId, customerData.get("name"));
+        
+        // STOMP와 단순 WebSocket 모두에 전송
+        Map<String, Object> message = Map.of(
+            "type", "customer-selected",
+            "customerData", customerData
+        );
+        
+        // STOMP 전송
+        messagingTemplate.convertAndSend("/topic/session/" + sessionId, message);
+        
+        // 단순 WebSocket 브리지 전송
+        WebSocketConfig.SimpleWebSocketHandler.broadcastToSimpleWebSocket(sessionId, message);
+    }
+    
     @MessageMapping("/customer-info-update")
     public void customerInfoUpdate(@Payload Map<String, Object> payload) {
         String sessionId = (String) payload.get("sessionId");
         
         log.info("고객 정보 업데이트 - sessionId: {}", sessionId);
         
-        // 고객 태블릿에 정보 전송
-        messagingTemplate.convertAndSend("/topic/session/" + sessionId, Map.of(
+        // STOMP와 단순 WebSocket 모두에 전송
+        Map<String, Object> message = Map.of(
             "type", "customer-info-updated",
             "data", payload
-        ));
+        );
+        
+        // STOMP 전송
+        messagingTemplate.convertAndSend("/topic/session/" + sessionId, message);
+        
+        // 단순 WebSocket 브리지 전송
+        WebSocketConfig.SimpleWebSocketHandler.broadcastToSimpleWebSocket(sessionId, message);
     }
     
     @MessageMapping("/product-detail-sync")
@@ -100,11 +128,17 @@ public class WebSocketController extends TextWebSocketHandler {
         
         log.info("상품 상세보기 동기화 - sessionId: {}", sessionId);
         
-        // 고객 태블릿에 상품 상세 정보 전송
-        messagingTemplate.convertAndSend("/topic/session/" + sessionId, Map.of(
+        // STOMP와 단순 WebSocket 모두에 전송
+        Map<String, Object> message = Map.of(
             "type", "product-detail-sync",
             "data", productData
-        ));
+        );
+        
+        // STOMP 전송
+        messagingTemplate.convertAndSend("/topic/session/" + sessionId, message);
+        
+        // 단순 WebSocket 브리지 전송
+        WebSocketConfig.SimpleWebSocketHandler.broadcastToSimpleWebSocket(sessionId, message);
     }
     
     @MessageMapping("/screen-sync")
@@ -146,8 +180,13 @@ public class WebSocketController extends TextWebSocketHandler {
             String destination = "/topic/session/" + sessionId;
             log.info("메시지 전송 대상: {}", destination);
             
+            // STOMP 전송
             messagingTemplate.convertAndSend(destination, response);
-            log.info("메시지 전송 완료");
+            
+            // 단순 WebSocket 브리지 전송
+            WebSocketConfig.SimpleWebSocketHandler.broadcastToSimpleWebSocket(sessionId, response);
+            
+            log.info("메시지 전송 완료 (STOMP + WebSocket 브리지)");
             
         } catch (Exception e) {
             log.error("메시지 처리 중 오류 발생: ", e);
@@ -165,6 +204,108 @@ public class WebSocketController extends TextWebSocketHandler {
             "type", "receive-message",
             "data", payload
         ));
+    }
+    
+    @MessageMapping("/client-to-tablet")
+    public void clientToTablet(@Payload Map<String, Object> payload) {
+        String sessionId = (String) payload.get("sessionId");
+        String messageType = (String) payload.get("messageType");
+        Object data = payload.get("data");
+        
+        log.info("클라이언트에서 태블릿으로 메시지 - sessionId: {}, messageType: {}", sessionId, messageType);
+        
+        // 태블릿으로 메시지 전송
+        Map<String, Object> response = new HashMap<>();
+        response.put("type", "client-message");
+        response.put("messageType", messageType);
+        response.put("data", data);
+        response.put("timestamp", System.currentTimeMillis());
+        
+        messagingTemplate.convertAndSend("/topic/session/" + sessionId, response);
+        log.info("클라이언트 메시지 태블릿 전송 완료");
+    }
+    
+    @MessageMapping("/tablet-to-client")
+    public void tabletToClient(@Payload Map<String, Object> payload) {
+        String sessionId = (String) payload.get("sessionId");
+        String messageType = (String) payload.get("messageType");
+        Object data = payload.get("data");
+        
+        log.info("태블릿에서 클라이언트로 메시지 - sessionId: {}, messageType: {}", sessionId, messageType);
+        
+        // 클라이언트로 메시지 전송
+        Map<String, Object> response = new HashMap<>();
+        response.put("type", "tablet-message");
+        response.put("messageType", messageType);
+        response.put("data", data);
+        response.put("timestamp", System.currentTimeMillis());
+        
+        messagingTemplate.convertAndSend("/topic/session/" + sessionId, response);
+        log.info("태블릿 메시지 클라이언트 전송 완료");
+    }
+    
+    @MessageMapping("/form-data")
+    public void handleFormData(@Payload Map<String, Object> payload) {
+        String sessionId = (String) payload.get("sessionId");
+        String formType = (String) payload.get("formType");
+        Object formData = payload.get("formData");
+        
+        log.info("폼 데이터 처리 - sessionId: {}, formType: {}", sessionId, formType);
+        
+        // 세션 내 모든 참가자에게 폼 데이터 전송
+        Map<String, Object> response = new HashMap<>();
+        response.put("type", "form-data-updated");
+        response.put("formType", formType);
+        response.put("formData", formData);
+        response.put("timestamp", System.currentTimeMillis());
+        
+        messagingTemplate.convertAndSend("/topic/session/" + sessionId, response);
+        log.info("폼 데이터 전송 완료");
+    }
+    
+    @MessageMapping("/test-connection")
+    public void testConnection(@Payload Map<String, Object> payload) {
+        String sessionId = (String) payload.get("sessionId");
+        String clientType = (String) payload.get("clientType");
+        
+        log.info("연결 테스트 - sessionId: {}, clientType: {}", sessionId, clientType);
+        
+        // 연결 확인 응답
+        Map<String, Object> response = new HashMap<>();
+        response.put("type", "connection-test-response");
+        response.put("clientType", clientType);
+        response.put("sessionId", sessionId);
+        response.put("message", "연결이 정상적으로 작동 중입니다.");
+        response.put("timestamp", System.currentTimeMillis());
+        
+        messagingTemplate.convertAndSend("/topic/session/" + sessionId, response);
+        log.info("연결 테스트 응답 전송 완료");
+    }
+    
+    @MessageMapping("/web-to-tablet")
+    public void webToTablet(@Payload Map<String, Object> payload) {
+        String sessionId = (String) payload.get("sessionId");
+        String messageType = (String) payload.get("messageType");
+        Object data = payload.get("data");
+        
+        log.info("웹에서 태블릿으로 메시지 - sessionId: {}, messageType: {}", sessionId, messageType);
+        
+        try {
+            // STOMP로 브로드캐스트 (태블릿도 받을 수 있도록)
+            Map<String, Object> response = new HashMap<>();
+            response.put("type", "web-message");
+            response.put("messageType", messageType);
+            response.put("sessionId", sessionId);
+            response.put("data", data);
+            response.put("source", "web");
+            response.put("timestamp", System.currentTimeMillis());
+            
+            messagingTemplate.convertAndSend("/topic/session/" + sessionId, response);
+            log.info("웹 메시지 브로드캐스트 완료");
+            
+        } catch (Exception e) {
+            log.error("웹-태블릿 메시지 전송 오류: ", e);
+        }
     }
 
     // 단순 WebSocket 핸들러들 (STOMP 없이)

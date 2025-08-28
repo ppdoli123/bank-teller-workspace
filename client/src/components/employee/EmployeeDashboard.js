@@ -729,6 +729,16 @@ const EmployeeDashboard = () => {
           case "tablet-connected":
             console.log("태블릿 연결됨:", data);
             break;
+          case "customer-selected":
+            console.log("태블릿에서 고객 선택됨:", data);
+            if (data.customerData) {
+              setCurrentCustomer(data.customerData);
+              console.log(
+                "✅ 직원 화면에 고객 정보 업데이트:",
+                data.customerData.name
+              );
+            }
+            break;
           case "customer-info-confirmed":
             console.log("태블릿에서 고객 정보 확인 완료:", data);
             break;
@@ -1101,7 +1111,7 @@ const EmployeeDashboard = () => {
   const createConsultationSession = async (customerId) => {
     try {
       const response = await axios.post(
-        "https://hana-backend-production.up.railway.app/api/consultation/sessions",
+        "http://localhost:8080/consultation/sessions",
         {
           employeeId: employee.employeeId,
           customerId: customerId,
@@ -1124,7 +1134,7 @@ const EmployeeDashboard = () => {
 
         // 고객 상세 정보 조회
         const customerResponse = await axios.get(
-          `https://hana-backend-production.up.railway.app/api/customers/${customerId}`
+          `http://localhost:8080/customers/${customerId}`
         );
         const backendCustomerData = customerResponse.data.data;
 

@@ -75,9 +75,16 @@ public class SessionService {
             }
         }
         
+        // 여전히 없으면 새 세션 생성 (고정 세션 ID 지원)
         if (participants == null) {
-            log.warn("존재하지 않는 세션에 태블릿 참여 시도 - 입력값: {}", sessionIdOrEmployeeId);
-            return false;
+            log.info("새 세션 생성 - sessionId: {}", sessionIdOrEmployeeId);
+            actualSessionId = sessionIdOrEmployeeId;
+            participants = new HashMap<>();
+            participants.put("session_created", Map.of(
+                "timestamp", System.currentTimeMillis(),
+                "type", "tablet-initiated"
+            ));
+            sessionParticipants.put(actualSessionId, participants);
         }
         
         // 태블릿 정보 추가

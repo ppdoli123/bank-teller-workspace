@@ -23,6 +23,21 @@ public class CustomerController {
     
     private final CustomerService customerService;
     
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<CustomerDto>>> getAllCustomers() {
+        log.info("모든 고객 정보 조회 요청");
+        
+        try {
+            List<CustomerDto> customers = customerService.getAllCustomers();
+            return ResponseEntity.ok(ApiResponse.success("모든 고객 정보 조회 성공", customers));
+        } catch (Exception e) {
+            log.error("모든 고객 정보 조회 중 오류 발생", e);
+            return ResponseEntity.status(500).body(
+                ApiResponse.error("고객 정보 조회 중 오류가 발생했습니다.")
+            );
+        }
+    }
+    
     @GetMapping("/{customerId}")
     public ResponseEntity<ApiResponse<CustomerDto>> getCustomer(@PathVariable String customerId) {
         log.info("고객 정보 조회 요청: {}", customerId);

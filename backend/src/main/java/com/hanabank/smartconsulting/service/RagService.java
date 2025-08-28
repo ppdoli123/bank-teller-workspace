@@ -18,9 +18,9 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Service
-@RequiredArgsConstructor
-@Slf4j
+// @Service
+// @RequiredArgsConstructor
+// @Slf4j
 public class RagService {
     
     private final OpenAiService openAiService;

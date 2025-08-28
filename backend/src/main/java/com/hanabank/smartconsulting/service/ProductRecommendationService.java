@@ -18,9 +18,9 @@ import java.util.stream.Collectors;
 public class ProductRecommendationService {
     
     private final FinancialProductRepository financialProductRepository;
-    private final RagService ragService;
+    // private final RagService ragService;
     private final OpenAiService openAiService;
-    private final VectorDatabaseService vectorDatabaseService;
+    // private final VectorDatabaseService vectorDatabaseService;
     
     public ProductRecommendationResponse recommendProducts(ProductRecommendationRequest request) {
         try {
@@ -31,8 +31,9 @@ public class ProductRecommendationService {
             String searchQuery = buildSearchQuery(request);
             log.info("생성된 검색 쿼리: {}", searchQuery);
             
-            // 2. RAG를 사용해서 관련 상품 정보 검색
-            List<String> relevantDocuments = ragService.searchSimilarChunks(searchQuery, 10);
+            // 2. RAG를 사용해서 관련 상품 정보 검색 (비활성화)
+            // List<String> relevantDocuments = ragService.searchSimilarChunks(searchQuery, 10);
+            List<String> relevantDocuments = new ArrayList<>(); // 빈 리스트로 대체
             log.info("검색된 관련 문서 개수: {}", relevantDocuments.size());
             
             // 3. 현재 DB의 상품들과 매칭

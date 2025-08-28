@@ -501,7 +501,7 @@ const CustomerTablet: React.FC = () => {
   const fetchCustomerProducts = async (customerId: number) => {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/api/customers/${customerId}/products`,
+        `${API_BASE_URL}/customers/${customerId}/products`,
       );
       if (response.data.success) {
         setCustomerProducts(response.data.data.products);

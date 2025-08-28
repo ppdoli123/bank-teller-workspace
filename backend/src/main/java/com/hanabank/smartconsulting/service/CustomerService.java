@@ -37,6 +37,13 @@ public class CustomerService {
                 .map(this::convertToDto);
     }
     
+    public List<CustomerDto> getAllCustomers() {
+        List<Customer> customers = customerRepository.findAll();
+        return customers.stream()
+                .map(this::convertToDto)
+                .toList();
+    }
+    
     public List<CustomerProduct> getCustomerProducts(String customerId) {
         return customerProductRepository.findByCustomerCustomerId(customerId);
     }
@@ -62,7 +69,6 @@ public class CustomerService {
     
     private CustomerDto convertToDto(Customer customer) {
         return CustomerDto.builder()
-                .id(customer.getId())
                 .customerId(customer.getCustomerId())
                 .name(customer.getName())
                 .phone(customer.getPhone())
@@ -79,7 +85,6 @@ public class CustomerService {
     
     private Customer convertToEntity(CustomerDto customerDto) {
         return Customer.builder()
-                .id(customerDto.getId())
                 .customerId(customerDto.getCustomerId())
                 .name(customerDto.getName())
                 .phone(customerDto.getPhone())

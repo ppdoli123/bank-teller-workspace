@@ -1,7 +1,7 @@
 package com.hanabank.smartconsulting.controller;
 
 import com.hanabank.smartconsulting.entity.ProductDocument;
-import com.hanabank.smartconsulting.service.RagService;
+// import com.hanabank.smartconsulting.service.RagService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +17,7 @@ import java.util.Map;
 @Slf4j
 public class DocumentController {
 
-    private final RagService ragService;
+    // private final RagService ragService;
 
     @PostMapping("/upload")
     public ResponseEntity<Map<String, Object>> uploadDocument(
@@ -28,8 +28,8 @@ public class DocumentController {
         try {
             log.info("Processing document: {} from path: {}", documentName, storagePath);
             
-            // Process the document with RAG
-            ragService.processDocument(file.getBytes(), documentName, storagePath);
+            // Process the document with RAG (비활성화)
+            // ragService.processDocument(file.getBytes(), documentName, storagePath);
             
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
