@@ -9,8 +9,8 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-// @Entity
-// @Table(name = "embeddings")
+@Entity
+@Table(name = "embeddings")
 @Data
 @Builder
 @NoArgsConstructor
