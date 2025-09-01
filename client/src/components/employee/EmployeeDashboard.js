@@ -11,7 +11,7 @@ import ProductExplorer from "./ProductExplorer";
 import SimulationPanel from "./SimulationPanel";
 import CustomerInfo from "./CustomerInfo";
 import FormSelector from "./FormSelector";
-import PDFFormManager from "./PDFFormManager";
+import FormManager from "./FormManager";
 import AiQuestionGenerator from "./AiQuestionGenerator";
 
 const DashboardContainer = styled.div`
@@ -864,79 +864,57 @@ const EmployeeDashboard = () => {
   }, [currentCustomer]);
 
   const fetchTestCustomers = async () => {
-    console.log("테스트 고객 데이터를 로드합니다...");
+    console.log("실제 고객 데이터를 로드합니다...");
 
-    // 직접 테스트 데이터 설정 (API 호출 없이)
-    const testCustomerData = [
-      {
-        customer_id: "C001",
-        name: "김철수",
-        age: 35,
-        phone: "010-1234-5678",
-        address: "서울시 강남구 역삼동",
-        income: 50000000,
-        assets: 100000000,
-        investment_goal: "주택 구매",
-        risk_tolerance: "medium",
-        investment_period: 60,
-        id_number: "850315-1******",
-      },
-      {
-        customer_id: "C002",
-        name: "이영희",
-        age: 28,
-        phone: "010-2345-6789",
-        address: "서울시 서초구 서초동",
-        income: 40000000,
-        assets: 50000000,
-        investment_goal: "결혼 자금",
-        risk_tolerance: "low",
-        investment_period: 36,
-        id_number: "960712-2******",
-      },
-      {
-        customer_id: "C003",
-        name: "박민수",
-        age: 42,
-        phone: "010-3456-7890",
-        address: "경기도 성남시 분당구",
-        income: 80000000,
-        assets: 200000000,
-        investment_goal: "자녀 교육비",
-        risk_tolerance: "high",
-        investment_period: 120,
-        id_number: "820428-1******",
-      },
-      {
-        customer_id: "C004",
-        name: "최지연",
-        age: 31,
-        phone: "010-4567-8901",
-        address: "부산시 해운대구",
-        income: 45000000,
-        assets: 80000000,
-        investment_goal: "노후 준비",
-        risk_tolerance: "medium",
-        investment_period: 240,
-        id_number: "930825-2******",
-      },
-      {
-        customer_id: "C005",
-        name: "정태호",
-        age: 26,
-        phone: "010-5678-9012",
-        address: "대구시 수성구",
-        income: 35000000,
-        assets: 30000000,
-        investment_goal: "창업 자금",
-        risk_tolerance: "high",
-        investment_period: 24,
-        id_number: "980203-1******",
-      },
-    ];
+    try {
+      const response = await axios.get(
+        "http://localhost:8080/api/employee/customers"
+      );
+      if (response.data.success) {
+        // API 응답 형태를 기존 코드와 맞추기 위해 변환
+        const testCustomerData = response.data.data.map((customer) => ({
+          customer_id: customer.customerId,
+          name: customer.name,
+          age: customer.age,
+          phone: customer.phone,
+          address: customer.address,
+          income: customer.income,
+          assets: customer.assets,
+          investment_goal: customer.investmentGoal,
+          risk_tolerance: customer.riskTolerance,
+          investment_period: customer.investmentPeriod,
+          id_number: customer.idNumber,
+        }));
 
-    setTestCustomers(testCustomerData);
-    console.log("테스트 고객 데이터 로드 완료:", testCustomerData.length, "명");
+        setTestCustomers(testCustomerData);
+        console.log(
+          "실제 고객 데이터 로드 완료:",
+          testCustomerData.length,
+          "명"
+        );
+      } else {
+        console.error("고객 데이터 로드 실패:", response.data.message);
+      }
+    } catch (error) {
+      console.error("고객 데이터 로드 중 오류:", error);
+      // 오류 시 기본 테스트 데이터 사용
+      const fallbackData = [
+        {
+          customer_id: "C001",
+          name: "김철수",
+          age: 35,
+          phone: "010-1234-5678",
+          address: "서울시 강남구 역삼동",
+          income: 50000000,
+          assets: 100000000,
+          investment_goal: "주택 구매",
+          risk_tolerance: "medium",
+          investment_period: 60,
+          id_number: "850315-1******",
+        },
+      ];
+      setTestCustomers(fallbackData);
+    }
   };
 
   const selectTestCustomer = async (customerId) => {
@@ -1111,7 +1089,7 @@ const EmployeeDashboard = () => {
   const createConsultationSession = async (customerId) => {
     try {
       const response = await axios.post(
-        "http://localhost:8080/consultation/sessions",
+        "http://localhost:8080/api/consultation/sessions",
         {
           employeeId: employee.employeeId,
           customerId: customerId,
@@ -1134,7 +1112,7 @@ const EmployeeDashboard = () => {
 
         // 고객 상세 정보 조회
         const customerResponse = await axios.get(
-          `http://localhost:8080/customers/${customerId}`
+          `http://localhost:8080/api/employee/customers/${customerId}`
         );
         const backendCustomerData = customerResponse.data.data;
 
@@ -1174,6 +1152,16 @@ const EmployeeDashboard = () => {
           body: JSON.stringify({
             sessionId: sessionId,
             productData: screenData.data,
+          }),
+        });
+      } else if (screenData.type === "product-enrollment") {
+        // 상품 가입 시작
+        stompClient.publish({
+          destination: "/app/product-enrollment",
+          body: JSON.stringify({
+            sessionId: sessionId,
+            productId: screenData.data.productId,
+            customerId: screenData.data.customerId,
           }),
         });
       } else {
@@ -1326,7 +1314,7 @@ const EmployeeDashboard = () => {
                 active={activeTab === "pdf-forms"}
                 onClick={() => setActiveTab("pdf-forms")}
               >
-                📝 PDF 서식 작성
+                📝 서식 작성
               </NavTab>
               <NavTab
                 active={activeTab === "simulation"}
@@ -1423,6 +1411,8 @@ const EmployeeDashboard = () => {
               onScreenSync={syncScreenToCustomer}
               onProductSelected={setSelectedProduct}
               customerId={currentCustomer?.CustomerID}
+              stompClient={stompClient}
+              sessionId={sessionId}
             />
           )}
 
@@ -1435,12 +1425,15 @@ const EmployeeDashboard = () => {
             />
           )}
 
-          {activeTab === "pdf-forms" && (
-            <PDFFormManager
-              onFormSubmit={(formData) => {
-                console.log("PDF 폼 제출:", formData);
-                // 백엔드에 폼 데이터 저장
-                if (currentCustomer) {
+          {activeTab === "pdf-forms" &&
+            (currentCustomer ? (
+              <FormManager
+                customerData={currentCustomer}
+                selectedProduct={selectedProduct}
+                isEmployee={true}
+                onFormComplete={(formData) => {
+                  console.log("서식 작성 완료:", formData);
+                  // 백엔드에 서식 데이터 저장
                   axios
                     .post(
                       "https://hana-backend-production.up.railway.app/api/forms/submit",
@@ -1449,12 +1442,49 @@ const EmployeeDashboard = () => {
                         ...formData,
                       }
                     )
-                    .catch((error) => console.error("폼 제출 오류:", error));
-                }
-              }}
-              onScreenSync={syncScreenToCustomer}
-            />
-          )}
+                    .catch((error) => console.error("서식 제출 오류:", error));
+                }}
+                onScreenSync={syncScreenToCustomer}
+                onFormDataUpdate={(updatedFormData) => {
+                  console.log("고객이 입력한 데이터:", updatedFormData);
+                  // 고객이 입력한 데이터를 직원 화면에 실시간 반영
+                  // FormViewer에서 데이터 업데이트
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "var(--hana-space-8)",
+                  color: "var(--hana-gray)",
+                  background: "var(--hana-white)",
+                  borderRadius: "var(--hana-radius-lg)",
+                  margin: "var(--hana-space-4)",
+                  border: "var(--hana-border-light)",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "3rem",
+                    marginBottom: "var(--hana-space-4)",
+                  }}
+                >
+                  📝
+                </div>
+                <h3
+                  style={{
+                    color: "var(--hana-primary)",
+                    marginBottom: "var(--hana-space-2)",
+                    fontSize: "var(--hana-font-size-xl)",
+                  }}
+                >
+                  서식 작성
+                </h3>
+                <p style={{ color: "var(--hana-gray)" }}>
+                  고객 정보를 먼저 입력해주세요.
+                </p>
+              </div>
+            ))}
 
           {activeTab === "simulation" &&
             (currentCustomer ? (

@@ -262,10 +262,12 @@ const WaitingText = styled.p`
 
 const CustomerTablet = () => {
   // 페이지 상태 관리
-  const [currentPage, setCurrentPage] = useState("welcome"); // welcome, customer-info, form, waiting
+  const [currentPage, setCurrentPage] = useState("welcome"); // welcome, customer-info, form, waiting, customer-list, product-detail, product-enrollment
   const [connected, setConnected] = useState(false);
   const [employeeName, setEmployeeName] = useState("");
   const [currentCustomer, setCurrentCustomer] = useState(null);
+  const [currentProduct, setCurrentProduct] = useState(null);
+  const [customers, setCustomers] = useState([]);
   const [customerProducts, setCustomerProducts] = useState([]);
   const [formData, setFormData] = useState(null);
   const [currentFormUrl, setCurrentFormUrl] = useState(null);
@@ -273,6 +275,8 @@ const CustomerTablet = () => {
   const [highlightedFields, setHighlightedFields] = useState([]);
   const [currentFormId, setCurrentFormId] = useState(null);
   const [currentFormTitle, setCurrentFormTitle] = useState("");
+  const [currentForm, setCurrentForm] = useState(null);
+  const [currentFormIndex, setCurrentFormIndex] = useState(0);
   const [sessionId] = useState("tablet_main");
   const [stompClient, setStompClient] = useState(null);
   const [isWaitingForEmployee, setIsWaitingForEmployee] = useState(true);
@@ -335,6 +339,62 @@ const CustomerTablet = () => {
         loadCustomerProducts(data.customer.customerId);
         break;
 
+      case "customer-info-display":
+        if (data.action === "show_customer_info" && data.data) {
+          console.log("고객 정보 표시:", data.data);
+          setCurrentCustomer(data.data);
+          setCurrentPage("customer-info");
+          // 고객 ID가 있으면 상품 정보도 로드
+          if (data.data.customerId) {
+            loadCustomerProducts(data.data.customerId);
+          }
+        }
+        break;
+
+      case "product-detail-sync":
+        if (data.data) {
+          console.log("상품 상세 정보 표시:", data.data);
+          setCurrentProduct(data.data);
+          setCurrentPage("product-detail");
+        }
+        break;
+
+      case "customer-list":
+        if (data.data) {
+          console.log("고객 목록 표시:", data.data);
+          setCustomers(data.data);
+          setCurrentPage("customer-list");
+        }
+        break;
+
+      case "participant-joined":
+        console.log("참가자 참여:", data.data);
+        break;
+
+      case "product-enrollment":
+        if (data.action === "start_enrollment" && data.data) {
+          console.log("상품 가입 서식 표시:", data.data);
+          setCurrentProduct(data.data);
+          setCurrentPage("product-enrollment");
+        }
+        break;
+
+      case "form-navigation":
+        if (data.data) {
+          console.log("서식 네비게이션:", data.data);
+          setCurrentFormIndex(data.data.currentFormIndex);
+          setCurrentForm(data.data.currentForm);
+        }
+        break;
+
+      case "screen-highlight":
+        if (data.data) {
+          console.log("화면 하이라이트:", data.data);
+          // 하이라이트 효과 적용
+          applyHighlight(data.data);
+        }
+        break;
+
       case "screen-updated":
         if (data.data.type === "form-viewer") {
           setFormData(data.data.data);
@@ -356,6 +416,7 @@ const CustomerTablet = () => {
         break;
 
       default:
+        console.log("알 수 없는 메시지 타입:", data.type);
         break;
     }
   };
@@ -409,12 +470,38 @@ const CustomerTablet = () => {
     }
   };
 
+  // 하이라이트 효과 적용
+  const applyHighlight = (highlightData) => {
+    const { elementId, highlightType, color } = highlightData;
+    const element = document.getElementById(elementId);
+
+    if (element) {
+      // 기존 하이라이트 제거
+      element.style.backgroundColor = "";
+      element.style.borderBottom = "";
+      element.style.textDecoration = "";
+
+      if (highlightType === "highlight") {
+        element.style.backgroundColor = color || "#ffff00";
+      } else if (highlightType === "underline") {
+        element.style.borderBottom = `3px solid ${color || "#ff0000"}`;
+      }
+      // "clear" 타입은 이미 위에서 제거됨
+    }
+  };
+
   // 뒤로가기 버튼
   const handleBack = () => {
     if (currentPage === "form") {
       setCurrentPage("customer-info");
     } else if (currentPage === "customer-info") {
       setCurrentPage("welcome");
+    } else if (currentPage === "product-detail") {
+      setCurrentPage("customer-info");
+    } else if (currentPage === "customer-list") {
+      setCurrentPage("welcome");
+    } else if (currentPage === "product-enrollment") {
+      setCurrentPage("product-detail");
     }
   };
 
@@ -571,6 +658,291 @@ const CustomerTablet = () => {
                 ))}
               </ProductsList>
             )}
+          </CustomerInfoPage>
+        );
+
+      case "customer-list":
+        return (
+          <CustomerInfoPage>
+            <CustomerInfoCard>
+              <CustomerInfoTitle>👥 고객 목록</CustomerInfoTitle>
+              <div style={{ marginBottom: "1rem", color: "#666" }}>
+                총 {customers.length}명의 고객이 있습니다.
+              </div>
+              <div style={{ maxHeight: "400px", overflowY: "auto" }}>
+                {customers.map((customer, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      background: "#f8f9fa",
+                      border: "1px solid #e9ecef",
+                      borderRadius: "8px",
+                      padding: "1rem",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    <div
+                      style={{ fontWeight: "bold", color: "var(--hana-mint)" }}
+                    >
+                      {customer.name}
+                    </div>
+                    <div style={{ fontSize: "0.9rem", color: "#666" }}>
+                      연락처: {customer.phone || customer.contactNumber}
+                    </div>
+                    <div style={{ fontSize: "0.9rem", color: "#666" }}>
+                      나이: {customer.age}세
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CustomerInfoCard>
+          </CustomerInfoPage>
+        );
+
+      case "product-detail":
+        return (
+          <CustomerInfoPage>
+            <CustomerInfoCard>
+              <CustomerInfoTitle>📋 상품 상세 정보</CustomerInfoTitle>
+
+              {currentProduct && (
+                <>
+                  <CustomerInfoGrid>
+                    <InfoItem>
+                      <InfoLabel>상품명</InfoLabel>
+                      <InfoValue>{currentProduct.productName}</InfoValue>
+                    </InfoItem>
+                    <InfoItem>
+                      <InfoLabel>상품 유형</InfoLabel>
+                      <InfoValue>{currentProduct.productType}</InfoValue>
+                    </InfoItem>
+                    <InfoItem>
+                      <InfoLabel>기본 금리</InfoLabel>
+                      <InfoValue>{currentProduct.baseRate}%</InfoValue>
+                    </InfoItem>
+                    <InfoItem>
+                      <InfoLabel>최소 금액</InfoLabel>
+                      <InfoValue>
+                        {currentProduct.minAmount?.toLocaleString()}원
+                      </InfoValue>
+                    </InfoItem>
+                    <InfoItem>
+                      <InfoLabel>최대 금액</InfoLabel>
+                      <InfoValue>
+                        {currentProduct.maxAmount?.toLocaleString()}원
+                      </InfoValue>
+                    </InfoItem>
+                    <InfoItem>
+                      <InfoLabel>판매 상태</InfoLabel>
+                      <InfoValue>{currentProduct.salesStatus}</InfoValue>
+                    </InfoItem>
+                  </CustomerInfoGrid>
+
+                  {currentProduct.description && (
+                    <div style={{ marginTop: "1rem" }}>
+                      <InfoLabel>상품 설명</InfoLabel>
+                      <div
+                        style={{
+                          background: "#f8f9fa",
+                          padding: "1rem",
+                          borderRadius: "8px",
+                          marginTop: "0.5rem",
+                        }}
+                      >
+                        {currentProduct.description}
+                      </div>
+                    </div>
+                  )}
+
+                  {currentProduct.forms && currentProduct.forms.length > 0 && (
+                    <div style={{ marginTop: "1rem" }}>
+                      <InfoLabel>
+                        관련 서식 ({currentProduct.forms.length}개)
+                      </InfoLabel>
+                      <div style={{ marginTop: "0.5rem" }}>
+                        {currentProduct.forms.map((form, index) => (
+                          <div
+                            key={index}
+                            style={{
+                              background: "#e8f5e8",
+                              border: "1px solid #4caf50",
+                              borderRadius: "6px",
+                              padding: "0.5rem",
+                              marginBottom: "0.5rem",
+                            }}
+                          >
+                            <div
+                              style={{ fontWeight: "bold", color: "#2e7d32" }}
+                            >
+                              {form.formName}
+                            </div>
+                            <div style={{ fontSize: "0.9rem", color: "#666" }}>
+                              {form.formType}{" "}
+                              {form.isCommon ? "(공통)" : "(상품별)"}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </CustomerInfoCard>
+          </CustomerInfoPage>
+        );
+
+      case "product-enrollment":
+        return (
+          <CustomerInfoPage>
+            <CustomerInfoCard>
+              <CustomerInfoTitle>📝 상품 가입 서식</CustomerInfoTitle>
+
+              {currentProduct && (
+                <>
+                  <div style={{ marginBottom: "1rem", color: "#666" }}>
+                    <strong>{currentProduct.productName}</strong> 가입을 위한
+                    서식을 작성해주세요.
+                  </div>
+
+                  {currentProduct.forms && currentProduct.forms.length > 0 && (
+                    <>
+                      <div
+                        style={{
+                          background: "#e8f5e8",
+                          border: "1px solid #4caf50",
+                          borderRadius: "8px",
+                          padding: "1rem",
+                          marginBottom: "1rem",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontWeight: "bold",
+                            color: "#2e7d32",
+                            marginBottom: "0.5rem",
+                          }}
+                        >
+                          서식 {currentFormIndex + 1} /{" "}
+                          {currentProduct.forms.length}
+                        </div>
+                        <div style={{ color: "#2e7d32" }}>
+                          {currentForm?.formName ||
+                            currentProduct.forms[currentFormIndex]?.formName}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.9rem",
+                            color: "#666",
+                            marginTop: "0.5rem",
+                          }}
+                        >
+                          {currentForm?.formType ||
+                            currentProduct.forms[currentFormIndex]?.formType}
+                          {currentForm?.isCommon
+                            ? " (공통 서식)"
+                            : " (상품별 서식)"}
+                        </div>
+                      </div>
+
+                      {currentForm?.description && (
+                        <div
+                          style={{
+                            background: "#f8f9fa",
+                            padding: "1rem",
+                            borderRadius: "8px",
+                            marginBottom: "1rem",
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontWeight: "bold",
+                              marginBottom: "0.5rem",
+                            }}
+                          >
+                            서식 설명
+                          </div>
+                          <div>{currentForm.description}</div>
+                        </div>
+                      )}
+
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginTop: "1rem",
+                        }}
+                      >
+                        <button
+                          onClick={() => {
+                            if (currentFormIndex > 0) {
+                              setCurrentFormIndex(currentFormIndex - 1);
+                              setCurrentForm(
+                                currentProduct.forms[currentFormIndex - 1]
+                              );
+                            }
+                          }}
+                          disabled={currentFormIndex === 0}
+                          style={{
+                            padding: "0.5rem 1rem",
+                            backgroundColor:
+                              currentFormIndex === 0 ? "#ccc" : "#6c757d",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor:
+                              currentFormIndex === 0
+                                ? "not-allowed"
+                                : "pointer",
+                          }}
+                        >
+                          ← 이전 서식
+                        </button>
+
+                        <div style={{ color: "#666" }}>
+                          {currentFormIndex + 1} / {currentProduct.forms.length}
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            if (
+                              currentFormIndex <
+                              currentProduct.forms.length - 1
+                            ) {
+                              setCurrentFormIndex(currentFormIndex + 1);
+                              setCurrentForm(
+                                currentProduct.forms[currentFormIndex + 1]
+                              );
+                            }
+                          }}
+                          disabled={
+                            currentFormIndex === currentProduct.forms.length - 1
+                          }
+                          style={{
+                            padding: "0.5rem 1rem",
+                            backgroundColor:
+                              currentFormIndex ===
+                              currentProduct.forms.length - 1
+                                ? "#ccc"
+                                : "#28a745",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor:
+                              currentFormIndex ===
+                              currentProduct.forms.length - 1
+                                ? "not-allowed"
+                                : "pointer",
+                          }}
+                        >
+                          다음 서식 →
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+            </CustomerInfoCard>
           </CustomerInfoPage>
         );
 

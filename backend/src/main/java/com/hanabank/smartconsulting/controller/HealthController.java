@@ -15,7 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/health")
+@RequestMapping("/api/health")
 @RequiredArgsConstructor
 @Slf4j
 @CrossOrigin(origins = "http://localhost:3000")

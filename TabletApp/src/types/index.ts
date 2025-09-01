@@ -88,5 +88,6 @@ export interface ProductDetail {
 export interface FormData {
   form?: any;
   pdfUrl?: string;
+  url?: string;
   type?: string;
 }

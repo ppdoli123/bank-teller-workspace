@@ -24,6 +24,7 @@ import TabletFieldInput from './TabletFieldInput';
 import ProductDetailModal from './ProductDetailModal';
 import SessionConnector from './SessionConnector';
 import SimpleWebSocket from './SimpleWebSocket';
+import FormViewer from './FormViewer';
 import {
   API_BASE_URL,
   SIMPLE_WS_URL,
@@ -67,6 +68,9 @@ const CustomerTablet: React.FC = () => {
   const [fieldInputData, setFieldInputData] = useState<any>(null);
   const [showFieldInput, setShowFieldInput] = useState(false);
   const [showProductDetail, setShowProductDetail] = useState(false);
+  const [showFormViewer, setShowFormViewer] = useState(false);
+  const [currentFormData, setCurrentFormData] = useState<any>(null);
+  const [currentFormFields, setCurrentFormFields] = useState<any[]>([]);
   const [networkStatus, setNetworkStatus] = useState<string>('연결 확인 중...');
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
   const [lastMessage, setLastMessage] = useState<string>('');
@@ -456,6 +460,19 @@ const CustomerTablet: React.FC = () => {
         console.log('서식 표시 메시지 수신:', messageData);
         setFormData(messageData.data);
         setShowForm(true);
+        // 직원이 연결되지 않았다면 연결상태로 설정
+        if (!isConnected) {
+          setIsConnected(true);
+          setEmployeeName('직원');
+          setIsWaitingForEmployee(false);
+        }
+        break;
+      case 'form-viewer':
+        // 새로운 서식 뷰어 메시지 처리
+        console.log('서식 뷰어 메시지 수신:', messageData);
+        setCurrentFormData(messageData.data?.formData || {});
+        setCurrentFormFields(messageData.data?.formFields || []);
+        setShowFormViewer(true);
         // 직원이 연결되지 않았다면 연결상태로 설정
         if (!isConnected) {
           setIsConnected(true);
@@ -1048,6 +1065,26 @@ const CustomerTablet: React.FC = () => {
           setSelectedProductDetail(null);
         }}
       />
+
+      {/* 서식 뷰어 모달 */}
+      {showFormViewer && (
+        <FormViewer
+          formUrl={formData?.url || ''}
+          formData={currentFormData}
+          formFields={currentFormFields}
+          onFormDataChange={data => {
+            setCurrentFormData(data);
+            // WebSocket을 통해 직원에게 데이터 전송
+            console.log('서식 데이터 업데이트:', data);
+          }}
+          onClose={() => {
+            setShowFormViewer(false);
+            setCurrentFormData(null);
+            setCurrentFormFields([]);
+          }}
+          isCustomerInput={true}
+        />
+      )}
     </View>
   );
 };

@@ -6,6 +6,7 @@ import com.hanabank.smartconsulting.entity.LoanRate;
 import com.hanabank.smartconsulting.repository.FinancialProductRepository;
 import com.hanabank.smartconsulting.repository.ProductRateRepository;
 import com.hanabank.smartconsulting.repository.LoanRateRepository;
+import com.hanabank.smartconsulting.repository.ProductFormRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -15,6 +16,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +28,7 @@ public class ProductService {
     private final FinancialProductRepository financialProductRepository;
     private final ProductRateRepository productRateRepository;
     private final LoanRateRepository loanRateRepository;
+    private final ProductFormRepository productFormRepository;
     
     public Page<FinancialProduct> getAllProducts(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
@@ -75,6 +80,54 @@ public class ProductService {
     
     public List<LoanRate> getLoanRatesByType(String productId, String rateType) {
         return loanRateRepository.findByProductIdAndRateType(productId, rateType);
+    }
+
+    /**
+     * 상품 가입 시 필요한 EForm 목록 조회 (DB 기반)
+     * 1. 상품 타입별 공통 서식
+     * 2. 상품별 특정 서식
+     */
+    public List<Map<String, Object>> getProductForms(String productId, String productType) {
+        // 결과를 formId 기준으로 중복 제거하며 보존
+        Map<String, Map<String, Object>> formIdToMap = new HashMap<>();
+
+        // 1) 타입별 공통 서식
+        try {
+            productFormRepository.findByProductType(productType).forEach(form -> {
+                Map<String, Object> formMap = new HashMap<>();
+                formMap.put("formId", form.getFormId());
+                formMap.put("formName", form.getFormName());
+                formMap.put("formType", form.getFormType());
+                formMap.put("formTemplatePath", form.getFormTemplatePath());
+                formMap.put("formSchema", form.getFormSchema());
+                formMap.put("description", form.getDescription());
+                formMap.put("versionNumber", form.getVersionNumber());
+                formMap.put("isCommon", true);
+                formIdToMap.put(form.getFormId(), formMap);
+            });
+        } catch (Exception e) {
+            log.warn("공통 서식 조회 중 오류: {}", e.getMessage());
+        }
+
+        // 2) 상품별 특정 서식
+        try {
+            productFormRepository.findByProductId(productId).forEach(form -> {
+                Map<String, Object> formMap = new HashMap<>();
+                formMap.put("formId", form.getFormId());
+                formMap.put("formName", form.getFormName());
+                formMap.put("formType", form.getFormType());
+                formMap.put("formTemplatePath", form.getFormTemplatePath());
+                formMap.put("formSchema", form.getFormSchema());
+                formMap.put("description", form.getDescription());
+                formMap.put("versionNumber", form.getVersionNumber());
+                formMap.put("isCommon", false);
+                formIdToMap.put(form.getFormId(), formMap);
+            });
+        } catch (Exception e) {
+            log.warn("상품별 서식 조회 중 오류: {}", e.getMessage());
+        }
+
+        return new ArrayList<>(formIdToMap.values());
     }
 }
 

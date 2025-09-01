@@ -236,10 +236,16 @@ const EmployeeLogin = () => {
 
     try {
       const response = await axios.post(
-        "https://hana-backend-production.up.railway.app/api/auth/login",
+        "http://localhost:8080/api/auth/login",
         {
           employeeId: employeeId.trim(),
           password: password.trim(),
+        },
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
       );
 
@@ -250,7 +256,7 @@ const EmployeeLogin = () => {
           JSON.stringify(response.data.employee)
         );
         localStorage.setItem("sessionId", response.data.sessionId);
-        
+
         console.log("로그인 성공, 세션 ID:", response.data.sessionId);
         navigate("/employee/dashboard");
       }

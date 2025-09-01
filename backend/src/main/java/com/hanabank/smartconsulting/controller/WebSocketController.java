@@ -1,6 +1,9 @@
 package com.hanabank.smartconsulting.controller;
 
 import com.hanabank.smartconsulting.service.SessionService;
+import com.hanabank.smartconsulting.service.ProductService;
+import com.hanabank.smartconsulting.service.CustomerService;
+import com.hanabank.smartconsulting.entity.FinancialProduct;
 import com.hanabank.smartconsulting.config.WebSocketConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +19,8 @@ import com.hanabank.smartconsulting.config.WebSocketConfig;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Controller
@@ -25,6 +30,7 @@ public class WebSocketController extends TextWebSocketHandler {
     
     private final SimpMessagingTemplate messagingTemplate;
     private final SessionService sessionService;
+    private final ProductService productService;
     
     // 단순 WebSocket 세션 저장소
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
@@ -89,11 +95,12 @@ public class WebSocketController extends TextWebSocketHandler {
         
         log.info("고객 선택됨 - sessionId: {}, 고객: {}", sessionId, customerData.get("name"));
         
-        // STOMP와 단순 WebSocket 모두에 전송
-        Map<String, Object> message = Map.of(
-            "type", "customer-selected",
-            "customerData", customerData
-        );
+        // STOMP와 단순 WebSocket 모두에 전송 (호환성을 위해 data와 customerData 모두 포함)
+        Map<String, Object> message = new HashMap<>();
+        message.put("type", "customer-selected");
+        message.put("data", customerData);
+        message.put("customerData", customerData);
+        message.put("timestamp", System.currentTimeMillis());
         
         // STOMP 전송
         messagingTemplate.convertAndSend("/topic/session/" + sessionId, message);
@@ -128,11 +135,23 @@ public class WebSocketController extends TextWebSocketHandler {
         
         log.info("상품 상세보기 동기화 - sessionId: {}", sessionId);
         
+        // 데이터 정규화 (snake_case -> camelCase 등) 및 폼 정보 보강
+        Map<String, Object> normalized = normalizeProductData(productData);
+        try {
+            String productId = (String) normalized.getOrDefault("productId", null);
+            String productType = (String) normalized.getOrDefault("productType", null);
+            if (productId != null && productType != null) {
+                normalized.put("forms", productService.getProductForms(productId, productType));
+            }
+        } catch (Exception e) {
+            log.warn("상품 폼 보강 중 오류: {}", e.getMessage());
+        }
+
         // STOMP와 단순 WebSocket 모두에 전송
-        Map<String, Object> message = Map.of(
-            "type", "product-detail-sync",
-            "data", productData
-        );
+        Map<String, Object> message = new HashMap<>();
+        message.put("type", "product-detail-sync");
+        message.put("data", normalized);
+        message.put("timestamp", System.currentTimeMillis());
         
         // STOMP 전송
         messagingTemplate.convertAndSend("/topic/session/" + sessionId, message);
@@ -155,6 +174,160 @@ public class WebSocketController extends TextWebSocketHandler {
         ));
     }
     
+    /**
+     * 상품 가입 시 서식 표시 (PC와 태블릿 동기화)
+     */
+    @MessageMapping("/product-enrollment")
+    public void productEnrollment(@Payload Map<String, Object> payload) {
+        String sessionId = (String) payload.get("sessionId");
+        Object productIdObj = payload.get("productId");
+        String productId = productIdObj != null ? productIdObj.toString() : null;
+        String customerId = (String) payload.get("customerId");
+        
+        log.info("상품 가입 시작 - sessionId: {}, productId: {}, customerId: {}", sessionId, productId, customerId);
+        
+        try {
+            Optional<FinancialProduct> productOpt = productService.getProductById(productId);
+            if (productOpt.isPresent()) {
+                FinancialProduct product = productOpt.get();
+                
+                // 실제 DB에서 EForm 목록 조회
+                List<Map<String, Object>> forms = productService.getProductForms(product.getProductId(), product.getProductType());
+                
+                Map<String, Object> enrollmentData = new HashMap<>();
+                enrollmentData.put("productId", product.getProductId());
+                enrollmentData.put("productName", product.getProductName());
+                enrollmentData.put("productType", product.getProductType());
+                enrollmentData.put("customerId", customerId);
+                enrollmentData.put("forms", forms);
+                enrollmentData.put("currentFormIndex", 0); // 첫 번째 서식부터 시작
+                enrollmentData.put("totalForms", forms.size());
+                
+                Map<String, Object> message = Map.of(
+                    "type", "product-enrollment",
+                    "data", enrollmentData,
+                    "action", "start_enrollment",
+                    "timestamp", System.currentTimeMillis()
+                );
+                
+                messagingTemplate.convertAndSend("/topic/session/" + sessionId, message);
+                WebSocketConfig.SimpleWebSocketHandler.broadcastToSimpleWebSocket(sessionId, message);
+                log.info("상품 가입 서식 표시 메시지 전송 완료 - 서식 개수: {}", forms.size());
+            } else {
+                log.warn("상품 ID를 찾을 수 없습니다: {}", productId);
+            }
+        } catch (Exception e) {
+            log.error("상품 가입 처리 중 오류 발생", e);
+        }
+    }
+    
+    /**
+     * 화면 하이라이트/밑줄 동기화
+     */
+    @MessageMapping("/screen-highlight")
+    public void screenHighlight(@Payload Map<String, Object> payload) {
+        String sessionId = (String) payload.get("sessionId");
+        String elementId = (String) payload.get("elementId");
+        String highlightType = (String) payload.get("highlightType"); // "highlight", "underline", "clear"
+        String color = (String) payload.get("color");
+        
+        log.info("화면 하이라이트 동기화 - sessionId: {}, elementId: {}, type: {}", sessionId, elementId, highlightType);
+        
+        Map<String, Object> highlightData = new HashMap<>();
+        highlightData.put("elementId", elementId);
+        highlightData.put("highlightType", highlightType);
+        highlightData.put("color", color);
+        highlightData.put("timestamp", System.currentTimeMillis());
+        
+        Map<String, Object> message = Map.of(
+            "type", "screen-highlight",
+            "data", highlightData,
+            "timestamp", System.currentTimeMillis()
+        );
+        
+        messagingTemplate.convertAndSend("/topic/session/" + sessionId, message);
+        WebSocketConfig.SimpleWebSocketHandler.broadcastToSimpleWebSocket(sessionId, message);
+        log.info("화면 하이라이트 동기화 메시지 전송 완료");
+    }
+    
+    /**
+     * 서식 네비게이션 (다음/이전 서식)
+     */
+    @MessageMapping("/form-navigation")
+    public void formNavigation(@Payload Map<String, Object> payload) {
+        String sessionId = (String) payload.get("sessionId");
+        String direction = (String) payload.get("direction"); // "next", "prev"
+        Integer currentIndex = (Integer) payload.get("currentIndex");
+        String productId = (String) payload.get("productId");
+        
+        log.info("서식 네비게이션 - sessionId: {}, direction: {}, currentIndex: {}", sessionId, direction, currentIndex);
+        
+        try {
+            Optional<FinancialProduct> productOpt = productService.getProductById(productId);
+            if (productOpt.isPresent()) {
+                FinancialProduct product = productOpt.get();
+                List<Map<String, Object>> forms = productService.getProductForms(product.getProductId(), product.getProductType());
+                
+                int newIndex = currentIndex;
+                if ("next".equals(direction) && currentIndex < forms.size() - 1) {
+                    newIndex = currentIndex + 1;
+                } else if ("prev".equals(direction) && currentIndex > 0) {
+                    newIndex = currentIndex - 1;
+                }
+                
+                Map<String, Object> formData = new HashMap<>();
+                formData.put("productId", productId);
+                formData.put("currentFormIndex", newIndex);
+                formData.put("currentForm", forms.get(newIndex));
+                formData.put("totalForms", forms.size());
+                formData.put("canGoNext", newIndex < forms.size() - 1);
+                formData.put("canGoPrev", newIndex > 0);
+                
+                Map<String, Object> message = Map.of(
+                    "type", "form-navigation",
+                    "data", formData,
+                    "timestamp", System.currentTimeMillis()
+                );
+                
+                messagingTemplate.convertAndSend("/topic/session/" + sessionId, message);
+                WebSocketConfig.SimpleWebSocketHandler.broadcastToSimpleWebSocket(sessionId, message);
+                log.info("서식 네비게이션 메시지 전송 완료 - 새 인덱스: {}", newIndex);
+            }
+        } catch (Exception e) {
+            log.error("서식 네비게이션 처리 중 오류 발생", e);
+        }
+    }
+
+    // Helper: 상품 데이터 정규화
+    private Map<String, Object> normalizeProductData(Object productData) {
+        Map<String, Object> result = new HashMap<>();
+        if (productData instanceof Map<?, ?> raw) {
+            // 가능한 키들을 모두 수용 (snake_case, camelCase 혼용 호환)
+            putIfPresent(raw, result, "productId", "productId", "product_id", "id");
+            putIfPresent(raw, result, "productName", "productName", "product_name", "name");
+            putIfPresent(raw, result, "productType", "productType", "product_type", "type");
+            putIfPresent(raw, result, "description", "description", "product_features", "desc");
+            putIfPresent(raw, result, "targetCustomers", "targetCustomers", "target_customers");
+            putIfPresent(raw, result, "minAmount", "minAmount", "min_amount");
+            putIfPresent(raw, result, "maxAmount", "maxAmount", "max_amount");
+            putIfPresent(raw, result, "baseRate", "baseRate", "base_rate");
+            putIfPresent(raw, result, "launchDate", "launchDate", "launch_date");
+            putIfPresent(raw, result, "salesStatus", "salesStatus", "sales_status");
+            // 원본도 함께 첨부 (디버깅/후방 호환)
+            result.put("_raw", raw);
+        }
+        return result;
+    }
+
+    private void putIfPresent(Map<?, ?> src, Map<String, Object> dst, String dstKey, String... candidates) {
+        for (String key : candidates) {
+            if (src.containsKey(key)) {
+                dst.put(dstKey, src.get(key));
+                return;
+            }
+        }
+    }
+    
     @MessageMapping("/send-to-session")
     public void sendToSession(@Payload Map<String, Object> payload) {
         try {
@@ -171,11 +344,34 @@ public class WebSocketController extends TextWebSocketHandler {
                 return;
             }
             
-            // 태블릿으로 데이터 전송
+            // 태블릿으로 데이터 전송 - 메시지 타입별 구체적 처리
             Map<String, Object> response = new HashMap<>();
             response.put("type", type);
-            response.put("data", data);
             response.put("timestamp", System.currentTimeMillis());
+            
+            // 메시지 타입별 데이터 구조화
+            if ("customer-info-display".equals(type) && data instanceof Map<?, ?> dataMap) {
+                Map<String, Object> customerInfo = (Map<String, Object>) dataMap.get("customer");
+                if (customerInfo != null) {
+                    // 고객 정보를 태블릿 친화적 형태로 재구성
+                    Map<String, Object> tabletFriendlyCustomer = new HashMap<>();
+                    tabletFriendlyCustomer.put("customerId", customerInfo.get("CustomerID"));
+                    tabletFriendlyCustomer.put("name", customerInfo.get("Name"));
+                    tabletFriendlyCustomer.put("phone", customerInfo.get("Phone"));
+                    tabletFriendlyCustomer.put("age", customerInfo.get("Age"));
+                    tabletFriendlyCustomer.put("address", customerInfo.get("Address"));
+                    tabletFriendlyCustomer.put("idNumber", customerInfo.get("IdNumber"));
+                    
+                    response.put("data", tabletFriendlyCustomer);
+                    response.put("action", "show_customer_info");
+                    
+                    log.info("고객 정보 태블릿 전송 - 고객: {}", customerInfo.get("Name"));
+                } else {
+                    response.put("data", data);
+                }
+            } else {
+                response.put("data", data);
+            }
             
             String destination = "/topic/session/" + sessionId;
             log.info("메시지 전송 대상: {}", destination);

@@ -5,10 +5,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "product")
@@ -28,50 +27,21 @@ public class FinancialProduct {
     @Column(name = "producttype")
     private String productType;
     
-    @Column(name = "productfeatures", columnDefinition = "TEXT")
-    private String productFeatures;
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
     
-    @Column(name = "targetcustomers", columnDefinition = "TEXT")
-    private String targetCustomers;
+    @Column(name = "launchdate")
+    private LocalDate launchDate;
     
-    @Column(name = "eligibilityrequirements", columnDefinition = "TEXT")
-    private String eligibilityRequirements;
+    @Column(name = "salesstatus")
+    private String salesStatus;
     
-    @Column(name = "depositamount")
-    private String depositAmount;
+    @Column(name = "minamount", precision = 15, scale = 2)
+    private BigDecimal minAmount;
     
-    @Column(name = "depositperiod")
-    private String depositPeriod;
+    @Column(name = "maxamount", precision = 15, scale = 2)
+    private BigDecimal maxAmount;
     
-    @Column(name = "interestrate")
-    private String interestRate;
-    
-    @Column(name = "preferentialrate")
-    private String preferentialRate;
-    
-    @Column(name = "taxbenefits", columnDefinition = "TEXT")
-    private String taxBenefits;
-    
-    @Column(name = "withdrawalconditions", columnDefinition = "TEXT")
-    private String withdrawalConditions;
-    
-    @Column(columnDefinition = "TEXT")
-    private String notes;
-    
-    @Column(name = "depositprotection")
-    private String depositProtection;
-    
-    @Column(name = "interestratetable", columnDefinition = "TEXT")
-    private String interestRateTable;
-    
-    @Column(name = "productguidepath")
-    private String productGuidePath;
-    
-    @CreationTimestamp
-    @Column(name = "createdat", updatable = false)
-    private LocalDateTime createdAt;
-    
-    @UpdateTimestamp
-    @Column(name = "updatedat")
-    private LocalDateTime updatedAt;
+    @Column(name = "baserate", precision = 5, scale = 2)
+    private BigDecimal baseRate;
 }

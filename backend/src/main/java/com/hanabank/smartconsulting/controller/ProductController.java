@@ -19,7 +19,7 @@ import java.util.Optional;
 @Slf4j
 @RestController
 @RequestMapping("/api/employee/products")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 @RequiredArgsConstructor
 public class ProductController {
 
@@ -191,6 +191,37 @@ public class ProductController {
             log.error("상품 타입 조회 중 오류 발생", e);
             return ResponseEntity.status(500).body(
                 ApiResponse.error("상품 타입 조회 중 오류가 발생했습니다.")
+            );
+        }
+    }
+
+    /**
+     * 상품 가입 시 필요한 EForm 목록 조회
+     */
+    @GetMapping("/{productId}/forms")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getProductForms(@PathVariable String productId) {
+        log.info("상품 가입 시 필요한 EForm 목록 조회 요청 - productId: {}", productId);
+        try {
+            Optional<FinancialProduct> productOpt = productService.getProductById(productId);
+            if (productOpt.isEmpty()) {
+                return ResponseEntity.status(404).body(
+                    ApiResponse.error("상품을 찾을 수 없습니다.")
+                );
+            }
+
+            FinancialProduct product = productOpt.get();
+            Map<String, Object> result = new HashMap<>();
+            result.put("product", product);
+
+            // 상품 타입에 따른 공통 서식 + 상품별 특정 서식 조회
+            List<Map<String, Object>> forms = productService.getProductForms(productId, product.getProductType());
+            result.put("forms", forms);
+
+            return ResponseEntity.ok(ApiResponse.success("상품 가입 시 필요한 EForm 목록 조회 성공", result));
+        } catch (Exception e) {
+            log.error("상품 가입 시 필요한 EForm 목록 조회 중 오류 발생", e);
+            return ResponseEntity.status(500).body(
+                ApiResponse.error("상품 가입 시 필요한 EForm 목록 조회 중 오류가 발생했습니다.")
             );
         }
     }

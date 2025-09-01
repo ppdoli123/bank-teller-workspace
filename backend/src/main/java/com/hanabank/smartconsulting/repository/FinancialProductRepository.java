@@ -17,7 +17,7 @@ public interface FinancialProductRepository extends JpaRepository<FinancialProdu
     
     @Query("SELECT fp FROM FinancialProduct fp WHERE " +
            "LOWER(fp.productName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-           "LOWER(fp.productFeatures) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+           "LOWER(fp.description) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     Page<FinancialProduct> findByKeyword(@Param("keyword") String keyword, Pageable pageable);
     
     @Query("SELECT DISTINCT fp.productType FROM FinancialProduct fp WHERE fp.productType IS NOT NULL")

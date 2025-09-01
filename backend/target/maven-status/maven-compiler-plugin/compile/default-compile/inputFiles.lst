@@ -5,7 +5,6 @@
 /Users/user/bank-teller-workspace/backend/src/main/java/com/hanabank/smartconsulting/service/AuthService.java
 /Users/user/bank-teller-workspace/backend/src/main/java/com/hanabank/smartconsulting/dto/ProductRecommendationRequest.java
 /Users/user/bank-teller-workspace/backend/src/main/java/com/hanabank/smartconsulting/dto/EmployeeDto.java
-/Users/user/bank-teller-workspace/backend/src/main/java/com/hanabank/smartconsulting/config/CorsConfig.java
 /Users/user/bank-teller-workspace/backend/src/main/java/com/hanabank/smartconsulting/service/OpenAiService.java
 /Users/user/bank-teller-workspace/backend/src/main/java/com/hanabank/smartconsulting/entity/ProductRate.java
 /Users/user/bank-teller-workspace/backend/src/main/java/com/hanabank/smartconsulting/entity/FinancialProduct.java
@@ -37,7 +36,6 @@
 /Users/user/bank-teller-workspace/backend/src/main/java/com/hanabank/smartconsulting/dto/CustomerDto.java
 /Users/user/bank-teller-workspace/backend/src/main/java/com/hanabank/smartconsulting/repository/ConsultationSessionRepository.java
 /Users/user/bank-teller-workspace/backend/src/main/java/com/hanabank/smartconsulting/repository/ProductRateRepository.java
-/Users/user/bank-teller-workspace/backend/src/main/java/com/hanabank/smartconsulting/service/ProductRecommendationService.java
 /Users/user/bank-teller-workspace/backend/src/main/java/com/hanabank/smartconsulting/repository/EmployeeRepository.java
 /Users/user/bank-teller-workspace/backend/src/main/java/com/hanabank/smartconsulting/config/WebClientConfig.java
 /Users/user/bank-teller-workspace/backend/src/main/java/com/hanabank/smartconsulting/controller/ProductRecommendationController.java
@@ -61,4 +59,3 @@
 /Users/user/bank-teller-workspace/backend/src/main/java/com/hanabank/smartconsulting/entity/ConsultationSession.java
 /Users/user/bank-teller-workspace/backend/src/main/java/com/hanabank/smartconsulting/entity/ProductDocument.java
 /Users/user/bank-teller-workspace/backend/src/main/java/com/hanabank/smartconsulting/dto/ai/QuestionItem.java
-/Users/user/bank-teller-workspace/backend/src/main/java/com/hanabank/smartconsulting/service/ProductFormService.java

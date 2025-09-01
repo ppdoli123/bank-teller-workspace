@@ -1,6 +1,5 @@
 com/hanabank/smartconsulting/entity/ProductForm.class
 com/hanabank/smartconsulting/controller/HealthController.class
-com/hanabank/smartconsulting/service/ProductRecommendationService.class
 com/hanabank/smartconsulting/controller/OcrController.class
 com/hanabank/smartconsulting/repository/LoanRateRepository.class
 com/hanabank/smartconsulting/service/OpenAiService$EmbeddingResponse.class
@@ -24,7 +23,6 @@ com/hanabank/smartconsulting/entity/CustomerProduct$CustomerProductBuilder.class
 com/hanabank/smartconsulting/SmartConsultingApplication.class
 com/hanabank/smartconsulting/service/SessionService.class
 com/hanabank/smartconsulting/dto/CustomerDto.class
-com/hanabank/smartconsulting/controller/WebSocketController.class
 com/hanabank/smartconsulting/dto/ProductRecommendationRequest$QuestionAnswer.class
 com/hanabank/smartconsulting/service/OpenAiService$EmbeddingRequest.class
 com/hanabank/smartconsulting/repository/CustomerRepository.class
@@ -40,7 +38,6 @@ com/hanabank/smartconsulting/dto/EmployeeDto$EmployeeDtoBuilder.class
 com/hanabank/smartconsulting/entity/ProductDocument$DocumentStatus.class
 com/hanabank/smartconsulting/config/DataLoader.class
 com/hanabank/smartconsulting/service/OpenAiService.class
-com/hanabank/smartconsulting/config/CorsConfig.class
 com/hanabank/smartconsulting/service/OpenAiService$ChatMessage$ChatMessageBuilder.class
 com/hanabank/smartconsulting/controller/ProductController.class
 com/hanabank/smartconsulting/service/DocumentInitializationService.class
@@ -48,7 +45,6 @@ com/hanabank/smartconsulting/service/RagService.class
 com/hanabank/smartconsulting/dto/ApiResponse.class
 com/hanabank/smartconsulting/dto/ai/AiQuestionResponse.class
 com/hanabank/smartconsulting/controller/CustomerController.class
-com/hanabank/smartconsulting/service/ProductFormService.class
 com/hanabank/smartconsulting/repository/ProductDocumentRepository.class
 com/hanabank/smartconsulting/entity/ProductForm$ProductFormBuilder.class
 com/hanabank/smartconsulting/repository/ConsultationSessionRepository.class

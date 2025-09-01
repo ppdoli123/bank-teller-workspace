@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/ocr")
+@RequestMapping("/api/ocr")
 @RequiredArgsConstructor
 @Slf4j
 @CrossOrigin(origins = "http://localhost:3000")

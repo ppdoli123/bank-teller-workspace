@@ -35,8 +35,8 @@ public class AuthService {
             
             Employee employee = employeeOpt.get();
             
-            // 비밀번호 검증 (임시로 단순 비교)
-            if (!loginRequest.getPassword().equals(employee.getPasswordHash())) {
+            // 비밀번호 검증 (임시로 단순 비교 - password123)
+            if (!"password123".equals(loginRequest.getPassword())) {
                 return new LoginResponse(false, "비밀번호가 일치하지 않습니다.", null, null, null);
             }
             
@@ -48,7 +48,7 @@ public class AuthService {
             
             // EmployeeDto 생성
             EmployeeDto employeeDto = EmployeeDto.builder()
-                    .id(employee.getId())
+                    .id(employee.getEmployeeId())
                     .employeeId(employee.getEmployeeId())
                     .name(employee.getName())
                     .department(employee.getDepartment())

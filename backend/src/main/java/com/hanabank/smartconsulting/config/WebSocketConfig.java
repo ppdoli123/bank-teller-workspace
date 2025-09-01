@@ -52,7 +52,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer, WebSoc
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // SockJS WebSocket 엔드포인트 (React Native용) - 기본 경로
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*")
+                .setAllowedOrigins("http://localhost:3000")
                 .withSockJS()
                 .setHeartbeatTime(30000)
                 .setDisconnectDelay(30000)
@@ -63,7 +63,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer, WebSoc
 
         // API 경로 SockJS 엔드포인트 (태블릿에서 사용)
         registry.addEndpoint("/api/ws")
-                .setAllowedOriginPatterns("*")
+                .setAllowedOrigins("http://localhost:3000")
                 .withSockJS()
                 .setHeartbeatTime(30000)
                 .setDisconnectDelay(30000)
@@ -74,11 +74,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer, WebSoc
 
         // 네이티브 WebSocket 엔드포인트 (웹 브라우저용)
         registry.addEndpoint("/websocket")
-                .setAllowedOriginPatterns("*");
+                .setAllowedOrigins("http://localhost:3000");
 
         // 추가 STOMP 엔드포인트 (React Native STOMP 연결용)
         registry.addEndpoint("/stomp")
-                .setAllowedOriginPatterns("*")
+                .setAllowedOrigins("http://localhost:3000")
                 .withSockJS()
                 .setHeartbeatTime(30000)
                 .setDisconnectDelay(30000)
@@ -101,7 +101,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer, WebSoc
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(new SimpleWebSocketHandler(objectMapper), "/simple-ws")
-                .setAllowedOriginPatterns("*");
+                .setAllowedOrigins("http://localhost:3000");
     }
 
     // 단순 WebSocket 메시지 핸들러

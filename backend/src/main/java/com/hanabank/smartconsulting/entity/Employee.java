@@ -5,10 +5,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
+
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "employee")
@@ -19,17 +18,13 @@ import java.time.LocalDateTime;
 public class Employee {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private Long id;
-    
     @Column(name = "employeeid", unique = true, nullable = false)
     private String employeeId;
     
     @Column(name = "name", nullable = false)
     private String name;
     
-    @Column(name = "passwordhash", nullable = false)
+    @Column(name = "passwordhash")
     private String passwordHash;
     
     @Column(name = "department")
@@ -38,11 +33,12 @@ public class Employee {
     @Column(name = "position")
     private String position;
     
-    @CreationTimestamp
-    @Column(name = "createdat", updatable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "contactnumber")
+    private String contactNumber;
     
-    @UpdateTimestamp
-    @Column(name = "updatedat")
-    private LocalDateTime updatedAt;
+    @Column(name = "hiredate")
+    private LocalDate hireDate;
+    
+    @Column(name = "branchcode")
+    private String branchCode;
 }

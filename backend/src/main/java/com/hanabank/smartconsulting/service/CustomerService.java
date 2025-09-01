@@ -32,8 +32,8 @@ public class CustomerService {
                 .map(this::convertToDto);
     }
     
-    public Optional<CustomerDto> getCustomerByIdNumber(String idNumber) {
-        return customerRepository.findByIdNumber(idNumber)
+    public Optional<CustomerDto> getCustomerByContactNumber(String contactNumber) {
+        return customerRepository.findByContactNumber(contactNumber)
                 .map(this::convertToDto);
     }
     
@@ -68,34 +68,34 @@ public class CustomerService {
     }
     
     private CustomerDto convertToDto(Customer customer) {
-        return CustomerDto.builder()
+        CustomerDto dto = CustomerDto.builder()
                 .customerId(customer.getCustomerId())
                 .name(customer.getName())
-                .phone(customer.getPhone())
-                .age(customer.getAge())
+                .dateOfBirth(customer.getDateOfBirth())
+                .contactNumber(customer.getContactNumber())
                 .address(customer.getAddress())
-                .idNumber(customer.getIdNumber())
-                .income(customer.getIncome())
-                .assets(customer.getAssets())
-                .investmentGoal(customer.getInvestmentGoal())
-                .riskTolerance(customer.getRiskTolerance())
-                .investmentPeriod(customer.getInvestmentPeriod())
+                .gender(customer.getGender())
+                .registrationDate(customer.getRegistrationDate())
                 .build();
+        
+        // 계산된 필드들
+        dto.setPhone(customer.getContactNumber()); // 별칭
+        if (customer.getDateOfBirth() != null) {
+            dto.setAge(java.time.Period.between(customer.getDateOfBirth(), java.time.LocalDate.now()).getYears());
+        }
+        
+        return dto;
     }
     
     private Customer convertToEntity(CustomerDto customerDto) {
         return Customer.builder()
                 .customerId(customerDto.getCustomerId())
                 .name(customerDto.getName())
-                .phone(customerDto.getPhone())
-                .age(customerDto.getAge())
+                .dateOfBirth(customerDto.getDateOfBirth())
+                .contactNumber(customerDto.getContactNumber())
                 .address(customerDto.getAddress())
-                .idNumber(customerDto.getIdNumber())
-                .income(customerDto.getIncome())
-                .assets(customerDto.getAssets())
-                .investmentGoal(customerDto.getInvestmentGoal())
-                .riskTolerance(customerDto.getRiskTolerance())
-                .investmentPeriod(customerDto.getInvestmentPeriod())
+                .gender(customerDto.getGender())
+                .registrationDate(customerDto.getRegistrationDate())
                 .build();
     }
 }

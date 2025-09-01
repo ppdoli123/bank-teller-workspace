@@ -7,6 +7,7 @@ import com.hanabank.smartconsulting.service.CustomerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -22,6 +23,7 @@ import java.util.Optional;
 public class CustomerController {
     
     private final CustomerService customerService;
+    private final SimpMessagingTemplate messagingTemplate;
     
     @GetMapping
     public ResponseEntity<ApiResponse<List<CustomerDto>>> getAllCustomers() {
@@ -34,6 +36,35 @@ public class CustomerController {
             log.error("모든 고객 정보 조회 중 오류 발생", e);
             return ResponseEntity.status(500).body(
                 ApiResponse.error("고객 정보 조회 중 오류가 발생했습니다.")
+            );
+        }
+    }
+
+    /**
+     * 현재 세션 구독자(태블릿 포함)에게 전체 고객 목록을 브로드캐스트
+     */
+    @PostMapping("/broadcast")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> broadcastAllCustomers(@RequestParam String sessionId) {
+        log.info("세션으로 전체 고객 목록 브로드캐스트 - sessionId: {}", sessionId);
+        try {
+            List<CustomerDto> customers = customerService.getAllCustomers();
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("type", "customer-list");
+            payload.put("data", customers);
+            payload.put("timestamp", System.currentTimeMillis());
+
+            String destination = "/topic/session/" + sessionId;
+            messagingTemplate.convertAndSend(destination, payload);
+
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("sentTo", destination);
+            resp.put("count", customers.size());
+            return ResponseEntity.ok(ApiResponse.success("고객 목록 브로드캐스트 완료", resp));
+        } catch (Exception e) {
+            log.error("고객 목록 브로드캐스트 중 오류", e);
+            return ResponseEntity.status(500).body(
+                ApiResponse.error("고객 목록 브로드캐스트 중 오류가 발생했습니다.")
             );
         }
     }
@@ -89,11 +120,11 @@ public class CustomerController {
         }
     }
     
-    @GetMapping("/search/idnumber/{idNumber}")
-    public ResponseEntity<ApiResponse<CustomerDto>> getCustomerByIdNumber(@PathVariable String idNumber) {
-        log.info("고객 신분증 번호로 검색: {}", idNumber);
+    @GetMapping("/search/contact/{contactNumber}")
+    public ResponseEntity<ApiResponse<CustomerDto>> getCustomerByContactNumber(@PathVariable String contactNumber) {
+        log.info("고객 연락처로 검색: {}", contactNumber);
         
-        Optional<CustomerDto> customer = customerService.getCustomerByIdNumber(idNumber);
+        Optional<CustomerDto> customer = customerService.getCustomerByContactNumber(contactNumber);
         
         if (customer.isPresent()) {
             return ResponseEntity.ok(ApiResponse.success("고객 검색 성공", customer.get()));
