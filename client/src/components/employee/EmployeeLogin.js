@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import axios from "axios";
+import { getApiUrl } from "../../config/api";
 
 const ErrorMessage = styled.div`
   background: var(--hana-error-light);
@@ -236,7 +237,7 @@ const EmployeeLogin = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:8080/api/auth/login",
+        getApiUrl('/api/auth/login'),
         {
           employeeId: employeeId.trim(),
           password: password.trim(),

@@ -4,6 +4,7 @@ import styled from "styled-components";
 import io from "socket.io-client";
 import SignatureCanvas from "react-signature-canvas";
 import axios from "axios";
+import { getApiUrl } from "../../config/api";
 
 const CustomerContainer = styled.div`
   min-height: calc(100vh - 120px);
@@ -306,7 +307,7 @@ const CustomerInterface = () => {
         const signatureData = signatureRef.current.toDataURL();
 
         await axios.post(
-          "https://hana-backend-production.up.railway.app/api/signature/submit",
+          getApiUrl('/api/signature/submit'),
           {
             customerId: screenData?.customerId,
             sessionId: sessionId,

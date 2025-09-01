@@ -1,0 +1,51 @@
+{
+  "filename": "5-14-0020.pdf",
+  "totalPages": 1,
+  "fields": [
+    {
+      "id": "customer_name",
+      "name": "customerName",
+      "type": "Tx",
+      "inputType": "text",
+      "page": 1,
+      "rect": {
+        "x": 100,
+        "y": 100,
+        "width": 200,
+        "height": 25
+      },
+      "required": true,
+      "readonly": false,
+      "defaultValue": "",
+      "options": [],
+      "maxLength": null,
+      "placeholder": "고객명을 입력하세요",
+      "label": "고객명"
+    },
+    {
+      "id": "phone_number",
+      "name": "phoneNumber",
+      "type": "Tx",
+      "inputType": "text",
+      "page": 1,
+      "rect": {
+        "x": 100,
+        "y": 150,
+        "width": 200,
+        "height": 25
+      },
+      "required": true,
+      "readonly": false,
+      "defaultValue": "",
+      "options": [],
+      "maxLength": null,
+      "placeholder": "연락처를 입력하세요",
+      "label": "연락처"
+    }
+  ],
+  "metadata": {
+    "title": "5-14-0020",
+    "category": "기타",
+    "description": "5-14-0020 서식"
+  }
+}

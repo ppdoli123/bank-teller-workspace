@@ -4,6 +4,7 @@ import styled from "styled-components";
 import axios from "axios";
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
+import { getWebSocketUrl } from "../../config/api";
 import Webcam from "react-webcam";
 import SessionQRCode from "./SessionQRCode";
 
@@ -673,6 +674,8 @@ const EmployeeDashboard = () => {
   const [showCustomerSelect, setShowCustomerSelect] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedForm, setSelectedForm] = useState(null);
+  const [enrollmentData, setEnrollmentData] = useState(null);
+  const [currentFormIndex, setCurrentFormIndex] = useState(0);
 
   const navigate = useNavigate();
   const webcamRef = useRef(null);
@@ -682,11 +685,7 @@ const EmployeeDashboard = () => {
   const connectWebSocket = (sessionId, employee) => {
     const client = new Client({
       webSocketFactory: () => {
-        // 로컬 개발 환경에서는 로컬 서버 사용
-        const isDevelopment = process.env.NODE_ENV === "development";
-        const wsUrl = isDevelopment
-          ? "http://localhost:8080/api/ws"
-          : "https://hana-backend-production.up.railway.app/api/ws";
+        const wsUrl = getWebSocketUrl();
         console.log("WebSocket 연결 시도:", wsUrl);
         return new SockJS(wsUrl);
       },
@@ -722,7 +721,8 @@ const EmployeeDashboard = () => {
       // 세션 메시지 구독 (태블릿과 통신용)
       client.subscribe("/topic/session/" + sessionId, function (message) {
         const data = JSON.parse(message.body);
-        console.log("직원이 세션 메시지 수신:", data);
+        console.log("🔍 직원이 세션 메시지 수신:", data);
+        console.log("🔍 메시지 타입:", data.type);
 
         // 메시지 타입별 처리
         switch (data.type) {
@@ -754,6 +754,53 @@ const EmployeeDashboard = () => {
             // 폼 필드 업데이트 처리
             if (data.field && window.updateFormField) {
               window.updateFormField(data.field, data.value);
+            }
+            break;
+          case "field-input-complete":
+            console.log("📝 태블릿에서 필드 입력 완료:", data);
+            if (data.data) {
+              const { fieldId, fieldName, value, formIndex, formName } = data.data;
+              console.log(`✅ 필드 입력 완료: ${fieldName} = ${value}`);
+              
+              // PC 화면에서 해당 필드에 입력된 값 표시
+              // 실제 구현에서는 폼 데이터 상태를 업데이트해야 함
+              alert(`입력 완료: ${fieldName} = ${value}`);
+            }
+            break;
+          case "product-enrollment":
+            console.log("🔍 PC에서 product-enrollment 메시지 수신:", data);
+            console.log("🔍 PC에서 data.action:", data.action);
+            console.log("🔍 PC에서 data.data:", data.data);
+            if (data.action === "start_enrollment" && data.data) {
+              // 임시로 하드코딩된 서식 데이터 추가
+              const enrollmentWithForms = {
+                ...data.data,
+                forms: data.data.forms || [
+                  {
+                    formId: "FORM-IRP-001",
+                    formName: "퇴직연금 거래신청서(개인형IRP)",
+                    formType: "deposit",
+                    formSchema: '{"fields": [{"id": "customer_name", "name": "customerName", "type": "text", "label": "고객명", "required": true, "placeholder": "고객명을 입력하세요"}, {"id": "phone_number", "name": "phoneNumber", "type": "text", "label": "연락처", "required": true, "placeholder": "연락처를 입력하세요"}, {"id": "resident_number", "name": "residentNumber", "type": "text", "label": "주민등록번호", "required": true, "placeholder": "주민등록번호를 입력하세요"}, {"id": "address", "name": "address", "type": "text", "label": "주소", "required": true, "placeholder": "주소를 입력하세요"}, {"id": "account_number", "name": "accountNumber", "type": "text", "label": "계좌번호", "required": true, "placeholder": "계좌번호를 입력하세요"}]}'
+                  },
+                  {
+                    formId: "FORM-HOUSING-001",
+                    formName: "주택도시기금 대출신청서(가계용)",
+                    formType: "loan",
+                    formSchema: '{"fields": [{"id": "applicant_name", "name": "applicantName", "type": "text", "label": "신청인 성명", "required": true, "placeholder": "신청인 성명을 입력하세요"}, {"id": "resident_number", "name": "residentNumber", "type": "text", "label": "주민등록번호", "required": true, "placeholder": "주민등록번호를 입력하세요"}, {"id": "phone", "name": "phone", "type": "text", "label": "연락처", "required": true, "placeholder": "연락처를 입력하세요"}, {"id": "address", "name": "address", "type": "text", "label": "주소", "required": true, "placeholder": "주소를 입력하세요"}, {"id": "loan_amount", "name": "loanAmount", "type": "number", "label": "대출신청금액", "required": true, "placeholder": "대출신청금액을 입력하세요"}, {"id": "loan_purpose", "name": "loanPurpose", "type": "text", "label": "대출목적", "required": true, "placeholder": "대출목적을 입력하세요"}]}'
+                  },
+                  {
+                    formId: "FORM-PRIVACY-001",
+                    formName: "개인신용정보 수집이용동의서(비여신금융거래)",
+                    formType: "deposit",
+                    formSchema: '{"fields": [{"id": "customer_name", "name": "customerName", "type": "text", "label": "고객명", "required": true, "placeholder": "고객명을 입력하세요"}, {"id": "resident_number", "name": "residentNumber", "type": "text", "label": "주민등록번호", "required": true, "placeholder": "주민등록번호를 입력하세요"}, {"id": "phone", "name": "phone", "type": "text", "label": "연락처", "required": true, "placeholder": "연락처를 입력하세요"}, {"id": "consent_date", "name": "consentDate", "type": "date", "label": "동의일자", "required": true, "placeholder": "동의일자를 선택하세요"}, {"id": "signature", "name": "signature", "type": "signature", "label": "서명", "required": true, "placeholder": "서명해주세요"}]}'
+                  }
+                ]
+              };
+              
+              setEnrollmentData(enrollmentWithForms);
+              setCurrentFormIndex(0);
+              setActiveTab("pdf-forms"); // 서식 작성 탭으로 전환
+              console.log("✅ 직원 화면에 서식 데이터 설정:", enrollmentWithForms.forms?.length, "개 서식");
             }
             break;
           default:
@@ -1027,7 +1074,7 @@ const EmployeeDashboard = () => {
       formData.append("idCard", imageFile);
 
       const response = await axios.post(
-        "https://hana-backend-production.up.railway.app/api/ocr/id-card",
+        "http://localhost:8080/api/ocr/id-card",
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -1144,9 +1191,15 @@ const EmployeeDashboard = () => {
   };
 
   const syncScreenToCustomer = (screenData) => {
+    console.log("🔍 syncScreenToCustomer 호출:", screenData);
+    console.log("🔍 stompClient 상태:", stompClient ? "존재" : "없음");
+    console.log("🔍 sessionId:", sessionId);
+    console.log("🔍 stompClient.active:", stompClient?.active);
+    
     if (stompClient && sessionId && stompClient.active) {
       // 상품 상세보기 동기화
       if (screenData.type === "product-detail-sync") {
+        console.log("🔍 product-detail-sync 메시지 전송");
         stompClient.publish({
           destination: "/app/product-detail-sync",
           body: JSON.stringify({
@@ -1156,6 +1209,12 @@ const EmployeeDashboard = () => {
         });
       } else if (screenData.type === "product-enrollment") {
         // 상품 가입 시작
+        console.log("🔍 product-enrollment 메시지 전송");
+        console.log("🔍 전송할 데이터:", {
+          sessionId: sessionId,
+          productId: screenData.data.productId,
+          customerId: screenData.data.customerId,
+        });
         stompClient.publish({
           destination: "/app/product-enrollment",
           body: JSON.stringify({
@@ -1163,6 +1222,46 @@ const EmployeeDashboard = () => {
             productId: screenData.data.productId,
             customerId: screenData.data.customerId,
           }),
+        });
+        
+        // 임시 해결책: 백엔드를 거치지 않고 직접 태블릿에 메시지 전송
+        console.log("🔧 임시 해결책: 직접 태블릿에 메시지 전송");
+        const directMessage = {
+          type: "product-enrollment",
+          action: "start_enrollment",
+          data: {
+            productId: screenData.data.productId,
+            productName: screenData.data.productName,
+            productType: screenData.data.productType,
+            customerId: screenData.data.customerId,
+            forms: [
+              {
+                formId: "FORM-IRP-001",
+                formName: "퇴직연금 거래신청서(개인형IRP)",
+                formType: "deposit",
+                formSchema: '{"fields": [{"id": "customer_name", "name": "customerName", "type": "text", "label": "고객명", "required": true, "placeholder": "고객명을 입력하세요"}, {"id": "phone_number", "name": "phoneNumber", "type": "text", "label": "연락처", "required": true, "placeholder": "연락처를 입력하세요"}, {"id": "resident_number", "name": "residentNumber", "type": "text", "label": "주민등록번호", "required": true, "placeholder": "주민등록번호를 입력하세요"}, {"id": "address", "name": "address", "type": "text", "label": "주소", "required": true, "placeholder": "주소를 입력하세요"}, {"id": "account_number", "name": "accountNumber", "type": "text", "label": "계좌번호", "required": true, "placeholder": "계좌번호를 입력하세요"}]}'
+              },
+              {
+                formId: "FORM-HOUSING-001",
+                formName: "주택도시기금 대출신청서(가계용)",
+                formType: "loan",
+                formSchema: '{"fields": [{"id": "applicant_name", "name": "applicantName", "type": "text", "label": "신청인 성명", "required": true, "placeholder": "신청인 성명을 입력하세요"}, {"id": "resident_number", "name": "residentNumber", "type": "text", "label": "주민등록번호", "required": true, "placeholder": "주민등록번호를 입력하세요"}, {"id": "phone", "name": "phone", "type": "text", "label": "연락처", "required": true, "placeholder": "연락처를 입력하세요"}, {"id": "address", "name": "address", "type": "text", "label": "주소", "required": true, "placeholder": "주소를 입력하세요"}, {"id": "loan_amount", "name": "loanAmount", "type": "number", "label": "대출신청금액", "required": true, "placeholder": "대출신청금액을 입력하세요"}, {"id": "loan_purpose", "name": "loanPurpose", "type": "text", "label": "대출목적", "required": true, "placeholder": "대출목적을 입력하세요"}]}'
+              },
+              {
+                formId: "FORM-PRIVACY-001",
+                formName: "개인신용정보 수집이용동의서(비여신금융거래)",
+                formType: "deposit",
+                formSchema: '{"fields": [{"id": "customer_name", "name": "customerName", "type": "text", "label": "고객명", "required": true, "placeholder": "고객명을 입력하세요"}, {"id": "resident_number", "name": "residentNumber", "type": "text", "label": "주민등록번호", "required": true, "placeholder": "주민등록번호를 입력하세요"}, {"id": "phone", "name": "phone", "type": "text", "label": "연락처", "required": true, "placeholder": "연락처를 입력하세요"}, {"id": "consent_date", "name": "consentDate", "type": "date", "label": "동의일자", "required": true, "placeholder": "동의일자를 선택하세요"}, {"id": "signature", "name": "signature", "type": "signature", "label": "서명", "required": true, "placeholder": "서명해주세요"}]}'
+              }
+            ]
+          },
+          timestamp: Date.now()
+        };
+        
+        // 태블릿에 직접 메시지 전송
+        stompClient.publish({
+          destination: "/topic/session/" + sessionId,
+          body: JSON.stringify(directMessage),
         });
       } else {
         stompClient.publish({
@@ -1304,12 +1403,7 @@ const EmployeeDashboard = () => {
               >
                 상품 탐색
               </NavTab>
-              <NavTab
-                active={activeTab === "forms"}
-                onClick={() => setActiveTab("forms")}
-              >
-                서식 선택
-              </NavTab>
+
               <NavTab
                 active={activeTab === "pdf-forms"}
                 onClick={() => setActiveTab("pdf-forms")}
@@ -1416,17 +1510,189 @@ const EmployeeDashboard = () => {
             />
           )}
 
-          {activeTab === "forms" && (
-            <FormSelector
-              selectedProduct={selectedProduct}
-              onFormSelected={setSelectedForm}
-              sessionId={sessionId}
-              stompClient={stompClient}
-            />
-          )}
+
 
           {activeTab === "pdf-forms" &&
-            (currentCustomer ? (
+            (enrollmentData ? (
+              <div style={{ padding: "2rem" }}>
+                <h2 style={{ color: "var(--hana-primary)", marginBottom: "1rem" }}>
+                  📝 상품 가입 서식
+                </h2>
+                <div style={{ 
+                  background: "white", 
+                  borderRadius: "12px", 
+                  padding: "1.5rem",
+                  boxShadow: "var(--hana-shadow-light)"
+                }}>
+                  <div style={{ marginBottom: "1rem" }}>
+                    <strong>{enrollmentData.productName}</strong> 가입 서식
+                  </div>
+                  
+                  {enrollmentData.forms && enrollmentData.forms.length > 0 && (
+                    <>
+                      <div style={{
+                        background: "#e8f5e8",
+                        border: "1px solid #4caf50",
+                        borderRadius: "8px",
+                        padding: "1rem",
+                        marginBottom: "1rem"
+                      }}>
+                        <div style={{ fontWeight: "bold", color: "#2e7d32", marginBottom: "0.5rem" }}>
+                          서식 {currentFormIndex + 1} / {enrollmentData.forms.length}
+                        </div>
+                        <div style={{ color: "#2e7d32" }}>
+                          {enrollmentData.forms[currentFormIndex]?.formName}
+                        </div>
+                      </div>
+
+                      {/* 서식 필드 표시 */}
+                      {enrollmentData.forms[currentFormIndex]?.formSchema && (
+                        <div style={{
+                          background: "#f8f9fa",
+                          border: "1px solid #ddd",
+                          borderRadius: "8px",
+                          padding: "1.5rem",
+                          marginBottom: "1rem"
+                        }}>
+                          <div style={{ fontWeight: "bold", marginBottom: "1rem", color: "#008485" }}>
+                            📋 서식 필드
+                          </div>
+                          {(() => {
+                            try {
+                              const schema = JSON.parse(enrollmentData.forms[currentFormIndex].formSchema);
+                              return schema.fields?.map((field, index) => (
+                                <div 
+                                  key={index} 
+                                  onClick={() => {
+                                    // PC에서 필드 클릭 시 태블릿에 필드 확대 메시지 전송
+                                    if (stompClient && sessionId) {
+                                      stompClient.publish({
+                                        destination: "/topic/session/" + sessionId,
+                                        body: JSON.stringify({
+                                          type: "field-focus",
+                                          data: {
+                                            fieldId: field.id,
+                                            fieldName: field.name,
+                                            fieldLabel: field.label,
+                                            fieldType: field.type,
+                                            fieldPlaceholder: field.placeholder,
+                                            formIndex: currentFormIndex,
+                                            formName: enrollmentData.forms[currentFormIndex].formName
+                                          },
+                                          timestamp: Date.now()
+                                        }),
+                                      });
+                                    }
+                                  }}
+                                  style={{ 
+                                    marginBottom: "0.5rem", 
+                                    padding: "0.5rem",
+                                    background: "white",
+                                    borderRadius: "4px",
+                                    border: "1px solid #e9ecef",
+                                    cursor: "pointer",
+                                    transition: "all 0.2s ease"
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.target.style.background = "#f8f9fa";
+                                    e.target.style.borderColor = "var(--hana-mint)";
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.target.style.background = "white";
+                                    e.target.style.borderColor = "#e9ecef";
+                                  }}
+                                >
+                                  <span style={{ fontWeight: "bold" }}>{field.label}</span>
+                                  {field.required && <span style={{ color: "red" }}> *</span>}
+                                  <span style={{ color: "#666", fontSize: "0.9rem", marginLeft: "0.5rem" }}>
+                                    ({field.type})
+                                  </span>
+                                  <div style={{ fontSize: "0.8rem", color: "#999", marginTop: "0.25rem" }}>
+                                    클릭하여 태블릿에서 입력
+                                  </div>
+                                </div>
+                              ));
+                            } catch (e) {
+                              return <div style={{ color: "red" }}>서식 데이터를 불러올 수 없습니다.</div>;
+                            }
+                          })()}
+                        </div>
+                      )}
+
+                      {/* PC 전용 네비게이션 버튼 */}
+                      <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1rem" }}>
+                        <button
+                          onClick={() => {
+                            if (currentFormIndex > 0) {
+                              setCurrentFormIndex(currentFormIndex - 1);
+                              // 태블릿에 서식 변경 알림
+                              if (stompClient && sessionId) {
+                                stompClient.publish({
+                                  destination: "/topic/session/" + sessionId,
+                                  body: JSON.stringify({
+                                    type: "form-navigation",
+                                    data: {
+                                      currentFormIndex: currentFormIndex - 1,
+                                      totalForms: enrollmentData.forms.length,
+                                      currentForm: enrollmentData.forms[currentFormIndex - 1]
+                                    },
+                                    timestamp: Date.now()
+                                  }),
+                                });
+                              }
+                            }
+                          }}
+                          disabled={currentFormIndex === 0}
+                          style={{
+                            padding: "0.75rem 1.5rem",
+                            background: currentFormIndex === 0 ? "#ccc" : "var(--hana-mint)",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "8px",
+                            cursor: currentFormIndex === 0 ? "not-allowed" : "pointer"
+                          }}
+                        >
+                          ← 이전 서식
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (currentFormIndex < enrollmentData.forms.length - 1) {
+                              setCurrentFormIndex(currentFormIndex + 1);
+                              // 태블릿에 서식 변경 알림
+                              if (stompClient && sessionId) {
+                                stompClient.publish({
+                                  destination: "/topic/session/" + sessionId,
+                                  body: JSON.stringify({
+                                    type: "form-navigation",
+                                    data: {
+                                      currentFormIndex: currentFormIndex + 1,
+                                      totalForms: enrollmentData.forms.length,
+                                      currentForm: enrollmentData.forms[currentFormIndex + 1]
+                                    },
+                                    timestamp: Date.now()
+                                  }),
+                                });
+                              }
+                            }
+                          }}
+                          disabled={currentFormIndex === enrollmentData.forms.length - 1}
+                          style={{
+                            padding: "0.75rem 1.5rem",
+                            background: currentFormIndex === enrollmentData.forms.length - 1 ? "#ccc" : "var(--hana-mint)",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "8px",
+                            cursor: currentFormIndex === enrollmentData.forms.length - 1 ? "not-allowed" : "pointer"
+                          }}
+                        >
+                          다음 서식 →
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            ) : currentCustomer ? (
               <FormManager
                 customerData={currentCustomer}
                 selectedProduct={selectedProduct}
@@ -1436,7 +1702,7 @@ const EmployeeDashboard = () => {
                   // 백엔드에 서식 데이터 저장
                   axios
                     .post(
-                      "https://hana-backend-production.up.railway.app/api/forms/submit",
+                      "http://localhost:8080/api/forms/submit",
                       {
                         customerId: currentCustomer.CustomerID,
                         ...formData,

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
 import { getProductInterestRates, getBestRateForPeriod } from '../../utils/interestRateUtils';
+import { getApiUrl } from '../../config/api';
 
 const SimulationContainer = styled.div`
   padding: 2rem;
@@ -334,7 +335,7 @@ const SimulationPanel = ({ customer, onScreenSync, sessionId }) => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/products');
+      const response = await axios.get('http://localhost:8080/api/products');
       setProducts(response.data);
     } catch (error) {
       console.error('상품 조회 오류:', error);
@@ -410,7 +411,7 @@ const SimulationPanel = ({ customer, onScreenSync, sessionId }) => {
     setLoading(true);
     
     try {
-      const response = await axios.post('http://localhost:5000/api/simulation/benefits', {
+      const response = await axios.post(getApiUrl('/api/simulation/benefits'), {
         customerId: customer.CustomerID,
         productId: productId,
         selectedConditions: conditionIds

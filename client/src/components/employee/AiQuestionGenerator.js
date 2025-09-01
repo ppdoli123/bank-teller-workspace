@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./AiQuestionGenerator.css";
+import { getApiUrl } from "../../config/api";
 
 const AiQuestionGenerator = ({ customerInfo, onQuestionsGenerated }) => {
   const [employeeNotes, setEmployeeNotes] = useState("");
@@ -19,7 +20,7 @@ const AiQuestionGenerator = ({ customerInfo, onQuestionsGenerated }) => {
 
     try {
       const response = await fetch(
-        "https://hana-backend-production.up.railway.app/api/ai/questions",
+        getApiUrl('/api/ai/questions'),
         {
           method: "POST",
           headers: {

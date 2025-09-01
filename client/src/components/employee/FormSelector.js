@@ -149,7 +149,7 @@ const FormSelector = ({
       // 한글을 영어로 변환
       const englishType = FORM_TYPE_MAPPING[formType] || formType;
       const response = await axios.get(
-        `https://hana-backend-production.up.railway.app/api/test-forms/by-type?type=${englishType}`
+        `http://localhost:8080/api/test-forms/by-type?type=${englishType}`
       );
       if (response.data.success) {
         setAvailableForms(response.data.data);

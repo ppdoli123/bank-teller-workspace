@@ -114,83 +114,82 @@ public class DataLoader implements CommandLineRunner {
     }
 
     private void initializeProductForms() {
-        // if (productFormRepository.count() == 0) {
-        //     createRealBankForms();
-        // }
+        if (productFormRepository.count() == 0) {
+            createRealBankForms();
+        }
     }
     
     private void createRealBankForms() {
-        // log.info("실제 은행 서식 생성 시작...");
+        log.info("실제 은행 서식 생성 시작...");
         
-        // 1. 예금 서식
-        // ProductForm depositForm = ProductForm.builder()
-        //         .formType("deposit")
-        //         .formName("정기예금 신청서")
-        //         .formTemplate(createDepositFormTemplate())
-        //         .requiredFields("[\"고객명\", \"주민번호\", \"휴대폰\", \"주소\", \"상품명\", \"예치금액\", \"예금기간\", \"신청일\"]")
-        //         .description("정기예금 상품 가입을 위한 신청서입니다.")
-        //         .isActive(true)
-        //         .build();
+        // 1. 퇴직연금 거래신청서 (개인형IRP)
+        ProductForm irpForm = ProductForm.builder()
+                .formId("FORM-IRP-001")
+                .formType("deposit")
+                .formName("퇴직연금 거래신청서(개인형IRP)")
+                .formTemplatePath("/hana_bank_forms/퇴직연금_거래신청서_개인형IRP.pdf")
+                .formSchema("{\"fields\": [{\"id\": \"customer_name\", \"name\": \"customerName\", \"type\": \"text\", \"label\": \"고객명\", \"required\": true, \"placeholder\": \"고객명을 입력하세요\"}, {\"id\": \"phone_number\", \"name\": \"phoneNumber\", \"type\": \"text\", \"label\": \"연락처\", \"required\": true, \"placeholder\": \"연락처를 입력하세요\"}, {\"id\": \"resident_number\", \"name\": \"residentNumber\", \"type\": \"text\", \"label\": \"주민등록번호\", \"required\": true, \"placeholder\": \"주민등록번호를 입력하세요\"}, {\"id\": \"address\", \"name\": \"address\", \"type\": \"text\", \"label\": \"주소\", \"required\": true, \"placeholder\": \"주소를 입력하세요\"}, {\"id\": \"account_number\", \"name\": \"accountNumber\", \"type\": \"text\", \"label\": \"계좌번호\", \"required\": true, \"placeholder\": \"계좌번호를 입력하세요\"}]}")
+                .description("퇴직연금 개인형IRP 거래신청서입니다.")
+                .versionNumber("1.0")
+                .isActive(true)
+                .build();
 
-        // 2. 적금 서식
-        // ProductForm savingsForm = ProductForm.builder()
-        //         .formType("savings")
-        //         .formName("적금 가입신청서")
-        //         .formTemplate(createSavingsFormTemplate())
-        //         .requiredFields("[\"고객명\", \"주민번호\", \"휴대폰\", \"주소\", \"상품명\", \"월납입액\", \"납입기간\", \"신청일\"]")
-        //         .description("적금 상품 가입을 위한 신청서입니다.")
-        //         .isActive(true)
-        //         .build();
+        // 2. 주택도시기금 대출신청서
+        ProductForm housingLoanForm = ProductForm.builder()
+                .formId("FORM-HOUSING-001")
+                .formType("loan")
+                .formName("주택도시기금 대출신청서(가계용)")
+                .formTemplatePath("/hana_bank_forms/주택도시기금_대출신청서_가계용.pdf")
+                .formSchema("{\"fields\": [{\"id\": \"applicant_name\", \"name\": \"applicantName\", \"type\": \"text\", \"label\": \"신청인 성명\", \"required\": true, \"placeholder\": \"신청인 성명을 입력하세요\"}, {\"id\": \"resident_number\", \"name\": \"residentNumber\", \"type\": \"text\", \"label\": \"주민등록번호\", \"required\": true, \"placeholder\": \"주민등록번호를 입력하세요\"}, {\"id\": \"phone\", \"name\": \"phone\", \"type\": \"text\", \"label\": \"연락처\", \"required\": true, \"placeholder\": \"연락처를 입력하세요\"}, {\"id\": \"address\", \"name\": \"address\", \"type\": \"text\", \"label\": \"주소\", \"required\": true, \"placeholder\": \"주소를 입력하세요\"}, {\"id\": \"loan_amount\", \"name\": \"loanAmount\", \"type\": \"number\", \"label\": \"대출신청금액\", \"required\": true, \"placeholder\": \"대출신청금액을 입력하세요\"}, {\"id\": \"loan_purpose\", \"name\": \"loanPurpose\", \"type\": \"text\", \"label\": \"대출목적\", \"required\": true, \"placeholder\": \"대출목적을 입력하세요\"}]}")
+                .description("주택도시기금 대출신청서(가계용)입니다.")
+                .versionNumber("1.0")
+                .isActive(true)
+                .build();
 
-        // 3. 대출 서식
-        // ProductForm loanForm = ProductForm.builder()
-        //         .formType("loan")
-        //         .formName("대출 신청서")
-        //         .formTemplate(createLoanFormTemplate())
-        //         .requiredFields("[\"고객명\", \"주민번호\", \"휴대폰\", \"주소\", \"상품명\", \"대출금액\", \"대출기간\", \"직업\", \"연소득\", \"신청일\"]")
-        //         .description("대출 상품 신청을 위한 신청서입니다.")
-        //         .isActive(true)
-        //         .build();
+        // 3. 개인신용정보 수집이용동의서
+        ProductForm privacyForm = ProductForm.builder()
+                .formId("FORM-PRIVACY-001")
+                .formType("deposit")
+                .formName("개인신용정보 수집이용동의서(비여신금융거래)")
+                .formTemplatePath("/hana_bank_forms/필수_개인신용정보수집이용동의서_비여신금융거래.pdf")
+                .formSchema("{\"fields\": [{\"id\": \"customer_name\", \"name\": \"customerName\", \"type\": \"text\", \"label\": \"고객명\", \"required\": true, \"placeholder\": \"고객명을 입력하세요\"}, {\"id\": \"resident_number\", \"name\": \"residentNumber\", \"type\": \"text\", \"label\": \"주민등록번호\", \"required\": true, \"placeholder\": \"주민등록번호를 입력하세요\"}, {\"id\": \"phone\", \"name\": \"phone\", \"type\": \"text\", \"label\": \"연락처\", \"required\": true, \"placeholder\": \"연락처를 입력하세요\"}, {\"id\": \"consent_date\", \"name\": \"consentDate\", \"type\": \"date\", \"label\": \"동의일자\", \"required\": true, \"placeholder\": \"동의일자를 선택하세요\"}, {\"id\": \"signature\", \"name\": \"signature\", \"type\": \"signature\", \"label\": \"서명\", \"required\": true, \"placeholder\": \"서명해주세요\"}]}")
+                .description("개인신용정보 수집이용동의서(비여신금융거래)입니다.")
+                .versionNumber("1.0")
+                .isActive(true)
+                .build();
 
-        // 4. 투자 서식
-        // ProductForm investmentForm = ProductForm.builder()
-        //         .formType("investment")
-        //         .formName("투자상품 가입신청서")
-        //         .formTemplate(createInvestmentFormTemplate())
-        //         .requiredFields("[\"고객명\", \"주민번호\", \"휴대폰\", \"주소\", \"상품명\", \"투자금액\", \"투자기간\", \"신청일\"]")
-        //         .description("투자 상품 가입을 위한 신청서입니다.")
-        //         .isActive(true)
-        //         .build();
+        // 4. 퇴직연금 가입자거래신청서
+        ProductForm dcForm = ProductForm.builder()
+                .formId("FORM-DC-001")
+                .formType("investment")
+                .formName("퇴직연금 가입자거래신청서(DC기업형IRP)")
+                .formTemplatePath("/hana_bank_forms/퇴직연금_가입자거래신청서_DC기업형IRP.pdf")
+                .formSchema("{\"fields\": [{\"id\": \"employee_name\", \"name\": \"employeeName\", \"type\": \"text\", \"label\": \"직원명\", \"required\": true, \"placeholder\": \"직원명을 입력하세요\"}, {\"id\": \"employee_id\", \"name\": \"employeeId\", \"type\": \"text\", \"label\": \"직원번호\", \"required\": true, \"placeholder\": \"직원번호를 입력하세요\"}, {\"id\": \"company_name\", \"name\": \"companyName\", \"type\": \"text\", \"label\": \"회사명\", \"required\": true, \"placeholder\": \"회사명을 입력하세요\"}, {\"id\": \"phone\", \"name\": \"phone\", \"type\": \"text\", \"label\": \"연락처\", \"required\": true, \"placeholder\": \"연락처를 입력하세요\"}, {\"id\": \"email\", \"name\": \"email\", \"type\": \"email\", \"label\": \"이메일\", \"required\": true, \"placeholder\": \"이메일을 입력하세요\"}, {\"id\": \"contribution_amount\", \"name\": \"contributionAmount\", \"type\": \"number\", \"label\": \"기여금액\", \"required\": true, \"placeholder\": \"기여금액을 입력하세요\"}]}")
+                .description("퇴직연금 가입자거래신청서(DC기업형IRP)입니다.")
+                .versionNumber("1.0")
+                .isActive(true)
+                .build();
 
-        // 5. 자동이체 신청서
-        // ProductForm autoTransferForm = ProductForm.builder()
-        //         .formType("auto-transfer")
-        //         .formName("자동이체 신청서")
-        //         .formTemplate(createAutoTransferFormTemplate())
-        //         .requiredFields("[\"출금은행\", \"출금계좌\", \"예금주\", \"이체금액\", \"이체일\", \"이체기간\"]")
-        //         .description("적금 납입을 위한 자동이체 신청서입니다.")
-        //         .isActive(true)
-        //         .build();
+        // 5. 대출계약 철회신청서
+        ProductForm cancellationForm = ProductForm.builder()
+                .formId("FORM-CANCELLATION-001")
+                .formType("loan")
+                .formName("대출계약 철회신청서")
+                .formTemplatePath("/hana_bank_forms/대출계약_철회신청서.pdf")
+                .formSchema("{\"fields\": [{\"id\": \"customer_name\", \"name\": \"customerName\", \"type\": \"text\", \"label\": \"고객명\", \"required\": true, \"placeholder\": \"고객명을 입력하세요\"}, {\"id\": \"resident_number\", \"name\": \"residentNumber\", \"type\": \"text\", \"label\": \"주민등록번호\", \"required\": true, \"placeholder\": \"주민등록번호를 입력하세요\"}, {\"id\": \"loan_contract_number\", \"name\": \"loanContractNumber\", \"type\": \"text\", \"label\": \"대출계약번호\", \"required\": true, \"placeholder\": \"대출계약번호를 입력하세요\"}, {\"id\": \"cancellation_reason\", \"name\": \"cancellationReason\", \"type\": \"textarea\", \"label\": \"철회사유\", \"required\": true, \"placeholder\": \"철회사유를 입력하세요\"}, {\"id\": \"cancellation_date\", \"name\": \"cancellationDate\", \"type\": \"date\", \"label\": \"철회신청일\", \"required\": true, \"placeholder\": \"철회신청일을 선택하세요\"}, {\"id\": \"signature\", \"name\": \"signature\", \"type\": \"signature\", \"label\": \"서명\", \"required\": true, \"placeholder\": \"서명해주세요\"}]}")
+                .description("대출계약 철회신청서입니다.")
+                .versionNumber("1.0")
+                .isActive(true)
+                .build();
 
-        // 6. 실명확인서
-        // ProductForm identityForm = ProductForm.builder()
-        //         .formType("identity-verification")
-        //         .formName("실명확인서")
-        //         .formTemplate(createIdentityFormTemplate())
-        //         .requiredFields("[\"고객명\", \"주민번호\", \"국적\", \"확인방법\", \"휴대폰\", \"주소\"]")
-        //         .description("금융실명제에 따른 실명확인서입니다.")
-        //         .isActive(true)
-        //         .build();
-
-        // // 모든 서식 저장
-        // productFormRepository.save(depositForm);
-        // productFormRepository.save(savingsForm);
-        // productFormRepository.save(loanForm);
-        // productFormRepository.save(investmentForm);
-        // productFormRepository.save(autoTransferForm);
-        // productFormRepository.save(identityForm);
+        // 모든 서식 저장
+        productFormRepository.save(irpForm);
+        productFormRepository.save(housingLoanForm);
+        productFormRepository.save(privacyForm);
+        productFormRepository.save(dcForm);
+        productFormRepository.save(cancellationForm);
         
-        // log.info("실제 은행 서식 생성 완료: 6개 서식");
+        log.info("실제 은행 서식 생성 완료: 5개 서식");
     }
 
     private String createDepositFormTemplate() {
