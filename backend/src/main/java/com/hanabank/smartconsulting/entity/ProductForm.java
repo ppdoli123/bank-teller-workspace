@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "bank_teller_product_forms")
+@Table(name = "eform")
 @Data
 @Builder
 @NoArgsConstructor
@@ -15,24 +15,30 @@ import lombok.NoArgsConstructor;
 public class ProductForm {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "formid", nullable = false)
+    private String formId;
     
-    @Column(nullable = false)
+    @Column(name = "formname", nullable = false)
+    private String formName;
+    
+    @Column(name = "formtype", nullable = false)
     private String formType; // 예금, 대출, 적금 등
     
-    @Column(nullable = false)
-    private String formName; // 서식명
+    @Column(name = "formschema", columnDefinition = "JSONB")
+    private String formSchema; // 서식 스키마 JSON
     
-    @Column(columnDefinition = "TEXT")
-    private String formTemplate; // 서식 HTML 템플릿
+    @Column(name = "formtemplatepath")
+    private String formTemplatePath; // 서식 템플릿 경로
     
-    @Column(columnDefinition = "TEXT")
-    private String requiredFields; // 필요한 필드들 JSON 형태
-    
-    @Column
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description; // 서식 설명
     
-    @Column
-    private Boolean isActive = true; // 활성화 여부
+    @Column(name = "versionnumber")
+    private String versionNumber;
+    
+    @Column(name = "productid")
+    private String productId; // 연결된 상품 ID
+    
+    @Column(name = "producttype")
+    private String productType; // 연결된 상품 타입
 }

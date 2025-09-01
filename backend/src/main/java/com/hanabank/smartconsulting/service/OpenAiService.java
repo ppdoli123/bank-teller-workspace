@@ -2,7 +2,10 @@ package com.hanabank.smartconsulting.service;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,9 +32,10 @@ public class OpenAiService {
     
     public List<Double> createEmbedding(String text) {
         try {
-            EmbeddingRequest request = new EmbeddingRequest();
-            request.setInput(text);
-            request.setModel("text-embedding-3-small");
+            EmbeddingRequest request = EmbeddingRequest.builder()
+                    .input(text)
+                    .model("text-embedding-3-small")
+                    .build();
             
             EmbeddingResponse response = webClient.post()
                     .uri(apiUrl + "/embeddings")
@@ -59,14 +63,15 @@ public class OpenAiService {
             log.debug("API Key configured: {}", apiKey != null && !apiKey.isEmpty());
             log.debug("API URL: {}", apiUrl);
             
-            ChatRequest request = new ChatRequest();
-            request.setModel("gpt-4o-mini");
-            request.setMessages(List.of(
-                    new ChatMessage("system", "You are a helpful banking consultant assistant. Generate relevant questions based on customer information and employee notes. Return only the questions in a clear, structured format."),
-                    new ChatMessage("user", prompt)
-            ));
-            request.setMaxTokens(1000);
-            request.setTemperature(0.7);
+            ChatRequest request = ChatRequest.builder()
+                    .model("gpt-4o-mini")
+                    .messages(List.of(
+                            ChatMessage.builder().role("system").content("You are a helpful banking consultant assistant. Generate relevant questions based on customer information and employee notes. Return only the questions in a clear, structured format.").build(),
+                            ChatMessage.builder().role("user").content(prompt).build()
+                    ))
+                    .maxTokens(1000)
+                    .temperature(0.7)
+                    .build();
             
             log.info("Sending request to OpenAI...");
             
@@ -97,12 +102,18 @@ public class OpenAiService {
     
     // DTOs for OpenAI API
     @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class EmbeddingRequest {
         private String input;
         private String model;
     }
     
     @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class EmbeddingResponse {
         private List<EmbeddingData> data;
         private String model;
@@ -111,6 +122,9 @@ public class OpenAiService {
     }
     
     @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class EmbeddingData {
         private List<Double> embedding;
         private int index;
@@ -118,6 +132,9 @@ public class OpenAiService {
     }
     
     @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ChatRequest {
         private String model;
         private List<ChatMessage> messages;
@@ -126,6 +143,9 @@ public class OpenAiService {
     }
     
     @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ChatResponse {
         private String id;
         private String object;
@@ -136,6 +156,9 @@ public class OpenAiService {
     }
     
     @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ChatChoice {
         private int index;
         private ChatMessage message;
@@ -143,13 +166,11 @@ public class OpenAiService {
     }
     
     @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ChatMessage {
         private String role;
         private String content;
-        
-        public ChatMessage(String role, String content) {
-            this.role = role;
-            this.content = content;
-        }
     }
 }

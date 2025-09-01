@@ -11,7 +11,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface FinancialProductRepository extends JpaRepository<FinancialProduct, Long> {
+public interface FinancialProductRepository extends JpaRepository<FinancialProduct, String> {
     
     List<FinancialProduct> findByProductType(String productType);
     

@@ -10,11 +10,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProductFormDto {
-    private Long id;
+    private String id;
     private String formType;
     private String formName;
     private String formTemplate;
-    private String requiredFields;
     private String description;
-    private Boolean isActive;
+    private String productId;
+    private String productType;
 }

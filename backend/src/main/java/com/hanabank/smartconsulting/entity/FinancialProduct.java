@@ -11,7 +11,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "bank_teller_financial_products")
+@Table(name = "product")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -19,59 +19,59 @@ import java.time.LocalDateTime;
 public class FinancialProduct {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "productid", nullable = false)
+    private String productId;
     
-    @Column(name = "product_name", nullable = false)
+    @Column(name = "productname", nullable = false)
     private String productName;
     
-    @Column(name = "product_type")
+    @Column(name = "producttype")
     private String productType;
     
-    @Column(name = "product_features", columnDefinition = "TEXT")
+    @Column(name = "productfeatures", columnDefinition = "TEXT")
     private String productFeatures;
     
-    @Column(name = "target_customers", columnDefinition = "TEXT")
+    @Column(name = "targetcustomers", columnDefinition = "TEXT")
     private String targetCustomers;
     
-    @Column(name = "eligibility_requirements", columnDefinition = "TEXT")
+    @Column(name = "eligibilityrequirements", columnDefinition = "TEXT")
     private String eligibilityRequirements;
     
-    @Column(name = "deposit_amount")
+    @Column(name = "depositamount")
     private String depositAmount;
     
-    @Column(name = "deposit_period")
+    @Column(name = "depositperiod")
     private String depositPeriod;
     
-    @Column(name = "interest_rate")
+    @Column(name = "interestrate")
     private String interestRate;
     
-    @Column(name = "preferential_rate")
+    @Column(name = "preferentialrate")
     private String preferentialRate;
     
-    @Column(name = "tax_benefits", columnDefinition = "TEXT")
+    @Column(name = "taxbenefits", columnDefinition = "TEXT")
     private String taxBenefits;
     
-    @Column(name = "withdrawal_conditions", columnDefinition = "TEXT")
+    @Column(name = "withdrawalconditions", columnDefinition = "TEXT")
     private String withdrawalConditions;
     
     @Column(columnDefinition = "TEXT")
     private String notes;
     
-    @Column(name = "deposit_protection")
+    @Column(name = "depositprotection")
     private String depositProtection;
     
-    @Column(name = "interest_rate_table", columnDefinition = "TEXT")
+    @Column(name = "interestratetable", columnDefinition = "TEXT")
     private String interestRateTable;
     
-    @Column(name = "product_guide_path")
+    @Column(name = "productguidepath")
     private String productGuidePath;
     
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "createdat", updatable = false)
     private LocalDateTime createdAt;
     
     @UpdateTimestamp
-    @Column(name = "updated_at")
+    @Column(name = "updatedat")
     private LocalDateTime updatedAt;
 }

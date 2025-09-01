@@ -2,8 +2,8 @@ package com.hanabank.smartconsulting.controller;
 
 import com.hanabank.smartconsulting.dto.ApiResponse;
 import com.hanabank.smartconsulting.entity.ProductForm;
-import com.hanabank.smartconsulting.repository.ProductFormRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.hanabank.smartconsulting.service.ProductFormService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -13,10 +13,10 @@ import java.util.List;
 @Controller
 @RequestMapping("/test-forms")
 @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001"})
+@RequiredArgsConstructor
 public class TestFormsController {
 
-    @Autowired
-    private ProductFormRepository productFormRepository;
+    private final ProductFormService productFormService;
 
     @RequestMapping(value = "/ping", method = RequestMethod.GET)
     @ResponseBody
@@ -31,7 +31,7 @@ public class TestFormsController {
         try {
             System.out.println("📋 서식 조회 요청 - type: " + type);
             
-            List<ProductForm> forms = productFormRepository.findByFormTypeAndIsActive(type, true);
+            List<ProductForm> forms = productFormService.getFormsByType(type);
             System.out.println("✅ 조회된 서식 개수: " + forms.size());
             
             return ResponseEntity.ok(ApiResponse.success("서식 조회 성공", forms));

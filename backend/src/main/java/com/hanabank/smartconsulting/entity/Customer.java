@@ -1,5 +1,6 @@
 package com.hanabank.smartconsulting.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,7 +12,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "bank_teller_customers")
+@Table(name = "customer")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -19,38 +20,44 @@ import java.util.List;
 public class Customer {
     
     @Id
-    @Column(name = "customer_id", unique = true, nullable = false)
+    @Column(name = "customerid", unique = true, nullable = false)
     private String customerId;
     
-    @Column(nullable = false)
+    @Column(name = "name", nullable = false)
     private String name;
     
+    @Column(name = "phone")
     private String phone;
     
+    @Column(name = "age")
     private Integer age;
     
+    @Column(name = "address")
     private String address;
     
-    @Column(name = "id_number")
+    @Column(name = "idnumber")
     private String idNumber;
     
+    @Column(name = "income")
     private Long income;
     
+    @Column(name = "assets")
     private Long assets;
     
-    @Column(name = "investment_goal")
+    @Column(name = "investmentgoal")
     private String investmentGoal;
     
-    @Column(name = "risk_tolerance")
+    @Column(name = "risktolerance")
     private String riskTolerance;
     
-    @Column(name = "investment_period")
+    @Column(name = "investmentperiod")
     private Integer investmentPeriod;
     
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "createdat", updatable = false)
     private LocalDateTime createdAt;
     
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference
     private List<CustomerProduct> customerProducts;
 }

@@ -9,7 +9,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 
-@Configuration
+// WebConfig.java에서 CORS를 처리하므로 이 설정은 비활성화
+// @Configuration
 public class CorsConfig {
 
     @Value("${cors.allowed.origins}")
@@ -24,7 +25,7 @@ public class CorsConfig {
     @Value("${cors.allow.credentials}")
     private boolean allowCredentials;
 
-    @Bean
+    // @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         

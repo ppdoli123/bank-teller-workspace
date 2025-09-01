@@ -11,7 +11,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "bank_teller_employees")
+@Table(name = "employee")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -20,26 +20,29 @@ public class Employee {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long id;
     
-    @Column(name = "employee_id", unique = true, nullable = false)
+    @Column(name = "employeeid", unique = true, nullable = false)
     private String employeeId;
     
-    @Column(nullable = false)
+    @Column(name = "name", nullable = false)
     private String name;
     
-    @Column(name = "password_hash", nullable = false)
+    @Column(name = "passwordhash", nullable = false)
     private String passwordHash;
     
+    @Column(name = "department")
     private String department;
     
+    @Column(name = "position")
     private String position;
     
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "createdat", updatable = false)
     private LocalDateTime createdAt;
     
     @UpdateTimestamp
-    @Column(name = "updated_at")
+    @Column(name = "updatedat")
     private LocalDateTime updatedAt;
 }
