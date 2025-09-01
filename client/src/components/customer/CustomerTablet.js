@@ -277,9 +277,56 @@ const CustomerTablet = () => {
   const [currentFormTitle, setCurrentFormTitle] = useState("");
   const [currentForm, setCurrentForm] = useState(null);
   const [currentFormIndex, setCurrentFormIndex] = useState(0);
+  const [focusedField, setFocusedField] = useState(null);
+  const [isFieldFocusMode, setIsFieldFocusMode] = useState(false);
+  const [commonFormData, setCommonFormData] = useState({}); // 공통 필드 데이터 저장
+  
+  // 공통 필드 ID들 (자동 입력 대상)
+  const commonFieldIds = [
+    'customer_name', 'customerName', 'applicant_name', 'applicantName', 'employee_name', 'employeeName',
+    'resident_number', 'residentNumber', 
+    'phone_number', 'phoneNumber', 'phone',
+    'address',
+    'email'
+  ];
+  
   const [sessionId] = useState("tablet_main");
   const [stompClient, setStompClient] = useState(null);
   const [isWaitingForEmployee, setIsWaitingForEmployee] = useState(true);
+
+  // 필드 입력 처리 함수
+  const handleFieldInput = (fieldId, fieldName, value) => {
+    console.log("📝 필드 입력:", fieldId, fieldName, value);
+    
+    // 공통 필드 데이터에 저장
+    setCommonFormData(prev => ({
+      ...prev,
+      [fieldId]: value,
+      [fieldName]: value
+    }));
+    
+    // PC에 입력 완료 알림
+    if (stompClient && sessionId) {
+      stompClient.publish({
+        destination: "/topic/session/" + sessionId,
+        body: JSON.stringify({
+          type: "field-input-complete",
+          data: {
+            fieldId: fieldId,
+            fieldName: fieldName,
+            value: value,
+            formIndex: currentFormIndex,
+            formName: currentForm?.formName
+          },
+          timestamp: Date.now()
+        }),
+      });
+    }
+    
+    // 필드 포커스 모드 해제
+    setIsFieldFocusMode(false);
+    setFocusedField(null);
+  };
 
   // WebSocket 연결 설정
   useEffect(() => {
@@ -355,7 +402,8 @@ const CustomerTablet = () => {
         if (data.data) {
           console.log("상품 상세 정보 표시:", data.data);
           setCurrentProduct(data.data);
-          setCurrentPage("product-detail");
+          // 임시로 상품 가입 페이지로 이동
+          setCurrentPage("product-enrollment");
         }
         break;
 
@@ -371,19 +419,63 @@ const CustomerTablet = () => {
         console.log("참가자 참여:", data.data);
         break;
 
-      case "product-enrollment":
-        if (data.action === "start_enrollment" && data.data) {
-          console.log("상품 가입 서식 표시:", data.data);
-          setCurrentProduct(data.data);
-          setCurrentPage("product-enrollment");
-        }
-        break;
+                case "product-enrollment":
+            console.log("🔍 product-enrollment 메시지 수신:", data);
+            console.log("🔍 data.action:", data.action);
+            console.log("🔍 data.data:", data.data);
+            if (data.action === "start_enrollment" && data.data) {
+              console.log("✅ 상품 가입 서식 표시:", data.data);
+              console.log("✅ 서식 개수:", data.data.forms?.length);
+              console.log("✅ 현재 페이지를 product-enrollment로 설정");
+              
+              // 임시로 하드코딩된 서식 데이터 추가
+              const productWithForms = {
+                ...data.data,
+                forms: data.data.forms || [
+                  {
+                    formId: "FORM-IRP-001",
+                    formName: "퇴직연금 거래신청서(개인형IRP)",
+                    formType: "deposit",
+                    formSchema: '{"fields": [{"id": "customer_name", "name": "customerName", "type": "text", "label": "고객명", "required": true, "placeholder": "고객명을 입력하세요"}, {"id": "phone_number", "name": "phoneNumber", "type": "text", "label": "연락처", "required": true, "placeholder": "연락처를 입력하세요"}, {"id": "resident_number", "name": "residentNumber", "type": "text", "label": "주민등록번호", "required": true, "placeholder": "주민등록번호를 입력하세요"}, {"id": "address", "name": "address", "type": "text", "label": "주소", "required": true, "placeholder": "주소를 입력하세요"}, {"id": "account_number", "name": "accountNumber", "type": "text", "label": "계좌번호", "required": true, "placeholder": "계좌번호를 입력하세요"}]}'
+                  },
+                  {
+                    formId: "FORM-HOUSING-001",
+                    formName: "주택도시기금 대출신청서(가계용)",
+                    formType: "loan",
+                    formSchema: '{"fields": [{"id": "applicant_name", "name": "applicantName", "type": "text", "label": "신청인 성명", "required": true, "placeholder": "신청인 성명을 입력하세요"}, {"id": "resident_number", "name": "residentNumber", "type": "text", "label": "주민등록번호", "required": true, "placeholder": "주민등록번호를 입력하세요"}, {"id": "phone", "name": "phone", "type": "text", "label": "연락처", "required": true, "placeholder": "연락처를 입력하세요"}, {"id": "address", "name": "address", "type": "text", "label": "주소", "required": true, "placeholder": "주소를 입력하세요"}, {"id": "loan_amount", "name": "loanAmount", "type": "number", "label": "대출신청금액", "required": true, "placeholder": "대출신청금액을 입력하세요"}, {"id": "loan_purpose", "name": "loanPurpose", "type": "text", "label": "대출목적", "required": true, "placeholder": "대출목적을 입력하세요"}]}'
+                  },
+                  {
+                    formId: "FORM-PRIVACY-001",
+                    formName: "개인신용정보 수집이용동의서(비여신금융거래)",
+                    formType: "deposit",
+                    formSchema: '{"fields": [{"id": "customer_name", "name": "customerName", "type": "text", "label": "고객명", "required": true, "placeholder": "고객명을 입력하세요"}, {"id": "resident_number", "name": "residentNumber", "type": "text", "label": "주민등록번호", "required": true, "placeholder": "주민등록번호를 입력하세요"}, {"id": "phone", "name": "phone", "type": "text", "label": "연락처", "required": true, "placeholder": "연락처를 입력하세요"}, {"id": "consent_date", "name": "consentDate", "type": "date", "label": "동의일자", "required": true, "placeholder": "동의일자를 선택하세요"}, {"id": "signature", "name": "signature", "type": "signature", "label": "서명", "required": true, "placeholder": "서명해주세요"}]}'
+                  }
+                ]
+              };
+              
+              setCurrentProduct(productWithForms);
+              setCurrentFormIndex(0);
+              setCurrentForm(productWithForms.forms[0]);
+              setCurrentPage("product-enrollment");
+            }
+            break;
 
       case "form-navigation":
         if (data.data) {
           console.log("서식 네비게이션:", data.data);
           setCurrentFormIndex(data.data.currentFormIndex);
           setCurrentForm(data.data.currentForm);
+          // 필드 포커스 모드 해제
+          setIsFieldFocusMode(false);
+          setFocusedField(null);
+        }
+        break;
+        
+      case "field-focus":
+        if (data.data) {
+          console.log("필드 포커스:", data.data);
+          setFocusedField(data.data);
+          setIsFieldFocusMode(true);
         }
         break;
 
@@ -792,6 +884,7 @@ const CustomerTablet = () => {
         );
 
       case "product-enrollment":
+        console.log("product-enrollment 페이지 렌더링, currentProduct:", currentProduct);
         return (
           <CustomerInfoPage>
             <CustomerInfoCard>
@@ -865,78 +958,404 @@ const CustomerTablet = () => {
                         </div>
                       )}
 
+                      {/* 서식 필드 렌더링 */}
+                      {currentForm?.formSchema && (
+                        <div
+                          style={{
+                            background: "white",
+                            border: "1px solid #ddd",
+                            borderRadius: "8px",
+                            padding: "1.5rem",
+                            marginBottom: "1rem",
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontWeight: "bold",
+                              marginBottom: "1rem",
+                              color: "#008485",
+                            }}
+                          >
+                            📝 서식 작성
+                          </div>
+                          
+                          {/* 스마트창구 필드 입력 모드 */}
+                          {isFieldFocusMode && focusedField && (
+                            <div
+                              style={{
+                                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                                border: "3px solid #4a5568",
+                                borderRadius: "12px",
+                                padding: "2rem",
+                                marginBottom: "1.5rem",
+                                textAlign: "center",
+                                boxShadow: "0 10px 25px rgba(0,0,0,0.2)"
+                              }}
+                            >
+                              <div style={{ 
+                                fontSize: "1.4rem", 
+                                fontWeight: "bold", 
+                                color: "white", 
+                                marginBottom: "0.5rem",
+                                textShadow: "2px 2px 4px rgba(0,0,0,0.3)"
+                              }}>
+                                📋 {focusedField.fieldLabel} 입력
+                              </div>
+                              <div style={{ 
+                                color: "#e2e8f0", 
+                                marginBottom: "1.5rem",
+                                fontSize: "1rem"
+                              }}>
+                                {focusedField.formName}
+                              </div>
+                              {(() => {
+                                const field = focusedField;
+                                return (
+                                  <div style={{ maxWidth: "500px", margin: "0 auto" }}>
+                                    <div style={{ 
+                                      background: "white", 
+                                      borderRadius: "8px", 
+                                      padding: "1.5rem",
+                                      boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
+                                    }}>
+                                      <label style={{ 
+                                        display: "block", 
+                                        fontWeight: "bold", 
+                                        marginBottom: "1rem", 
+                                        color: "#2d3748",
+                                        fontSize: "1.1rem"
+                                      }}>
+                                        {field.fieldLabel}
+                                        <span style={{ color: "#e53e3e", marginLeft: "0.25rem" }}> *</span>
+                                      </label>
+                                      {field.fieldType === "text" && (
+                                        <input
+                                          type="text"
+                                          placeholder={field.fieldPlaceholder}
+                                          defaultValue={commonFormData[field.id] || commonFormData[field.name] || ""}
+                                          style={{
+                                            width: "100%",
+                                            padding: "1.2rem",
+                                            fontSize: "1.2rem",
+                                            border: "2px solid #e2e8f0",
+                                            borderRadius: "8px",
+                                            textAlign: "left",
+                                            background: "#f7fafc",
+                                            transition: "all 0.3s ease"
+                                          }}
+                                          onFocus={(e) => {
+                                            e.target.style.borderColor = "#667eea";
+                                            e.target.style.background = "white";
+                                            e.target.style.boxShadow = "0 0 0 3px rgba(102, 126, 234, 0.1)";
+                                          }}
+                                          onBlur={(e) => {
+                                            e.target.style.borderColor = "#e2e8f0";
+                                            e.target.style.background = "#f7fafc";
+                                            e.target.style.boxShadow = "none";
+                                          }}
+                                          onKeyPress={(e) => {
+                                            if (e.key === 'Enter') {
+                                              handleFieldInput(field.id, field.name, e.target.value);
+                                            }
+                                          }}
+                                          autoFocus
+                                        />
+                                      )}
+                                      {field.fieldType === "number" && (
+                                        <input
+                                          type="number"
+                                          placeholder={field.fieldPlaceholder}
+                                          defaultValue={commonFormData[field.id] || commonFormData[field.name] || ""}
+                                          style={{
+                                            width: "100%",
+                                            padding: "1.2rem",
+                                            fontSize: "1.2rem",
+                                            border: "2px solid #e2e8f0",
+                                            borderRadius: "8px",
+                                            textAlign: "left",
+                                            background: "#f7fafc",
+                                            transition: "all 0.3s ease"
+                                          }}
+                                          onFocus={(e) => {
+                                            e.target.style.borderColor = "#667eea";
+                                            e.target.style.background = "white";
+                                            e.target.style.boxShadow = "0 0 0 3px rgba(102, 126, 234, 0.1)";
+                                          }}
+                                          onBlur={(e) => {
+                                            e.target.style.borderColor = "#e2e8f0";
+                                            e.target.style.background = "#f7fafc";
+                                            e.target.style.boxShadow = "none";
+                                          }}
+                                          onKeyPress={(e) => {
+                                            if (e.key === 'Enter') {
+                                              handleFieldInput(field.id, field.name, e.target.value);
+                                            }
+                                          }}
+                                          autoFocus
+                                        />
+                                      )}
+                                      {field.fieldType === "email" && (
+                                        <input
+                                          type="email"
+                                          placeholder={field.fieldPlaceholder}
+                                          defaultValue={commonFormData[field.id] || commonFormData[field.name] || ""}
+                                          style={{
+                                            width: "100%",
+                                            padding: "1.2rem",
+                                            fontSize: "1.2rem",
+                                            border: "2px solid #e2e8f0",
+                                            borderRadius: "8px",
+                                            textAlign: "left",
+                                            background: "#f7fafc",
+                                            transition: "all 0.3s ease"
+                                          }}
+                                          onFocus={(e) => {
+                                            e.target.style.borderColor = "#667eea";
+                                            e.target.style.background = "white";
+                                            e.target.style.boxShadow = "0 0 0 3px rgba(102, 126, 234, 0.1)";
+                                          }}
+                                          onBlur={(e) => {
+                                            e.target.style.borderColor = "#e2e8f0";
+                                            e.target.style.background = "#f7fafc";
+                                            e.target.style.boxShadow = "none";
+                                          }}
+                                          onKeyPress={(e) => {
+                                            if (e.key === 'Enter') {
+                                              handleFieldInput(field.id, field.name, e.target.value);
+                                            }
+                                          }}
+                                          autoFocus
+                                        />
+                                      )}
+                                      {field.fieldType === "date" && (
+                                        <input
+                                          type="date"
+                                          defaultValue={commonFormData[field.id] || commonFormData[field.name] || ""}
+                                          style={{
+                                            width: "100%",
+                                            padding: "1.2rem",
+                                            fontSize: "1.2rem",
+                                            border: "2px solid #e2e8f0",
+                                            borderRadius: "8px",
+                                            textAlign: "left",
+                                            background: "#f7fafc",
+                                            transition: "all 0.3s ease"
+                                          }}
+                                          onFocus={(e) => {
+                                            e.target.style.borderColor = "#667eea";
+                                            e.target.style.background = "white";
+                                            e.target.style.boxShadow = "0 0 0 3px rgba(102, 126, 234, 0.1)";
+                                          }}
+                                          onBlur={(e) => {
+                                            e.target.style.borderColor = "#e2e8f0";
+                                            e.target.style.background = "#f7fafc";
+                                            e.target.style.boxShadow = "none";
+                                          }}
+                                          onChange={(e) => {
+                                            handleFieldInput(field.id, field.name, e.target.value);
+                                          }}
+                                          autoFocus
+                                        />
+                                      )}
+                                      {field.fieldType === "textarea" && (
+                                        <textarea
+                                          placeholder={field.fieldPlaceholder}
+                                          defaultValue={commonFormData[field.id] || commonFormData[field.name] || ""}
+                                          rows={4}
+                                          style={{
+                                            width: "100%",
+                                            padding: "1.2rem",
+                                            fontSize: "1.2rem",
+                                            border: "2px solid #e2e8f0",
+                                            borderRadius: "8px",
+                                            resize: "vertical",
+                                            background: "#f7fafc",
+                                            transition: "all 0.3s ease"
+                                          }}
+                                          onFocus={(e) => {
+                                            e.target.style.borderColor = "#667eea";
+                                            e.target.style.background = "white";
+                                            e.target.style.boxShadow = "0 0 0 3px rgba(102, 126, 234, 0.1)";
+                                          }}
+                                          onBlur={(e) => {
+                                            e.target.style.borderColor = "#e2e8f0";
+                                            e.target.style.background = "#f7fafc";
+                                            e.target.style.boxShadow = "none";
+                                          }}
+                                          onKeyPress={(e) => {
+                                            if (e.key === 'Enter' && e.ctrlKey) {
+                                              handleFieldInput(field.id, field.name, e.target.value);
+                                            }
+                                          }}
+                                          autoFocus
+                                        />
+                                      )}
+                                      {field.fieldType === "signature" && (
+                                        <div
+                                          style={{
+                                            width: "100%",
+                                            height: "250px",
+                                            border: "3px dashed #667eea",
+                                            borderRadius: "12px",
+                                            background: "linear-gradient(45deg, #f7fafc 25%, transparent 25%), linear-gradient(-45deg, #f7fafc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f7fafc 75%), linear-gradient(-45deg, transparent 75%, #f7fafc 75%)",
+                                            backgroundSize: "20px 20px",
+                                            backgroundPosition: "0 0, 0 10px, 10px -10px, -10px 0px",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            fontSize: "1.2rem",
+                                            color: "#4a5568",
+                                            fontWeight: "bold",
+                                            cursor: "pointer",
+                                            transition: "all 0.3s ease"
+                                          }}
+                                          onMouseEnter={(e) => {
+                                            e.target.style.borderColor = "#4c51bf";
+                                            e.target.style.background = "linear-gradient(45deg, #edf2f7 25%, transparent 25%), linear-gradient(-45deg, #edf2f7 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #edf2f7 75%), linear-gradient(-45deg, transparent 75%, #edf2f7 75%)";
+                                          }}
+                                          onMouseLeave={(e) => {
+                                            e.target.style.borderColor = "#667eea";
+                                            e.target.style.background = "linear-gradient(45deg, #f7fafc 25%, transparent 25%), linear-gradient(-45deg, #f7fafc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f7fafc 75%), linear-gradient(-45deg, transparent 75%, #f7fafc 75%)";
+                                          }}
+                                        >
+                                          ✍️ 서명을 입력해주세요
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          )}
+                          {(() => {
+                            try {
+                              const schema = JSON.parse(currentForm.formSchema);
+                              return schema.fields?.map((field, index) => (
+                                <div key={index} style={{ marginBottom: "1rem" }}>
+                                  <label
+                                    style={{
+                                      display: "block",
+                                      fontWeight: "bold",
+                                      marginBottom: "0.5rem",
+                                      color: "#333",
+                                    }}
+                                  >
+                                    {field.label}
+                                    {field.required && (
+                                      <span style={{ color: "red" }}> *</span>
+                                    )}
+                                  </label>
+                                  {field.type === "text" && (
+                                    <input
+                                      type="text"
+                                      placeholder={field.placeholder}
+                                      style={{
+                                        width: "100%",
+                                        padding: "0.75rem",
+                                        border: "1px solid #ddd",
+                                        borderRadius: "4px",
+                                        fontSize: "1rem",
+                                      }}
+                                    />
+                                  )}
+                                  {field.type === "number" && (
+                                    <input
+                                      type="number"
+                                      placeholder={field.placeholder}
+                                      style={{
+                                        width: "100%",
+                                        padding: "0.75rem",
+                                        border: "1px solid #ddd",
+                                        borderRadius: "4px",
+                                        fontSize: "1rem",
+                                      }}
+                                    />
+                                  )}
+                                  {field.type === "email" && (
+                                    <input
+                                      type="email"
+                                      placeholder={field.placeholder}
+                                      style={{
+                                        width: "100%",
+                                        padding: "0.75rem",
+                                        border: "1px solid #ddd",
+                                        borderRadius: "4px",
+                                        fontSize: "1rem",
+                                      }}
+                                    />
+                                  )}
+                                  {field.type === "date" && (
+                                    <input
+                                      type="date"
+                                      style={{
+                                        width: "100%",
+                                        padding: "0.75rem",
+                                        border: "1px solid #ddd",
+                                        borderRadius: "4px",
+                                        fontSize: "1rem",
+                                      }}
+                                    />
+                                  )}
+                                  {field.type === "textarea" && (
+                                    <textarea
+                                      placeholder={field.placeholder}
+                                      rows={3}
+                                      style={{
+                                        width: "100%",
+                                        padding: "0.75rem",
+                                        border: "1px solid #ddd",
+                                        borderRadius: "4px",
+                                        fontSize: "1rem",
+                                        resize: "vertical",
+                                      }}
+                                    />
+                                  )}
+                                  {field.type === "signature" && (
+                                    <div
+                                      style={{
+                                        border: "2px dashed #ddd",
+                                        borderRadius: "4px",
+                                        padding: "1rem",
+                                        textAlign: "center",
+                                        background: "#f9f9f9",
+                                        minHeight: "100px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        color: "#666",
+                                      }}
+                                    >
+                                      ✍️ 서명 영역 (터치하여 서명)
+                                    </div>
+                                  )}
+                                </div>
+                              ));
+                            } catch (e) {
+                              return (
+                                <div style={{ color: "red" }}>
+                                  서식 데이터를 불러올 수 없습니다.
+                                </div>
+                              );
+                            }
+                          })()}
+                        </div>
+                      )}
+
+                      {/* 서식 진행 상태 표시 (읽기 전용) */}
                       <div
                         style={{
                           display: "flex",
-                          justifyContent: "space-between",
+                          justifyContent: "center",
                           alignItems: "center",
                           marginTop: "1rem",
+                          padding: "1rem",
+                          background: "#f8f9fa",
+                          borderRadius: "8px",
                         }}
                       >
-                        <button
-                          onClick={() => {
-                            if (currentFormIndex > 0) {
-                              setCurrentFormIndex(currentFormIndex - 1);
-                              setCurrentForm(
-                                currentProduct.forms[currentFormIndex - 1]
-                              );
-                            }
-                          }}
-                          disabled={currentFormIndex === 0}
-                          style={{
-                            padding: "0.5rem 1rem",
-                            backgroundColor:
-                              currentFormIndex === 0 ? "#ccc" : "#6c757d",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px",
-                            cursor:
-                              currentFormIndex === 0
-                                ? "not-allowed"
-                                : "pointer",
-                          }}
-                        >
-                          ← 이전 서식
-                        </button>
-
-                        <div style={{ color: "#666" }}>
-                          {currentFormIndex + 1} / {currentProduct.forms.length}
+                        <div style={{ color: "#666", fontSize: "1.1rem", fontWeight: "bold" }}>
+                          서식 {currentFormIndex + 1} / {currentProduct.forms.length}
                         </div>
-
-                        <button
-                          onClick={() => {
-                            if (
-                              currentFormIndex <
-                              currentProduct.forms.length - 1
-                            ) {
-                              setCurrentFormIndex(currentFormIndex + 1);
-                              setCurrentForm(
-                                currentProduct.forms[currentFormIndex + 1]
-                              );
-                            }
-                          }}
-                          disabled={
-                            currentFormIndex === currentProduct.forms.length - 1
-                          }
-                          style={{
-                            padding: "0.5rem 1rem",
-                            backgroundColor:
-                              currentFormIndex ===
-                              currentProduct.forms.length - 1
-                                ? "#ccc"
-                                : "#28a745",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px",
-                            cursor:
-                              currentFormIndex ===
-                              currentProduct.forms.length - 1
-                                ? "not-allowed"
-                                : "pointer",
-                          }}
-                        >
-                          다음 서식 →
-                        </button>
                       </div>
                     </>
                   )}

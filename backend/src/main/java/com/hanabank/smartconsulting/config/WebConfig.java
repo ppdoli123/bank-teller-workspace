@@ -3,6 +3,7 @@ package com.hanabank.smartconsulting.config;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.util.UrlPathHelper;
 
@@ -24,5 +25,13 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedHeaders("*")
                 .allowCredentials(true)
                 .maxAge(3600);
+    }
+    
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // PDF 파일들을 정적 리소스로 제공
+        registry.addResourceHandler("/hana_bank_forms/**")
+                .addResourceLocations("classpath:/hana_bank_forms/")
+                .setCachePeriod(3600);
     }
 }
