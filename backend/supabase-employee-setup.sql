@@ -27,3 +27,4 @@ CREATE INDEX idx_employee_employeeid ON employee(employeeid);
 
 -- 테이블 확인
 SELECT * FROM employee;
+
