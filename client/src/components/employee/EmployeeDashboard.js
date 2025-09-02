@@ -14,6 +14,7 @@ import CustomerInfo from "./CustomerInfo";
 import FormSelector from "./FormSelector";
 import FormManager from "./FormManager";
 import AiQuestionGenerator from "./AiQuestionGenerator";
+import PDFViewer from "../customer/PDFViewer";
 
 const DashboardContainer = styled.div`
   display: flex;
@@ -676,6 +677,7 @@ const EmployeeDashboard = () => {
   const [selectedForm, setSelectedForm] = useState(null);
   const [enrollmentData, setEnrollmentData] = useState(null);
   const [currentFormIndex, setCurrentFormIndex] = useState(0);
+  const [forceUpdate, setForceUpdate] = useState(0); // 화면 강제 업데이트용
 
   const navigate = useNavigate();
   const webcamRef = useRef(null);
@@ -756,15 +758,162 @@ const EmployeeDashboard = () => {
               window.updateFormField(data.field, data.value);
             }
             break;
-          case "field-input-complete":
+          case "field-input-completed":
             console.log("📝 태블릿에서 필드 입력 완료:", data);
-            if (data.data) {
-              const { fieldId, fieldName, value, formIndex, formName } = data.data;
-              console.log(`✅ 필드 입력 완료: ${fieldName} = ${value}`);
-              
-              // PC 화면에서 해당 필드에 입력된 값 표시
-              // 실제 구현에서는 폼 데이터 상태를 업데이트해야 함
-              alert(`입력 완료: ${fieldName} = ${value}`);
+            console.log("📝 전체 메시지 데이터:", data);
+
+            // 태블릿에서 보내는 메시지 구조에 맞게 수정
+            const { fieldId, fieldValue, fieldLabel } = data;
+            console.log(`✅ 필드 입력 완료: ${fieldLabel} = ${fieldValue}`);
+
+            // PC 화면에서 해당 필드에 입력된 값 표시
+            if (
+              enrollmentData &&
+              enrollmentData.forms &&
+              enrollmentData.forms[currentFormIndex]
+            ) {
+              // 현재 서식의 필드 데이터 업데이트
+              const updatedForms = [...enrollmentData.forms];
+              const currentForm = updatedForms[currentFormIndex];
+
+              try {
+                const schema = JSON.parse(currentForm.formSchema);
+                if (schema.fields) {
+                  const fieldIndex = schema.fields.findIndex(
+                    (f) => f.id === fieldId
+                  );
+                  if (fieldIndex !== -1) {
+                    // 필드값 업데이트
+                    schema.fields[fieldIndex].value = fieldValue;
+                    currentForm.formSchema = JSON.stringify(schema);
+
+                    // 상태 업데이트
+                    setEnrollmentData({
+                      ...enrollmentData,
+                      forms: updatedForms,
+                    });
+
+                    console.log(
+                      `✅ 필드 "${fieldLabel}" 값 "${fieldValue}"로 업데이트 완료`
+                    );
+                  }
+                }
+              } catch (e) {
+                console.error("서식 스키마 파싱 오류:", e);
+              }
+            }
+            break;
+
+          case "field-input-complete":
+            console.log("📝 태블릿에서 필드 입력 완료 (기존 형식):", data);
+            console.log("📝 전체 메시지 데이터:", data);
+
+            // 기존 메시지 구조 처리
+            let existingFieldId, existingFieldValue, existingFieldLabel;
+
+            if (data.data && data.data.value) {
+              // 새로운 구조
+              existingFieldId = data.data.fieldId || "unknown";
+              existingFieldValue = data.data.value;
+              existingFieldLabel = data.data.fieldName || "알 수 없는 필드";
+            } else {
+              // 기존 구조
+              existingFieldId = data.fieldId || "unknown";
+              existingFieldValue = data.value || data.fieldValue || "";
+              existingFieldLabel =
+                data.fieldLabel || data.fieldName || "알 수 없는 필드";
+            }
+
+            console.log(
+              `✅ 필드 입력 완료: ${existingFieldLabel} = ${existingFieldValue}`
+            );
+
+            // PC 화면에서 해당 필드에 입력된 값 표시
+            console.log(
+              "🔍 필드 업데이트 시작 - enrollmentData:",
+              enrollmentData
+            );
+            console.log("🔍 현재 폼 인덱스:", currentFormIndex);
+
+            // 전역 변수에서 enrollmentData 가져오기 (React 상태가 null일 때)
+            const currentEnrollmentData =
+              enrollmentData || window.enrollmentData;
+            const currentFormIdx = currentFormIndex || window.currentFormIndex;
+
+            console.log("🔍 전역 변수 enrollmentData:", window.enrollmentData);
+            console.log("🔍 사용할 enrollmentData:", currentEnrollmentData);
+
+            if (
+              currentEnrollmentData &&
+              currentEnrollmentData.forms &&
+              currentEnrollmentData.forms[currentFormIdx]
+            ) {
+              console.log("✅ enrollmentData와 forms 존재 확인");
+
+              // 현재 서식의 필드 데이터 업데이트
+              const updatedForms = [...currentEnrollmentData.forms];
+              const currentForm = updatedForms[currentFormIdx];
+
+              console.log("🔍 현재 폼:", currentForm);
+              console.log("🔍 폼 스키마:", currentForm.formSchema);
+
+              try {
+                const schema = JSON.parse(currentForm.formSchema);
+                console.log("🔍 파싱된 스키마:", schema);
+                console.log("🔍 스키마 필드들:", schema.fields);
+
+                if (schema.fields) {
+                  console.log("🔍 찾을 필드 ID:", existingFieldId);
+                  const fieldIndex = schema.fields.findIndex(
+                    (f) => f.id === existingFieldId
+                  );
+                  console.log("🔍 찾은 필드 인덱스:", fieldIndex);
+
+                  if (fieldIndex !== -1) {
+                    console.log("🔍 필드 찾음 - 업데이트 시작");
+                    // 필드값 업데이트
+                    schema.fields[fieldIndex].value = existingFieldValue;
+                    currentForm.formSchema = JSON.stringify(schema);
+
+                    // 상태 업데이트
+                    const newEnrollmentData = {
+                      ...currentEnrollmentData,
+                      forms: updatedForms,
+                    };
+                    setEnrollmentData(newEnrollmentData);
+
+                    // 전역 변수도 업데이트
+                    window.enrollmentData = newEnrollmentData;
+
+                    console.log(
+                      `✅ 필드 "${existingFieldLabel}" 값 "${existingFieldValue}"로 업데이트 완료`
+                    );
+
+                    // PC 화면 강제 업데이트를 위한 상태 변경
+                    setForceUpdate((prev) => prev + 1);
+
+                    // 필드 업데이트 후 즉시 화면 반영을 위한 로그
+                    console.log("🔄 PC 화면 업데이트 트리거됨");
+                  } else {
+                    console.log(
+                      "❌ 필드를 찾을 수 없음 - existingFieldId:",
+                      existingFieldId
+                    );
+                    console.log(
+                      "❌ 사용 가능한 필드 ID들:",
+                      schema.fields.map((f) => f.id)
+                    );
+                  }
+                } else {
+                  console.log("❌ 스키마에 fields가 없음");
+                }
+              } catch (e) {
+                console.error("서식 스키마 파싱 오류:", e);
+              }
+            } else {
+              console.log("❌ enrollmentData 또는 forms가 없음");
+              console.log("❌ enrollmentData:", enrollmentData);
+              console.log("❌ currentFormIndex:", currentFormIndex);
             }
             break;
           case "product-enrollment":
@@ -772,35 +921,45 @@ const EmployeeDashboard = () => {
             console.log("🔍 PC에서 data.action:", data.action);
             console.log("🔍 PC에서 data.data:", data.data);
             if (data.action === "start_enrollment" && data.data) {
-              // 임시로 하드코딩된 서식 데이터 추가
-              const enrollmentWithForms = {
-                ...data.data,
-                forms: data.data.forms || [
-                  {
-                    formId: "FORM-IRP-001",
-                    formName: "퇴직연금 거래신청서(개인형IRP)",
-                    formType: "deposit",
-                    formSchema: '{"fields": [{"id": "customer_name", "name": "customerName", "type": "text", "label": "고객명", "required": true, "placeholder": "고객명을 입력하세요"}, {"id": "phone_number", "name": "phoneNumber", "type": "text", "label": "연락처", "required": true, "placeholder": "연락처를 입력하세요"}, {"id": "resident_number", "name": "residentNumber", "type": "text", "label": "주민등록번호", "required": true, "placeholder": "주민등록번호를 입력하세요"}, {"id": "address", "name": "address", "type": "text", "label": "주소", "required": true, "placeholder": "주소를 입력하세요"}, {"id": "account_number", "name": "accountNumber", "type": "text", "label": "계좌번호", "required": true, "placeholder": "계좌번호를 입력하세요"}]}'
-                  },
-                  {
-                    formId: "FORM-HOUSING-001",
-                    formName: "주택도시기금 대출신청서(가계용)",
-                    formType: "loan",
-                    formSchema: '{"fields": [{"id": "applicant_name", "name": "applicantName", "type": "text", "label": "신청인 성명", "required": true, "placeholder": "신청인 성명을 입력하세요"}, {"id": "resident_number", "name": "residentNumber", "type": "text", "label": "주민등록번호", "required": true, "placeholder": "주민등록번호를 입력하세요"}, {"id": "phone", "name": "phone", "type": "text", "label": "연락처", "required": true, "placeholder": "연락처를 입력하세요"}, {"id": "address", "name": "address", "type": "text", "label": "주소", "required": true, "placeholder": "주소를 입력하세요"}, {"id": "loan_amount", "name": "loanAmount", "type": "number", "label": "대출신청금액", "required": true, "placeholder": "대출신청금액을 입력하세요"}, {"id": "loan_purpose", "name": "loanPurpose", "type": "text", "label": "대출목적", "required": true, "placeholder": "대출목적을 입력하세요"}]}'
-                  },
-                  {
-                    formId: "FORM-PRIVACY-001",
-                    formName: "개인신용정보 수집이용동의서(비여신금융거래)",
-                    formType: "deposit",
-                    formSchema: '{"fields": [{"id": "customer_name", "name": "customerName", "type": "text", "label": "고객명", "required": true, "placeholder": "고객명을 입력하세요"}, {"id": "resident_number", "name": "residentNumber", "type": "text", "label": "주민등록번호", "required": true, "placeholder": "주민등록번호를 입력하세요"}, {"id": "phone", "name": "phone", "type": "text", "label": "연락처", "required": true, "placeholder": "연락처를 입력하세요"}, {"id": "consent_date", "name": "consentDate", "type": "date", "label": "동의일자", "required": true, "placeholder": "동의일자를 선택하세요"}, {"id": "signature", "name": "signature", "type": "signature", "label": "서명", "required": true, "placeholder": "서명해주세요"}]}'
-                  }
-                ]
-              };
-              
-              setEnrollmentData(enrollmentWithForms);
-              setCurrentFormIndex(0);
-              setActiveTab("pdf-forms"); // 서식 작성 탭으로 전환
-              console.log("✅ 직원 화면에 서식 데이터 설정:", enrollmentWithForms.forms?.length, "개 서식");
+              // 백엔드에서 보내는 실제 서식 데이터 사용
+              console.log("🔍 백엔드에서 받은 서식 데이터:", data.data);
+              console.log("🔍 서식 개수:", data.data.forms?.length || 0);
+
+              if (data.data.forms && data.data.forms.length > 0) {
+                // 실제 서식 데이터 사용
+                console.log("🔍 setEnrollmentData 호출 전:", data.data);
+                setEnrollmentData(data.data);
+                setCurrentFormIndex(0);
+                setActiveTab("pdf-forms"); // 서식 작성 탭으로 전환
+                console.log(
+                  "✅ 직원 화면에 실제 서식 데이터 설정:",
+                  data.data.forms.length,
+                  "개 서식"
+                );
+
+                // 상태 업데이트는 useEffect에서 감지됨
+              } else {
+                console.log(
+                  "⚠️ 백엔드에서 서식이 없습니다. 하드코딩된 서식 사용"
+                );
+                // 백엔드에 서식이 없을 때만 하드코딩된 서식 사용
+                const enrollmentWithForms = {
+                  ...data.data,
+                  forms: [
+                    {
+                      formId: "FORM-IRP-001",
+                      formName: "퇴직연금 거래신청서(개인형IRP)",
+                      formType: "deposit",
+                      formSchema:
+                        '{"fields": [{"id": "customer_name", "name": "customerName", "type": "text", "label": "고객명", "required": true, "placeholder": "고객명을 입력하세요"}, {"id": "phone_number", "name": "phoneNumber", "type": "text", "label": "연락처", "required": true, "placeholder": "연락처를 입력하세요"}, {"id": "resident_number", "name": "residentNumber", "type": "text", "label": "주민등록번호", "required": true, "placeholder": "주민등록번호를 입력하세요"}, {"id": "address", "name": "address", "type": "text", "label": "주소", "required": true, "placeholder": "주소를 입력하세요"}, {"id": "account_number", "name": "accountNumber", "type": "text", "label": "계좌번호", "required": true, "placeholder": "계좌번호를 입력하세요"}]}',
+                    },
+                  ],
+                };
+                setEnrollmentData(enrollmentWithForms);
+                setCurrentFormIndex(0);
+                setActiveTab("pdf-forms");
+                console.log("✅ 하드코딩된 서식 데이터 설정");
+              }
             }
             break;
           default:
@@ -909,6 +1068,32 @@ const EmployeeDashboard = () => {
   useEffect(() => {
     console.log("currentCustomer 상태 변경됨:", currentCustomer);
   }, [currentCustomer]);
+
+  // enrollmentData 상태 변화 감지
+  useEffect(() => {
+    console.log("🔍 enrollmentData 상태 변경됨:", enrollmentData);
+    if (enrollmentData) {
+      console.log("✅ enrollmentData 설정 완료:");
+      console.log("  - productId:", enrollmentData.productId);
+      console.log("  - productName:", enrollmentData.productName);
+      console.log("  - forms 개수:", enrollmentData.forms?.length || 0);
+      console.log("  - currentFormIndex:", enrollmentData.currentFormIndex);
+
+      // 전역 변수에 React 상태 동기화
+      window.enrollmentData = enrollmentData;
+      window.currentFormIndex = currentFormIndex;
+      console.log("🌐 전역 변수 동기화 완료");
+    }
+  }, [enrollmentData, currentFormIndex]);
+
+  // forceUpdate 상태 변화 감지 (화면 강제 업데이트용)
+  useEffect(() => {
+    if (forceUpdate > 0) {
+      console.log("🔄 PC 화면 강제 업데이트 실행:", forceUpdate);
+      // 화면을 강제로 다시 렌더링하기 위한 상태 변경
+      setForceUpdate(0); // 초기화
+    }
+  }, [forceUpdate]);
 
   const fetchTestCustomers = async () => {
     console.log("실제 고객 데이터를 로드합니다...");
@@ -1195,7 +1380,7 @@ const EmployeeDashboard = () => {
     console.log("🔍 stompClient 상태:", stompClient ? "존재" : "없음");
     console.log("🔍 sessionId:", sessionId);
     console.log("🔍 stompClient.active:", stompClient?.active);
-    
+
     if (stompClient && sessionId && stompClient.active) {
       // 상품 상세보기 동기화
       if (screenData.type === "product-detail-sync") {
@@ -1223,7 +1408,7 @@ const EmployeeDashboard = () => {
             customerId: screenData.data.customerId,
           }),
         });
-        
+
         // 임시 해결책: 백엔드를 거치지 않고 직접 태블릿에 메시지 전송
         console.log("🔧 임시 해결책: 직접 태블릿에 메시지 전송");
         const directMessage = {
@@ -1239,25 +1424,28 @@ const EmployeeDashboard = () => {
                 formId: "FORM-IRP-001",
                 formName: "퇴직연금 거래신청서(개인형IRP)",
                 formType: "deposit",
-                formSchema: '{"fields": [{"id": "customer_name", "name": "customerName", "type": "text", "label": "고객명", "required": true, "placeholder": "고객명을 입력하세요"}, {"id": "phone_number", "name": "phoneNumber", "type": "text", "label": "연락처", "required": true, "placeholder": "연락처를 입력하세요"}, {"id": "resident_number", "name": "residentNumber", "type": "text", "label": "주민등록번호", "required": true, "placeholder": "주민등록번호를 입력하세요"}, {"id": "address", "name": "address", "type": "text", "label": "주소", "required": true, "placeholder": "주소를 입력하세요"}, {"id": "account_number", "name": "accountNumber", "type": "text", "label": "계좌번호", "required": true, "placeholder": "계좌번호를 입력하세요"}]}'
+                formSchema:
+                  '{"fields": [{"id": "customer_name", "name": "customerName", "type": "text", "label": "고객명", "required": true, "placeholder": "고객명을 입력하세요"}, {"id": "phone_number", "name": "phoneNumber", "type": "text", "label": "연락처", "required": true, "placeholder": "연락처를 입력하세요"}, {"id": "resident_number", "name": "residentNumber", "type": "text", "label": "주민등록번호", "required": true, "placeholder": "주민등록번호를 입력하세요"}, {"id": "address", "name": "address", "type": "text", "label": "주소", "required": true, "placeholder": "주소를 입력하세요"}, {"id": "account_number", "name": "accountNumber", "type": "text", "label": "계좌번호", "required": true, "placeholder": "계좌번호를 입력하세요"}]}',
               },
               {
                 formId: "FORM-HOUSING-001",
                 formName: "주택도시기금 대출신청서(가계용)",
                 formType: "loan",
-                formSchema: '{"fields": [{"id": "applicant_name", "name": "applicantName", "type": "text", "label": "신청인 성명", "required": true, "placeholder": "신청인 성명을 입력하세요"}, {"id": "resident_number", "name": "residentNumber", "type": "text", "label": "주민등록번호", "required": true, "placeholder": "주민등록번호를 입력하세요"}, {"id": "phone", "name": "phone", "type": "text", "label": "연락처", "required": true, "placeholder": "연락처를 입력하세요"}, {"id": "address", "name": "address", "type": "text", "label": "주소", "required": true, "placeholder": "주소를 입력하세요"}, {"id": "loan_amount", "name": "loanAmount", "type": "number", "label": "대출신청금액", "required": true, "placeholder": "대출신청금액을 입력하세요"}, {"id": "loan_purpose", "name": "loanPurpose", "type": "text", "label": "대출목적", "required": true, "placeholder": "대출목적을 입력하세요"}]}'
+                formSchema:
+                  '{"fields": [{"id": "applicant_name", "name": "applicantName", "type": "text", "label": "신청인 성명", "required": true, "placeholder": "신청인 성명을 입력하세요"}, {"id": "resident_number", "name": "residentNumber", "type": "text", "label": "주민등록번호", "required": true, "placeholder": "주민등록번호를 입력하세요"}, {"id": "phone", "name": "phone", "type": "text", "label": "연락처", "required": true, "placeholder": "연락처를 입력하세요"}, {"id": "address", "name": "address", "type": "text", "label": "주소", "required": true, "placeholder": "주소를 입력하세요"}, {"id": "loan_amount", "name": "loanAmount", "type": "number", "label": "대출신청금액", "required": true, "placeholder": "대출신청금액을 입력하세요"}, {"id": "loan_purpose", "name": "loanPurpose", "type": "text", "label": "대출목적", "required": true, "placeholder": "대출목적을 입력하세요"}]}',
               },
               {
                 formId: "FORM-PRIVACY-001",
                 formName: "개인신용정보 수집이용동의서(비여신금융거래)",
                 formType: "deposit",
-                formSchema: '{"fields": [{"id": "customer_name", "name": "customerName", "type": "text", "label": "고객명", "required": true, "placeholder": "고객명을 입력하세요"}, {"id": "resident_number", "name": "residentNumber", "type": "text", "label": "주민등록번호", "required": true, "placeholder": "주민등록번호를 입력하세요"}, {"id": "phone", "name": "phone", "type": "text", "label": "연락처", "required": true, "placeholder": "연락처를 입력하세요"}, {"id": "consent_date", "name": "consentDate", "type": "date", "label": "동의일자", "required": true, "placeholder": "동의일자를 선택하세요"}, {"id": "signature", "name": "signature", "type": "signature", "label": "서명", "required": true, "placeholder": "서명해주세요"}]}'
-              }
-            ]
+                formSchema:
+                  '{"fields": [{"id": "customer_name", "name": "customerName", "type": "text", "label": "고객명", "required": true, "placeholder": "고객명을 입력하세요"}, {"id": "resident_number", "name": "residentNumber", "type": "text", "label": "주민등록번호", "required": true, "placeholder": "주민등록번호를 입력하세요"}, {"id": "phone", "name": "phone", "type": "text", "label": "연락처", "required": true, "placeholder": "연락처를 입력하세요"}, {"id": "consent_date", "name": "consentDate", "type": "date", "label": "동의일자", "required": true, "placeholder": "동의일자를 선택하세요"}, {"id": "signature", "name": "signature", "type": "signature", "label": "서명", "required": true, "placeholder": "서명해주세요"}]}',
+              },
+            ],
           },
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
-        
+
         // 태블릿에 직접 메시지 전송
         stompClient.publish({
           destination: "/topic/session/" + sessionId,
@@ -1510,35 +1698,46 @@ const EmployeeDashboard = () => {
             />
           )}
 
-
-
           {activeTab === "pdf-forms" &&
             (enrollmentData ? (
               <div style={{ padding: "2rem" }}>
-                <h2 style={{ color: "var(--hana-primary)", marginBottom: "1rem" }}>
+                <h2
+                  style={{ color: "var(--hana-primary)", marginBottom: "1rem" }}
+                >
                   📝 상품 가입 서식
                 </h2>
-                <div style={{ 
-                  background: "white", 
-                  borderRadius: "12px", 
-                  padding: "1.5rem",
-                  boxShadow: "var(--hana-shadow-light)"
-                }}>
+                <div
+                  style={{
+                    background: "white",
+                    borderRadius: "12px",
+                    padding: "1.5rem",
+                    boxShadow: "var(--hana-shadow-light)",
+                  }}
+                >
                   <div style={{ marginBottom: "1rem" }}>
                     <strong>{enrollmentData.productName}</strong> 가입 서식
                   </div>
-                  
+
                   {enrollmentData.forms && enrollmentData.forms.length > 0 && (
                     <>
-                      <div style={{
-                        background: "#e8f5e8",
-                        border: "1px solid #4caf50",
-                        borderRadius: "8px",
-                        padding: "1rem",
-                        marginBottom: "1rem"
-                      }}>
-                        <div style={{ fontWeight: "bold", color: "#2e7d32", marginBottom: "0.5rem" }}>
-                          서식 {currentFormIndex + 1} / {enrollmentData.forms.length}
+                      <div
+                        style={{
+                          background: "#e8f5e8",
+                          border: "1px solid #4caf50",
+                          borderRadius: "8px",
+                          padding: "1rem",
+                          marginBottom: "1rem",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontWeight: "bold",
+                            color: "#2e7d32",
+                            marginBottom: "0.5rem",
+                          }}
+                        >
+                          서식 {currentFormIndex + 1} /{" "}
+                          {enrollmentData.forms.length}
                         </div>
                         <div style={{ color: "#2e7d32" }}>
                           {enrollmentData.forms[currentFormIndex]?.formName}
@@ -1547,28 +1746,109 @@ const EmployeeDashboard = () => {
 
                       {/* 서식 필드 표시 */}
                       {enrollmentData.forms[currentFormIndex]?.formSchema && (
-                        <div style={{
-                          background: "#f8f9fa",
-                          border: "1px solid #ddd",
-                          borderRadius: "8px",
-                          padding: "1.5rem",
-                          marginBottom: "1rem"
-                        }}>
-                          <div style={{ fontWeight: "bold", marginBottom: "1rem", color: "#008485" }}>
-                            📋 서식 필드
+                        <div
+                          style={{
+                            background: "#f8f9fa",
+                            border: "1px solid #ddd",
+                            borderRadius: "8px",
+                            padding: "1.5rem",
+                            marginBottom: "1rem",
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontWeight: "bold",
+                              marginBottom: "1rem",
+                              color: "#008485",
+                            }}
+                          >
+                            📄 PDF 서식 뷰어
                           </div>
-                          {(() => {
-                            try {
-                              const schema = JSON.parse(enrollmentData.forms[currentFormIndex].formSchema);
-                              return schema.fields?.map((field, index) => (
-                                <div 
-                                  key={index} 
-                                  onClick={() => {
-                                    // PC에서 필드 클릭 시 태블릿에 필드 확대 메시지 전송
-                                    if (stompClient && sessionId) {
-                                      stompClient.publish({
-                                        destination: "/topic/session/" + sessionId,
-                                        body: JSON.stringify({
+
+                          {/* PDF 뷰어 컴포넌트 */}
+                          <PDFViewer
+                            pdfUrl={
+                              enrollmentData.forms[currentFormIndex]
+                                ?.formTemplatePath
+                            }
+                            formSchema={
+                              enrollmentData.forms[currentFormIndex]?.formSchema
+                            }
+                            fieldValues={(() => {
+                              try {
+                                const schema = JSON.parse(
+                                  enrollmentData.forms[currentFormIndex]
+                                    ?.formSchema || "{}"
+                                );
+                                const values = {};
+                                schema.fields?.forEach((field) => {
+                                  if (field.value) {
+                                    values[field.id] = field.value;
+                                  }
+                                });
+                                return values;
+                              } catch (e) {
+                                return {};
+                              }
+                            })()}
+                            onFieldClick={(field) => {
+                              // PC에서 필드 클릭 시 태블릿에 필드 확대 메시지 전송
+                              if (stompClient && sessionId) {
+                                const fieldFocusMessage = {
+                                  type: "field-focus",
+                                  data: {
+                                    fieldId: field.id,
+                                    fieldName: field.name,
+                                    fieldLabel: field.label,
+                                    fieldType: field.type,
+                                    fieldPlaceholder: field.placeholder,
+                                    formIndex: currentFormIndex,
+                                    formName:
+                                      enrollmentData.forms[currentFormIndex]
+                                        .formName,
+                                  },
+                                  timestamp: Date.now(),
+                                };
+
+                                stompClient.publish({
+                                  destination: "/topic/session/" + sessionId,
+                                  body: JSON.stringify(fieldFocusMessage),
+                                });
+
+                                console.log(
+                                  "📤 PC에서 field-focus 메시지 전송:",
+                                  fieldFocusMessage
+                                );
+                              }
+                            }}
+                            highlightedField={null}
+                            isFieldFocusMode={false}
+                          />
+
+                          {/* 필드 목록 (백업용) */}
+                          <details style={{ marginTop: "1rem" }}>
+                            <summary
+                              style={{
+                                cursor: "pointer",
+                                fontWeight: "bold",
+                                color: "#666",
+                              }}
+                            >
+                              📋 필드 목록 보기
+                            </summary>
+                            {(() => {
+                              try {
+                                const schema = JSON.parse(
+                                  enrollmentData.forms[currentFormIndex]
+                                    .formSchema
+                                );
+                                return schema.fields?.map((field, index) => (
+                                  <div
+                                    key={index}
+                                    onClick={() => {
+                                      // PC에서 필드 클릭 시 태블릿에 필드 확대 메시지 전송
+                                      if (stompClient && sessionId) {
+                                        const fieldFocusMessage = {
                                           type: "field-focus",
                                           data: {
                                             fieldId: field.id,
@@ -1577,50 +1857,109 @@ const EmployeeDashboard = () => {
                                             fieldType: field.type,
                                             fieldPlaceholder: field.placeholder,
                                             formIndex: currentFormIndex,
-                                            formName: enrollmentData.forms[currentFormIndex].formName
+                                            formName:
+                                              enrollmentData.forms[
+                                                currentFormIndex
+                                              ].formName,
                                           },
-                                          timestamp: Date.now()
-                                        }),
-                                      });
-                                    }
-                                  }}
-                                  style={{ 
-                                    marginBottom: "0.5rem", 
-                                    padding: "0.5rem",
-                                    background: "white",
-                                    borderRadius: "4px",
-                                    border: "1px solid #e9ecef",
-                                    cursor: "pointer",
-                                    transition: "all 0.2s ease"
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.target.style.background = "#f8f9fa";
-                                    e.target.style.borderColor = "var(--hana-mint)";
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.target.style.background = "white";
-                                    e.target.style.borderColor = "#e9ecef";
-                                  }}
-                                >
-                                  <span style={{ fontWeight: "bold" }}>{field.label}</span>
-                                  {field.required && <span style={{ color: "red" }}> *</span>}
-                                  <span style={{ color: "#666", fontSize: "0.9rem", marginLeft: "0.5rem" }}>
-                                    ({field.type})
-                                  </span>
-                                  <div style={{ fontSize: "0.8rem", color: "#999", marginTop: "0.25rem" }}>
-                                    클릭하여 태블릿에서 입력
+                                          timestamp: Date.now(),
+                                        };
+
+                                        stompClient.publish({
+                                          destination:
+                                            "/topic/session/" + sessionId,
+                                          body: JSON.stringify(
+                                            fieldFocusMessage
+                                          ),
+                                        });
+
+                                        console.log(
+                                          "📤 PC에서 field-focus 메시지 전송:",
+                                          fieldFocusMessage
+                                        );
+                                      }
+                                    }}
+                                    style={{
+                                      marginBottom: "0.5rem",
+                                      padding: "0.5rem",
+                                      background: "white",
+                                      borderRadius: "4px",
+                                      border: "1px solid #e9ecef",
+                                      cursor: "pointer",
+                                      transition: "all 0.2s ease",
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.target.style.background = "#f8f9fa";
+                                      e.target.style.borderColor =
+                                        "var(--hana-mint)";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.target.style.background = "white";
+                                      e.target.style.borderColor = "#e9ecef";
+                                    }}
+                                  >
+                                    <span style={{ fontWeight: "bold" }}>
+                                      {field.label}
+                                    </span>
+                                    {field.required && (
+                                      <span style={{ color: "red" }}> *</span>
+                                    )}
+                                    <span
+                                      style={{
+                                        color: "#666",
+                                        fontSize: "0.9rem",
+                                        marginLeft: "0.5rem",
+                                      }}
+                                    >
+                                      ({field.type})
+                                    </span>
+                                    {field.value && (
+                                      <div
+                                        style={{
+                                          fontSize: "0.9rem",
+                                          color: "var(--hana-mint)",
+                                          fontWeight: "bold",
+                                          marginTop: "0.25rem",
+                                          padding: "0.25rem 0.5rem",
+                                          background: "#e8f5e8",
+                                          borderRadius: "4px",
+                                          border: "1px solid #4caf50",
+                                        }}
+                                      >
+                                        ✅ 입력됨: {field.value}
+                                      </div>
+                                    )}
+                                    <div
+                                      style={{
+                                        fontSize: "0.8rem",
+                                        color: "#999",
+                                        marginTop: "0.25rem",
+                                      }}
+                                    >
+                                      클릭하여 태블릿에서 입력
+                                    </div>
                                   </div>
-                                </div>
-                              ));
-                            } catch (e) {
-                              return <div style={{ color: "red" }}>서식 데이터를 불러올 수 없습니다.</div>;
-                            }
-                          })()}
+                                ));
+                              } catch (e) {
+                                return (
+                                  <div style={{ color: "red" }}>
+                                    서식 데이터를 불러올 수 없습니다.
+                                  </div>
+                                );
+                              }
+                            })()}
+                          </details>
                         </div>
                       )}
 
                       {/* PC 전용 네비게이션 버튼 */}
-                      <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1rem" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          marginTop: "1rem",
+                        }}
+                      >
                         <button
                           onClick={() => {
                             if (currentFormIndex > 0) {
@@ -1634,9 +1973,12 @@ const EmployeeDashboard = () => {
                                     data: {
                                       currentFormIndex: currentFormIndex - 1,
                                       totalForms: enrollmentData.forms.length,
-                                      currentForm: enrollmentData.forms[currentFormIndex - 1]
+                                      currentForm:
+                                        enrollmentData.forms[
+                                          currentFormIndex - 1
+                                        ],
                                     },
-                                    timestamp: Date.now()
+                                    timestamp: Date.now(),
                                   }),
                                 });
                               }
@@ -1645,18 +1987,27 @@ const EmployeeDashboard = () => {
                           disabled={currentFormIndex === 0}
                           style={{
                             padding: "0.75rem 1.5rem",
-                            background: currentFormIndex === 0 ? "#ccc" : "var(--hana-mint)",
+                            background:
+                              currentFormIndex === 0
+                                ? "#ccc"
+                                : "var(--hana-mint)",
                             color: "white",
                             border: "none",
                             borderRadius: "8px",
-                            cursor: currentFormIndex === 0 ? "not-allowed" : "pointer"
+                            cursor:
+                              currentFormIndex === 0
+                                ? "not-allowed"
+                                : "pointer",
                           }}
                         >
                           ← 이전 서식
                         </button>
                         <button
                           onClick={() => {
-                            if (currentFormIndex < enrollmentData.forms.length - 1) {
+                            if (
+                              currentFormIndex <
+                              enrollmentData.forms.length - 1
+                            ) {
                               setCurrentFormIndex(currentFormIndex + 1);
                               // 태블릿에 서식 변경 알림
                               if (stompClient && sessionId) {
@@ -1667,22 +2018,35 @@ const EmployeeDashboard = () => {
                                     data: {
                                       currentFormIndex: currentFormIndex + 1,
                                       totalForms: enrollmentData.forms.length,
-                                      currentForm: enrollmentData.forms[currentFormIndex + 1]
+                                      currentForm:
+                                        enrollmentData.forms[
+                                          currentFormIndex + 1
+                                        ],
                                     },
-                                    timestamp: Date.now()
+                                    timestamp: Date.now(),
                                   }),
                                 });
                               }
                             }
                           }}
-                          disabled={currentFormIndex === enrollmentData.forms.length - 1}
+                          disabled={
+                            currentFormIndex === enrollmentData.forms.length - 1
+                          }
                           style={{
                             padding: "0.75rem 1.5rem",
-                            background: currentFormIndex === enrollmentData.forms.length - 1 ? "#ccc" : "var(--hana-mint)",
+                            background:
+                              currentFormIndex ===
+                              enrollmentData.forms.length - 1
+                                ? "#ccc"
+                                : "var(--hana-mint)",
                             color: "white",
                             border: "none",
                             borderRadius: "8px",
-                            cursor: currentFormIndex === enrollmentData.forms.length - 1 ? "not-allowed" : "pointer"
+                            cursor:
+                              currentFormIndex ===
+                              enrollmentData.forms.length - 1
+                                ? "not-allowed"
+                                : "pointer",
                           }}
                         >
                           다음 서식 →
@@ -1697,17 +2061,15 @@ const EmployeeDashboard = () => {
                 customerData={currentCustomer}
                 selectedProduct={selectedProduct}
                 isEmployee={true}
+                sessionId={sessionId}
                 onFormComplete={(formData) => {
                   console.log("서식 작성 완료:", formData);
                   // 백엔드에 서식 데이터 저장
                   axios
-                    .post(
-                      "http://localhost:8080/api/forms/submit",
-                      {
-                        customerId: currentCustomer.CustomerID,
-                        ...formData,
-                      }
-                    )
+                    .post("http://localhost:8080/api/forms/submit", {
+                      customerId: currentCustomer.CustomerID,
+                      ...formData,
+                    })
                     .catch((error) => console.error("서식 제출 오류:", error));
                 }}
                 onScreenSync={syncScreenToCustomer}

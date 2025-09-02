@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import FormViewer from "../customer/FormViewer";
+import { Client } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
 
 const FormManager = ({
   customerData,
@@ -8,11 +10,13 @@ const FormManager = ({
   onFormComplete,
   onScreenSync,
   onFormDataUpdate,
+  sessionId = "tablet_main", // WebSocket 세션 ID 추가
 }) => {
   const [currentFormIndex, setCurrentFormIndex] = useState(0);
   const [formData, setFormData] = useState({});
   const [highlightedFields, setHighlightedFields] = useState([]);
   const [formProgress, setFormProgress] = useState({});
+  const [stompClient, setStompClient] = useState(null); // WebSocket 클라이언트 추가
 
   // 하나은행 실제 서식 목록 (complete_hana_forms.json 기반)
   const hanaForms = [
@@ -794,6 +798,37 @@ const FormManager = ({
     }
   }, [currentFormIndex]);
 
+  // WebSocket 연결 설정
+  useEffect(() => {
+    const client = new Client({
+      webSocketFactory: () => new SockJS("http://localhost:8080/api/ws"),
+      debug: function (str) {
+        console.log(str);
+      },
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000,
+    });
+
+    client.onConnect = (frame) => {
+      console.log("FormManager WebSocket 연결됨: " + frame);
+      setStompClient(client);
+    };
+
+    client.onStompError = (frame) => {
+      console.error("FormManager WebSocket 오류: " + frame.headers["message"]);
+      console.error("추가 정보: " + frame.body);
+    };
+
+    client.activate();
+
+    return () => {
+      if (client) {
+        client.deactivate();
+      }
+    };
+  }, []);
+
   // 서식 데이터 변경 핸들러
   const handleFormDataChange = (updatedData) => {
     setFormData(updatedData);
@@ -985,6 +1020,8 @@ const FormManager = ({
           formFields={currentForm.fields}
           isReadOnly={true}
           isCustomerInput={false}
+          sessionId={sessionId} // WebSocket 세션 ID 전달
+          stompClient={stompClient} // WebSocket 클라이언트 전달
         />
       )}
 

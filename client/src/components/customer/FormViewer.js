@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
+import { Client } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
 
 // PDF.js 워커 설정 - 로컬 워커 사용
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
@@ -10,11 +12,14 @@ const FormViewer = ({
   formUrl,
   formData = {},
   formFields = [],
+  formSchema, // formSchema prop 추가
   isReadOnly = false,
   isCustomerInput = false,
   onFormDataChange,
   onFieldHighlight,
   highlightedFields = [],
+  sessionId, // WebSocket 세션 ID 추가
+  stompClient, // WebSocket 클라이언트 추가
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [pdfError, setPdfError] = useState(null);
@@ -360,9 +365,27 @@ const FormViewer = ({
   };
 
   useEffect(() => {
-    setInputFields(formFields);
-    setIsLoading(false);
-  }, [formFields]);
+    // formSchema가 문자열인 경우 파싱
+    let parsedFields = [];
+
+    if (formFields && formFields.length > 0) {
+      parsedFields = formFields;
+    } else if (formSchema) {
+      try {
+        const schema =
+          typeof formSchema === "string" ? JSON.parse(formSchema) : formSchema;
+        parsedFields = schema.fields || [];
+      } catch (error) {
+        console.error("formSchema 파싱 실패:", error);
+        parsedFields = [];
+      }
+    }
+
+    if (parsedFields.length > 0) {
+      setInputFields(parsedFields);
+      setIsLoading(false);
+    }
+  }, [formFields?.length, formSchema?.toString()]); // formSchema 문자열화하여 의존성 최적화
 
   const handleDocumentLoadSuccess = ({ numPages }) => {
     // PDF 로딩 성공 시 컨테이너 너비 설정
@@ -424,6 +447,36 @@ const FormViewer = ({
   const handleFieldClick = (fieldId) => {
     if (!isReadOnly && onFieldHighlight) {
       onFieldHighlight(fieldId);
+    }
+
+    // WebSocket을 통해 태블릿에 필드 클릭 메시지 전송
+    if (stompClient && stompClient.connected && sessionId) {
+      const field = formFields.find((f) => f.id === fieldId);
+      if (field) {
+        const message = {
+          type: "field-clicked",
+          sessionId: sessionId,
+          fieldId: fieldId,
+          fieldData: {
+            id: field.id,
+            label: field.label,
+            type: field.type,
+            x: field.x,
+            y: field.y,
+            width: field.width,
+            height: field.height,
+            placeholder: field.placeholder,
+          },
+          timestamp: new Date().toISOString(),
+        };
+
+        stompClient.publish({
+          destination: "/topic/session/" + sessionId,
+          body: JSON.stringify(message),
+        });
+
+        console.log("태블릿에 필드 클릭 메시지 전송:", message);
+      }
     }
   };
 

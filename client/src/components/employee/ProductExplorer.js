@@ -707,12 +707,36 @@ const ProductExplorer = ({
     console.log("기본 금리:", `"${product.interestRate}"`);
     console.log("모달 열기 전 showModal 상태:", showModal);
 
-    setSelectedProduct(product);
+    // 실제 데이터베이스에 존재하는 상품 ID로 매핑
+    const productIdMapping = {
+      "3·6·9 정기예금": "P033_아이_꿈하나_적금", // 임시로 적금 상품 ID 사용
+      "(내맘) 적금": "P084_내맘_적금",
+      "급여하나 월복리 적금": "P035_급여하나_월복리_적금",
+      "달달 하나 적금": "P077_달달하나_적금",
+      "대전하나 축구사랑 적금": "P070_대전하나_축구사랑_적금",
+      "도전365 적금": "P089_도전_365_적금",
+      "부자씨 적금": "P068_부자씨_적금",
+      "손님케어 적금": "P052_손님케어적금",
+      "하나 아이키움 적금": "P069_하나_아이키움_적금",
+      "하나 중소기업재직자 우대저축": "P078_하나_중소기업재직자_우대저축",
+      "내집마련 더블업(Double-Up)적금": "P093_내집마련더블업적금",
+    };
+
+    // 상품 ID 매핑 적용
+    const mappedProduct = {
+      ...product,
+      productid:
+        productIdMapping[product.productName] || "P033_아이_꿈하나_적금", // 기본값
+    };
+
+    console.log("🔍 매핑된 상품 ID:", mappedProduct.productid);
+
+    setSelectedProduct(mappedProduct);
     setShowModal(true);
 
     // 상품 선택 이벤트 전달
     if (onProductSelected) {
-      onProductSelected(product);
+      onProductSelected(mappedProduct);
     }
 
     console.log("setSelectedProduct 호출 완료");
@@ -721,10 +745,10 @@ const ProductExplorer = ({
 
     // 고객 화면에도 상품 상세정보 전송
     if (onScreenSync) {
-      console.log("🔄 고객 화면으로 데이터 전송:", product);
+      console.log("🔄 고객 화면으로 데이터 전송:", mappedProduct);
       onScreenSync({
         type: "product-detail-sync",
-        data: product,
+        data: mappedProduct,
       });
     }
   };
@@ -1296,11 +1320,15 @@ const ProductExplorer = ({
                       type: "product-enrollment",
                       data: {
                         productId:
-                          selectedProduct.id || selectedProduct.productId,
+                          selectedProduct.productid ||
+                          selectedProduct.productId ||
+                          selectedProduct.id,
                         productName:
+                          selectedProduct.productname ||
                           selectedProduct.productName ||
                           selectedProduct.product_name,
                         productType:
+                          selectedProduct.producttype ||
                           selectedProduct.productType ||
                           selectedProduct.product_type,
                         customerId: customerId,

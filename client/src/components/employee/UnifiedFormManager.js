@@ -1,9 +1,18 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import styled from 'styled-components';
-import FormRenderer from './FormRenderer';
-import AdvancedPDFRenderer from './AdvancedPDFRenderer';
-import { hanaFormConfigs, searchForms, formCategories, sharedFieldMappings, calculateFormCompletion } from '../../data/hanaFormConfigs';
-import { generateAllFormConfigs, searchGeneratedForms as searchGeneratedFormsUtil } from '../../utils/formDataGenerator';
+import React, { useState, useEffect, useCallback } from "react";
+import styled from "styled-components";
+import FormRenderer from "./FormRenderer";
+import AdvancedPDFRenderer from "./AdvancedPDFRenderer";
+import {
+  hanaFormConfigs,
+  searchForms,
+  formCategories,
+  sharedFieldMappings,
+  calculateFormCompletion,
+} from "../../data/hanaFormConfigs";
+import {
+  generateAllFormConfigs,
+  searchGeneratedForms as searchGeneratedFormsUtil,
+} from "../../utils/formDataGenerator";
 
 const ManagerContainer = styled.div`
   display: flex;
@@ -37,7 +46,7 @@ const SearchBox = styled.input`
   border: 1px solid #ddd;
   border-radius: 6px;
   font-size: 14px;
-  
+
   &:focus {
     outline: none;
     border-color: var(--hana-mint);
@@ -51,7 +60,7 @@ const CategoryFilter = styled.select`
   border: 1px solid #ddd;
   border-radius: 6px;
   font-size: 14px;
-  
+
   &:focus {
     outline: none;
     border-color: var(--hana-mint);
@@ -65,8 +74,10 @@ const FormList = styled.div`
 `;
 
 const FormCard = styled.div`
-  background: ${props => props.selected ? 'rgba(0, 133, 122, 0.1)' : '#f8f9fa'};
-  border: 2px solid ${props => props.selected ? 'var(--hana-mint)' : '#e9ecef'};
+  background: ${(props) =>
+    props.selected ? "rgba(0, 133, 122, 0.1)" : "#f8f9fa"};
+  border: 2px solid
+    ${(props) => (props.selected ? "var(--hana-mint)" : "#e9ecef")};
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 12px;
@@ -117,11 +128,11 @@ const ProgressBar = styled.div`
   border-radius: 2px;
   overflow: hidden;
   margin-top: 8px;
-  
+
   .fill {
     height: 100%;
     background: var(--hana-mint);
-    width: ${props => props.progress}%;
+    width: ${(props) => props.progress}%;
     transition: width 0.3s ease;
   }
 `;
@@ -156,15 +167,16 @@ const ToolbarActions = styled.div`
 const ActionButton = styled.button`
   padding: 8px 16px;
   border: 1px solid var(--hana-mint);
-  background: ${props => props.primary ? 'var(--hana-mint)' : 'white'};
-  color: ${props => props.primary ? 'white' : 'var(--hana-mint)'};
+  background: ${(props) => (props.primary ? "var(--hana-mint)" : "white")};
+  color: ${(props) => (props.primary ? "white" : "var(--hana-mint)")};
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
   transition: all 0.3s ease;
-  
+
   &:hover {
-    background: ${props => props.primary ? 'var(--hana-mint-dark)' : 'rgba(0, 133, 122, 0.1)'};
+    background: ${(props) =>
+      props.primary ? "var(--hana-mint-dark)" : "rgba(0, 133, 122, 0.1)"};
   }
 `;
 
@@ -204,7 +216,7 @@ const SharedDataContent = styled.div`
 
 const SharedField = styled.div`
   margin-bottom: 15px;
-  
+
   label {
     display: block;
     font-size: 12px;
@@ -212,14 +224,14 @@ const SharedField = styled.div`
     color: #666;
     margin-bottom: 5px;
   }
-  
+
   input {
     width: 100%;
     padding: 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 14px;
-    
+
     &:focus {
       outline: none;
       border-color: var(--hana-mint);
@@ -244,8 +256,8 @@ const LoadingMessage = styled.div`
 
 const UnifiedFormManager = ({ onFormComplete }) => {
   const [selectedForm, setSelectedForm] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('전체');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("전체");
   const [formData, setFormData] = useState({});
   const [activeField, setActiveField] = useState(null);
   const [sharedData, setSharedData] = useState({});
@@ -254,119 +266,132 @@ const UnifiedFormManager = ({ onFormComplete }) => {
   const [error, setError] = useState(null);
 
   // 필터링된 서식 목록 (기존 + 자동 생성)
-  const existingForms = searchForms(searchQuery, selectedCategory === '전체' ? null : selectedCategory);
-  
+  const existingForms = searchForms(
+    searchQuery,
+    selectedCategory === "전체" ? null : selectedCategory
+  );
+
   // 자동 생성된 서식 목록 (오류 처리 추가)
   let generatedForms = [];
   try {
-    generatedForms = searchGeneratedFormsUtil(searchQuery, selectedCategory === '전체' ? null : selectedCategory);
-    console.log('=== 서식 로딩 디버깅 ===');
-    console.log('자동 생성된 서식 수:', generatedForms.length);
-    console.log('기존 서식 수:', existingForms.length);
-    console.log('검색 쿼리:', searchQuery);
-    console.log('선택된 카테고리:', selectedCategory);
-    
+    generatedForms = searchGeneratedFormsUtil(
+      searchQuery,
+      selectedCategory === "전체" ? null : selectedCategory
+    );
+    console.log("=== 서식 로딩 디버깅 ===");
+    console.log("자동 생성된 서식 수:", generatedForms.length);
+    console.log("기존 서식 수:", existingForms.length);
+    console.log("검색 쿼리:", searchQuery);
+    console.log("선택된 카테고리:", selectedCategory);
+
     if (generatedForms.length > 0) {
-      console.log('첫 번째 자동 생성 서식:', generatedForms[0]);
+      console.log("첫 번째 자동 생성 서식:", generatedForms[0]);
     }
   } catch (err) {
-    console.error('자동 생성 서식 로드 오류:', err);
-    setError('서식 데이터를 불러오는 중 오류가 발생했습니다: ' + err.message);
+    console.error("자동 생성 서식 로드 오류:", err);
+    setError("서식 데이터를 불러오는 중 오류가 발생했습니다: " + err.message);
   }
-  
+
   const filteredForms = [...existingForms, ...generatedForms];
-  console.log('총 서식 수:', filteredForms.length);
+  console.log("총 서식 수:", filteredForms.length);
 
   // 필드 변경 핸들러
   const handleFieldChange = useCallback((fieldName, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [fieldName]: value
+      [fieldName]: value,
     }));
-    
+
     // 공유 데이터 매핑 확인
     const sharedField = sharedFieldMappings[fieldName];
     if (sharedField) {
-      setSharedData(prev => ({
+      setSharedData((prev) => ({
         ...prev,
-        [sharedField]: value
+        [sharedField]: value,
       }));
     }
   }, []);
 
   // 필드 클릭 핸들러
-  const handleFieldClick = useCallback((fieldId, fieldLabel, fieldType, fieldConfig) => {
-    setActiveField(fieldId);
-    
-    // STOMP WebSocket으로 태블릿에 입력 요청 전송
-    if (window.stompClient && window.stompClient.connected) {
-      window.stompClient.publish({
-        destination: '/app/send-message',
-        body: JSON.stringify({
-          sessionId: 'tablet_main',
-          type: 'FIELD_INPUT_REQUEST',
-          field: {
-            id: fieldId,
-            label: fieldLabel,
-            type: fieldType,
-            currentValue: formData[fieldId] || sharedData[fieldId] || '',
-            placeholder: fieldConfig.placeholder || getPlaceholderForField(fieldId),
-            config: fieldConfig
-          }
-        })
-      });
-      
-      console.log('필드 입력 요청 전송:', fieldId, fieldLabel);
-    } else {
-      console.log('STOMP 클라이언트가 연결되지 않음');
-    }
-  }, [formData, sharedData]);
+  const handleFieldClick = useCallback(
+    (fieldId, fieldLabel, fieldType, fieldConfig) => {
+      setActiveField(fieldId);
+
+      // STOMP WebSocket으로 태블릿에 입력 요청 전송
+      if (window.stompClient && window.stompClient.connected) {
+        window.stompClient.publish({
+          destination: "/app/send-message",
+          body: JSON.stringify({
+            sessionId: "tablet_main",
+            type: "FIELD_INPUT_REQUEST",
+            field: {
+              id: fieldId,
+              label: fieldLabel,
+              type: fieldType,
+              currentValue: formData[fieldId] || sharedData[fieldId] || "",
+              placeholder:
+                fieldConfig.placeholder || getPlaceholderForField(fieldId),
+              config: fieldConfig,
+            },
+          }),
+        });
+
+        console.log("필드 입력 요청 전송:", fieldId, fieldLabel);
+      } else {
+        console.log("STOMP 클라이언트가 연결되지 않음");
+      }
+    },
+    [formData, sharedData]
+  );
 
   // 태블릿에서 입력 완료 시 받는 데이터
   useEffect(() => {
     const handleStompMessage = (message) => {
       if (!message || !message.body) return;
-      
+
       try {
         const data = JSON.parse(message.body);
-        console.log('UnifiedFormManager 메시지 수신:', data);
-        
+        console.log("UnifiedFormManager 메시지 수신:", data);
+
         let messageData = data;
-        if (data.type === 'receive-message' && data.data) {
+        if (data.type === "receive-message" && data.data) {
           messageData = data.data;
         }
-        
-        if (messageData.type === 'FIELD_INPUT_COMPLETED') {
-          const { fieldId, value } = messageData.field;
-          console.log('필드 입력 완료 처리:', fieldId, value);
-          
+
+        if (messageData.type === "field-input-completed") {
+          const { fieldId, fieldValue } = messageData;
+          console.log("필드 입력 완료 처리:", fieldId, fieldValue);
+
           // 공유 필드인지 확인
-          const isSharedField = Object.values(sharedFieldMappings).some(fields => 
-            fields.includes(fieldId)
+          const isSharedField = Object.values(sharedFieldMappings).some(
+            (fields) => fields.includes(fieldId)
           );
-          
+
           if (isSharedField) {
-            setSharedData(prev => ({
+            setSharedData((prev) => ({
               ...prev,
-              [fieldId]: value
+              [fieldId]: fieldValue,
             }));
           } else {
-            setFormData(prev => ({
+            setFormData((prev) => ({
               ...prev,
-              [fieldId]: value
+              [fieldId]: fieldValue,
             }));
           }
-          
+
           setActiveField(null);
         }
       } catch (error) {
-        console.error('메시지 파싱 오류:', error);
+        console.error("메시지 파싱 오류:", error);
       }
     };
 
     if (window.stompClient && window.stompClient.connected) {
-      const subscription = window.stompClient.subscribe('/topic/session/tablet_main', handleStompMessage);
-      
+      const subscription = window.stompClient.subscribe(
+        "/topic/session/tablet_main",
+        handleStompMessage
+      );
+
       return () => {
         if (subscription) {
           subscription.unsubscribe();
@@ -377,13 +402,13 @@ const UnifiedFormManager = ({ onFormComplete }) => {
 
   const getPlaceholderForField = (fieldId) => {
     const placeholders = {
-      account_holder_name: '고객 성명을 입력해주세요',
-      phone_number: '연락처를 입력해주세요 (예: 010-1234-5678)',
-      customer_name: '고객 성명을 입력해주세요',
-      resident_number: '주민등록번호를 입력해주세요',
-      address: '주소를 입력해주세요'
+      account_holder_name: "고객 성명을 입력해주세요",
+      phone_number: "연락처를 입력해주세요 (예: 010-1234-5678)",
+      customer_name: "고객 성명을 입력해주세요",
+      resident_number: "주민등록번호를 입력해주세요",
+      address: "주소를 입력해주세요",
     };
-    return placeholders[fieldId] || '정보를 입력해주세요';
+    return placeholders[fieldId] || "정보를 입력해주세요";
   };
 
   // 서식 선택
@@ -397,21 +422,24 @@ const UnifiedFormManager = ({ onFormComplete }) => {
   // 서식 완료 처리
   const handleFormComplete = () => {
     if (selectedForm && onFormComplete) {
-      const completion = calculateFormCompletion(selectedForm.id, { ...formData, ...sharedData });
+      const completion = calculateFormCompletion(selectedForm.id, {
+        ...formData,
+        ...sharedData,
+      });
       onFormComplete({
         formId: selectedForm.id,
         formTitle: selectedForm.title,
         formData: { ...formData, ...sharedData },
-        completion
+        completion,
       });
     }
   };
 
   // 공유 데이터 업데이트
   const handleSharedDataChange = (fieldId, value) => {
-    setSharedData(prev => ({
+    setSharedData((prev) => ({
       ...prev,
-      [fieldId]: value
+      [fieldId]: value,
     }));
   };
 
@@ -422,7 +450,10 @@ const UnifiedFormManager = ({ onFormComplete }) => {
         <ErrorMessage>
           <strong>오류 발생:</strong> {error}
           <br />
-          <ActionButton onClick={() => setError(null)} style={{ marginTop: '10px' }}>
+          <ActionButton
+            onClick={() => setError(null)}
+            style={{ marginTop: "10px" }}
+          >
             다시 시도
           </ActionButton>
         </ErrorMessage>
@@ -434,7 +465,9 @@ const UnifiedFormManager = ({ onFormComplete }) => {
     <ManagerContainer>
       <Sidebar>
         <SidebarHeader>
-          <SidebarTitle>📋 하나은행 서식 ({filteredForms.length}개)</SidebarTitle>
+          <SidebarTitle>
+            📋 하나은행 서식 ({filteredForms.length}개)
+          </SidebarTitle>
           <SearchBox
             placeholder="서식 검색..."
             value={searchQuery}
@@ -445,21 +478,25 @@ const UnifiedFormManager = ({ onFormComplete }) => {
             onChange={(e) => setSelectedCategory(e.target.value)}
           >
             <option value="전체">전체 카테고리</option>
-            {Object.keys(formCategories).map(category => (
-              <option key={category} value={category}>{category}</option>
+            {Object.keys(formCategories).map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
             ))}
           </CategoryFilter>
         </SidebarHeader>
-        
+
         <FormList>
           {loading ? (
             <LoadingMessage>서식을 불러오는 중...</LoadingMessage>
           ) : filteredForms.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+            <div
+              style={{ textAlign: "center", padding: "20px", color: "#666" }}
+            >
               검색 결과가 없습니다.
             </div>
           ) : (
-            filteredForms.map(form => {
+            filteredForms.map((form) => {
               const completion = calculateFormCompletion(form.id, formData);
               return (
                 <FormCard
@@ -486,11 +523,11 @@ const UnifiedFormManager = ({ onFormComplete }) => {
       <MainContent>
         <Toolbar>
           <ToolbarTitle>
-            {selectedForm ? selectedForm.title : '서식을 선택해주세요'}
+            {selectedForm ? selectedForm.title : "서식을 선택해주세요"}
           </ToolbarTitle>
           <ToolbarActions>
             <ActionButton onClick={() => setShowSharedData(!showSharedData)}>
-              {showSharedData ? '공유데이터 숨기기' : '공유데이터 보기'}
+              {showSharedData ? "공유데이터 숨기기" : "공유데이터 보기"}
             </ActionButton>
             {selectedForm && (
               <ActionButton primary onClick={handleFormComplete}>
@@ -508,17 +545,23 @@ const UnifiedFormManager = ({ onFormComplete }) => {
               onFieldChange={handleFieldChange}
             />
           ) : (
-            <div style={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              height: '100%',
-              color: '#666'
-            }}>
-              <div style={{ fontSize: '48px', marginBottom: '20px' }}>📋</div>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+                color: "#666",
+              }}
+            >
+              <div style={{ fontSize: "48px", marginBottom: "20px" }}>📋</div>
               <h3>서식을 선택해주세요</h3>
-              <p>왼쪽 목록에서 작성할 서식을 선택하시면<br />대화형 서식 작성이 시작됩니다.</p>
+              <p>
+                왼쪽 목록에서 작성할 서식을 선택하시면
+                <br />
+                대화형 서식 작성이 시작됩니다.
+              </p>
             </div>
           )}
         </FormViewer>
@@ -526,16 +569,16 @@ const UnifiedFormManager = ({ onFormComplete }) => {
 
       {showSharedData && (
         <SharedDataPanel>
-          <SharedDataHeader>
-            🔄 공유 데이터
-          </SharedDataHeader>
+          <SharedDataHeader>🔄 공유 데이터</SharedDataHeader>
           <SharedDataContent>
             <SharedField>
               <label>고객 성명</label>
               <input
                 type="text"
-                value={sharedData.customer_name || ''}
-                onChange={(e) => handleSharedDataChange('customer_name', e.target.value)}
+                value={sharedData.customer_name || ""}
+                onChange={(e) =>
+                  handleSharedDataChange("customer_name", e.target.value)
+                }
                 placeholder="고객 성명을 입력해주세요"
               />
             </SharedField>
@@ -543,8 +586,10 @@ const UnifiedFormManager = ({ onFormComplete }) => {
               <label>연락처</label>
               <input
                 type="tel"
-                value={sharedData.phone_number || ''}
-                onChange={(e) => handleSharedDataChange('phone_number', e.target.value)}
+                value={sharedData.phone_number || ""}
+                onChange={(e) =>
+                  handleSharedDataChange("phone_number", e.target.value)
+                }
                 placeholder="010-1234-5678"
               />
             </SharedField>
@@ -552,8 +597,10 @@ const UnifiedFormManager = ({ onFormComplete }) => {
               <label>주민등록번호</label>
               <input
                 type="text"
-                value={sharedData.resident_number || ''}
-                onChange={(e) => handleSharedDataChange('resident_number', e.target.value)}
+                value={sharedData.resident_number || ""}
+                onChange={(e) =>
+                  handleSharedDataChange("resident_number", e.target.value)
+                }
                 placeholder="000000-0000000"
               />
             </SharedField>
@@ -561,8 +608,10 @@ const UnifiedFormManager = ({ onFormComplete }) => {
               <label>주소</label>
               <input
                 type="text"
-                value={sharedData.address || ''}
-                onChange={(e) => handleSharedDataChange('address', e.target.value)}
+                value={sharedData.address || ""}
+                onChange={(e) =>
+                  handleSharedDataChange("address", e.target.value)
+                }
                 placeholder="고객 주소를 입력해주세요"
               />
             </SharedField>
