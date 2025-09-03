@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import FormViewer from "../customer/FormViewer";
+import ForeignCurrencyRemittanceForm from "../customer/ForeignCurrencyRemittanceForm";
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 
@@ -20,6 +21,65 @@ const FormManager = ({
 
   // 하나은행 실제 서식 목록 (complete_hana_forms.json 기반)
   const hanaForms = [
+    {
+      id: "foreign_currency_remittance",
+      title: "외화송금신청서",
+      category: "외환",
+      url: null, // HTML 폼으로 렌더링
+      korean_filename: "외화송금신청서.pdf",
+      description:
+        "해외 송금을 위한 외화송금신청서입니다. 송금 방법, 금액, 수취인 정보를 정확히 기재해주세요.",
+      required: true,
+      isHtmlForm: true, // HTML 폼 사용 표시
+      fields: [
+        {
+          id: "method_ott",
+          label: "국외전신송금(OTT)",
+          type: "checkbox",
+          required: false,
+        },
+        {
+          id: "method_odt",
+          label: "국내전신송금(ODT)",
+          type: "checkbox",
+          required: false,
+        },
+        {
+          id: "method_dd",
+          label: "송금수표(D/D)",
+          type: "checkbox",
+          required: false,
+        },
+        {
+          id: "name_eng",
+          label: "영문 이름",
+          type: "text",
+          required: true,
+          placeholder: "영문 이름을 입력하세요",
+        },
+        {
+          id: "name_kor",
+          label: "국문 이름",
+          type: "text",
+          required: true,
+          placeholder: "국문 이름을 입력하세요",
+        },
+        {
+          id: "currency",
+          label: "통화",
+          type: "text",
+          required: true,
+          placeholder: "USD",
+        },
+        {
+          id: "amount",
+          label: "송금액",
+          type: "text",
+          required: true,
+          placeholder: "송금 금액을 입력하세요",
+        },
+      ],
+    },
     {
       id: "loan_application",
       title: "대출신청서",
@@ -1010,19 +1070,64 @@ const FormManager = ({
 
       {/* 서식 뷰어 */}
       {currentForm && (
-        <FormViewer
-          formUrl={currentForm.url}
-          formData={formData}
-          onFormDataChange={handleFormDataChange}
-          isEmployee={isEmployee}
-          highlightedFields={highlightedFields}
-          onFieldHighlight={handleFieldHighlight}
-          formFields={currentForm.fields}
-          isReadOnly={true}
-          isCustomerInput={false}
-          sessionId={sessionId} // WebSocket 세션 ID 전달
-          stompClient={stompClient} // WebSocket 클라이언트 전달
-        />
+        <>
+          {currentForm.isHtmlForm ? (
+            // HTML 폼 렌더링 (외화송금신청서 등)
+            <div style={{ marginTop: "20px" }}>
+              <div
+                style={{
+                  textAlign: "center",
+                  marginBottom: "20px",
+                  padding: "20px",
+                  backgroundColor: "#f8f9fa",
+                  borderRadius: "8px",
+                  border: "1px solid #e9ecef",
+                }}
+              >
+                <h3 style={{ color: "#2196F3", margin: 0 }}>
+                  📝 {currentForm.title} (HTML 폼)
+                </h3>
+                <p
+                  style={{
+                    color: "#666",
+                    margin: "0.5rem 0 0 0",
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  {currentForm.description}
+                </p>
+              </div>
+
+              <ForeignCurrencyRemittanceForm
+                onFormSubmit={(formData) => {
+                  console.log("📝 외화송금신청서 제출됨:", formData);
+                  // 폼 데이터를 FormManager의 상태에 저장
+                  setFormData(formData);
+                  // 고객 화면에 동기화
+                  if (onScreenSync) {
+                    onScreenSync("form_data", formData);
+                  }
+                }}
+                initialData={formData}
+              />
+            </div>
+          ) : (
+            // 기존 PDF 폼 렌더링
+            <FormViewer
+              formUrl={currentForm.url}
+              formData={formData}
+              onFormDataChange={handleFormDataChange}
+              isEmployee={isEmployee}
+              highlightedFields={highlightedFields}
+              onFieldHighlight={handleFieldHighlight}
+              formFields={currentForm.fields}
+              isReadOnly={true}
+              isCustomerInput={false}
+              sessionId={sessionId} // WebSocket 세션 ID 전달
+              stompClient={stompClient} // WebSocket 클라이언트 전달
+            />
+          )}
+        </>
       )}
 
       {/* 네비게이션 버튼 */}

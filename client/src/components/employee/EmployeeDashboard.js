@@ -15,6 +15,7 @@ import FormSelector from "./FormSelector";
 import FormManager from "./FormManager";
 import AiQuestionGenerator from "./AiQuestionGenerator";
 import PDFViewer from "../customer/PDFViewer";
+import ForeignCurrencyRemittanceForm from "../customer/ForeignCurrencyRemittanceForm";
 
 const DashboardContainer = styled.div`
   display: flex;
@@ -1761,6 +1762,54 @@ const EmployeeDashboard = () => {
         )}
 
         <Section>
+          <SectionTitle>탭 네비게이션</SectionTitle>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.5rem",
+              marginBottom: "1rem",
+            }}
+          >
+            <Button
+              className={activeTab === "customer" ? "primary" : "secondary"}
+              onClick={() => setActiveTab("customer")}
+              style={{ justifyContent: "flex-start", textAlign: "left" }}
+            >
+              👤 고객 정보
+            </Button>
+            <Button
+              className={activeTab === "products" ? "primary" : "secondary"}
+              onClick={() => setActiveTab("products")}
+              style={{ justifyContent: "flex-start", textAlign: "left" }}
+            >
+              💰 상품 탐색
+            </Button>
+            <Button
+              className={activeTab === "pdf-forms" ? "primary" : "secondary"}
+              onClick={() => setActiveTab("pdf-forms")}
+              style={{ justifyContent: "flex-start", textAlign: "left" }}
+            >
+              📝 서식 작성
+            </Button>
+            <Button
+              className={activeTab === "simulation" ? "primary" : "secondary"}
+              onClick={() => setActiveTab("simulation")}
+              style={{ justifyContent: "flex-start", textAlign: "left" }}
+            >
+              🎯 혜택 시뮬레이션
+            </Button>
+            <Button
+              className={activeTab === "ai" ? "primary" : "secondary"}
+              onClick={() => setActiveTab("ai")}
+              style={{ justifyContent: "flex-start", textAlign: "left" }}
+            >
+              🤖 AI 질문 생성
+            </Button>
+          </div>
+        </Section>
+
+        <Section>
           <SectionTitle>고객 인식</SectionTitle>
 
           {!cameraActive ? (
@@ -1850,91 +1899,6 @@ const EmployeeDashboard = () => {
         <SidebarToggle isOpen={sidebarOpen} onClick={toggleSidebar}>
           {sidebarOpen ? "✕" : "☰"}
         </SidebarToggle>
-
-        {/* 새로운 탭 네비게이션 */}
-        <div
-          style={{
-            background:
-              "linear-gradient(135deg, var(--hana-primary), var(--hana-mint))",
-            padding: "var(--hana-space-6) var(--hana-space-8)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            color: "white",
-            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
-            position: "relative",
-            zIndex: 1,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "var(--hana-space-6)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                fontSize: "var(--hana-font-size-xl)",
-                fontWeight: 800,
-                textShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
-              }}
-            >
-              🏦 하나금융그룹 스마트 상담
-            </div>
-
-            <NavigationTabs>
-              <NavTab
-                active={activeTab === "customer"}
-                onClick={() => setActiveTab("customer")}
-              >
-                👤 고객 정보
-              </NavTab>
-              <NavTab
-                active={activeTab === "products"}
-                onClick={() => setActiveTab("products")}
-              >
-                💰 상품 탐색
-              </NavTab>
-
-              <NavTab
-                active={activeTab === "pdf-forms"}
-                onClick={() => setActiveTab("pdf-forms")}
-              >
-                📝 서식 작성
-              </NavTab>
-              <NavTab
-                active={activeTab === "simulation"}
-                onClick={() => setActiveTab("simulation")}
-              >
-                🎯 혜택 시뮬레이션
-              </NavTab>
-              <NavTab
-                active={activeTab === "ai"}
-                onClick={() => setActiveTab("ai")}
-              >
-                🤖 AI 질문 생성
-              </NavTab>
-            </NavigationTabs>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "var(--hana-space-4)",
-            }}
-          >
-            <SessionStatus active={!!sessionId}>
-              {sessionId ? `세션 활성: ${sessionId.slice(-8)}` : "대기 중"}
-            </SessionStatus>
-            <Button className="secondary" onClick={handleLogout}>
-              🚪 로그아웃
-            </Button>
-          </div>
-        </div>
 
         <TabContent>
           {activeTab === "customer" &&
