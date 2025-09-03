@@ -18,130 +18,114 @@ import PDFViewer from "../customer/PDFViewer";
 
 const DashboardContainer = styled.div`
   display: flex;
-  height: calc(100vh - 120px);
+  height: 100vh;
   background-color: var(--hana-bg-gray);
   font-family: var(--hana-font-family);
+  position: relative;
+`;
+
+const SidebarToggle = styled.button`
+  position: fixed;
+  top: 20px;
+  left: ${(props) => (props.isOpen ? "320px" : "20px")};
+  z-index: 1001;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--hana-primary), var(--hana-mint));
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.2);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+`;
+
+const SidebarOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  opacity: ${(props) => (props.isOpen ? 1 : 0)};
+  visibility: ${(props) => (props.isOpen ? "visible" : "hidden")};
+  transition: all 0.3s ease;
 `;
 
 const Sidebar = styled.div`
+  position: fixed;
+  left: ${(props) => (props.isOpen ? "0" : "-320px")};
+  top: 0;
   width: 320px;
+  height: 100vh;
   background: var(--hana-white);
   border-right: var(--hana-border-light);
   display: flex;
   flex-direction: column;
   box-shadow: var(--hana-shadow-light);
+  z-index: 1000;
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto;
+  padding: 2rem;
 `;
 
 const MainContent = styled.div`
+  margin-left: ${(props) => (props.sidebarOpen ? "320px" : "0")};
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-`;
-
-const TopBar = styled.div`
-  background: linear-gradient(135deg, var(--hana-primary), var(--hana-mint));
-  padding: var(--hana-space-6) var(--hana-space-8);
-  border-bottom: var(--hana-border-light);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: var(--hana-white);
-  box-shadow: var(--hana-shadow-light);
-`;
-
-const EmployeeInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--hana-space-4);
-`;
-
-const HanaLogo = styled.div`
-  display: flex;
-  align-items: center;
-  margin-right: var(--hana-space-8);
-
-  .logo-icon {
-    width: 40px;
-    height: 40px;
-    background: var(--hana-white);
-    border-radius: var(--hana-radius-md);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: var(--hana-space-3);
-    box-shadow: var(--hana-shadow-light);
-
-    img {
-      width: 32px;
-      height: 32px;
-      border-radius: var(--hana-radius-sm);
-    }
-  }
-
-  .logo-text {
-    font-size: var(--hana-font-size-lg);
-    font-weight: 700;
-    color: var(--hana-white);
-  }
-`;
-
-const Avatar = styled.div`
-  width: 48px;
-  height: 48px;
-  border-radius: var(--hana-radius-full);
-  background: linear-gradient(
-    135deg,
-    var(--hana-white),
-    rgba(255, 255, 255, 0.8)
-  );
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--hana-primary);
-  font-weight: 700;
-  font-size: var(--hana-font-size-lg);
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  box-shadow: var(--hana-shadow-light);
-`;
-
-const EmployeeDetails = styled.div`
-  .name {
-    font-size: var(--hana-font-size-lg);
-    font-weight: 700;
-    margin-bottom: var(--hana-space-1);
-  }
-
-  .role {
-    font-size: var(--hana-font-size-sm);
-    opacity: 0.9;
-    font-weight: 500;
-  }
+  height: 100vh;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
 const SessionStatus = styled.div`
-  padding: var(--hana-space-3) var(--hana-space-5);
+  padding: var(--hana-space-4) var(--hana-space-6);
   border-radius: var(--hana-radius-full);
   font-size: var(--hana-font-size-base);
   font-weight: 700;
   background: ${(props) =>
     props.active ? "var(--hana-success)" : "rgba(255, 255, 255, 0.2)"};
   color: var(--hana-white);
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.4);
   display: flex;
   align-items: center;
   gap: var(--hana-space-3);
-  min-width: 180px;
+  min-width: 200px;
   justify-content: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 1;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  }
 
   &::before {
     content: "";
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     background: ${(props) =>
       props.active ? "var(--hana-white)" : "rgba(255, 255, 255, 0.6)"};
     animation: ${(props) => (props.active ? "pulse 2s infinite" : "none")};
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
   }
 
   @keyframes pulse {
@@ -245,13 +229,29 @@ const Button = styled.button`
   }
 
   &.secondary {
-    background: var(--hana-white);
+    background: linear-gradient(
+      135deg,
+      var(--hana-white),
+      rgba(255, 255, 255, 0.9)
+    );
     color: var(--hana-primary);
     border: 2px solid var(--hana-primary);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    font-weight: 700;
 
     &:hover {
-      background: var(--hana-primary-light);
-      transform: translateY(-1px);
+      background: linear-gradient(
+        135deg,
+        var(--hana-primary-light),
+        var(--hana-white)
+      );
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      border-color: var(--hana-primary-dark);
+    }
+
+    &:active {
+      transform: translateY(0);
     }
   }
 
@@ -280,32 +280,74 @@ const Button = styled.button`
 
 const NavigationTabs = styled.div`
   display: flex;
-  gap: var(--hana-space-2);
+  gap: var(--hana-space-4);
   margin: 0;
+  align-items: center;
+  flex-wrap: wrap;
 `;
 
 const NavTab = styled.button`
-  padding: var(--hana-space-2) var(--hana-space-4);
+  padding: var(--hana-space-4) var(--hana-space-6);
   background: ${(props) =>
-    props.active ? "rgba(255, 255, 255, 0.2)" : "transparent"};
+    props.active
+      ? "linear-gradient(135deg, var(--hana-primary), var(--hana-mint))"
+      : "rgba(255, 255, 255, 0.15)"};
   border: 2px solid
     ${(props) =>
-      props.active ? "rgba(255, 255, 255, 0.4)" : "rgba(255, 255, 255, 0.2)"};
-  border-radius: var(--hana-radius-full);
+      props.active ? "rgba(255, 255, 255, 0.6)" : "rgba(255, 255, 255, 0.3)"};
+  border-radius: var(--hana-radius-lg);
   color: var(--hana-white);
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: var(--hana-font-size-sm);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: var(--hana-font-size-base);
+  min-width: 120px;
+  text-align: center;
+  box-shadow: ${(props) =>
+    props.active
+      ? "0 8px 25px rgba(0, 0, 0, 0.15)"
+      : "0 4px 15px rgba(0, 0, 0, 0.1)"};
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
+    transition: left 0.5s;
+  }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.3);
-    transform: translateY(-1px);
+    background: ${(props) =>
+      props.active
+        ? "linear-gradient(135deg, var(--hana-primary), var(--hana-mint))"
+        : "rgba(255, 255, 255, 0.25)"};
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+  }
+
+  &:hover::before {
+    left: 100%;
   }
 
   &:active {
-    transform: translateY(0);
+    transform: translateY(-1px);
+  }
+
+  @media (max-width: 768px) {
+    min-width: 100px;
+    padding: var(--hana-space-3) var(--hana-space-4);
+    font-size: var(--hana-font-size-sm);
   }
 `;
 
@@ -489,6 +531,8 @@ const CustomerInfoDisplay = ({
   customer,
   detailed = false,
   onSendToTablet,
+  customerProducts = [],
+  loadingProducts = false,
 }) => {
   if (!customer) {
     return (
@@ -621,6 +665,209 @@ const CustomerInfoDisplay = ({
         </div>
       )}
 
+      {/* 고객 상품 정보 섹션 */}
+      {detailed && (
+        <div
+          style={{
+            marginTop: "var(--hana-space-6)",
+            background: "var(--hana-white)",
+            borderRadius: "var(--hana-radius-lg)",
+            border: "var(--hana-border-light)",
+            overflow: "hidden",
+            boxShadow: "var(--hana-shadow-light)",
+          }}
+        >
+          <div
+            style={{
+              background:
+                "linear-gradient(135deg, var(--hana-mint) 0%, var(--hana-primary) 100%)",
+              color: "white",
+              padding: "var(--hana-space-4)",
+              borderBottom: "var(--hana-border-light)",
+            }}
+          >
+            <h3
+              style={{
+                margin: 0,
+                fontSize: "var(--hana-font-size-xl)",
+                fontWeight: "700",
+              }}
+            >
+              💰 가입 상품 정보
+            </h3>
+          </div>
+
+          <div style={{ padding: "var(--hana-space-4)" }}>
+            {loadingProducts ? (
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "var(--hana-space-6)",
+                  color: "var(--hana-gray)",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "2rem",
+                    marginBottom: "var(--hana-space-2)",
+                  }}
+                >
+                  ⏳
+                </div>
+                <p>상품 정보를 불러오는 중...</p>
+              </div>
+            ) : customerProducts && customerProducts.length > 0 ? (
+              <div style={{ display: "grid", gap: "var(--hana-space-4)" }}>
+                {customerProducts.map((product, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      background: "#f8f9fa",
+                      padding: "var(--hana-space-4)",
+                      borderRadius: "var(--hana-radius-md)",
+                      border: "1px solid #e9ecef",
+                      borderLeft: "4px solid var(--hana-mint)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
+                        marginBottom: "var(--hana-space-2)",
+                      }}
+                    >
+                      <h4
+                        style={{
+                          margin: 0,
+                          color: "var(--hana-primary)",
+                          fontSize: "var(--hana-font-size-lg)",
+                        }}
+                      >
+                        {product.productName || product.product_name}
+                      </h4>
+                      <span
+                        style={{
+                          background:
+                            product.status === "active"
+                              ? "var(--hana-success)"
+                              : "var(--hana-orange)",
+                          color: "white",
+                          padding: "0.25rem 0.75rem",
+                          borderRadius: "var(--hana-radius-full)",
+                          fontSize: "var(--hana-font-size-sm)",
+                          fontWeight: "600",
+                        }}
+                      >
+                        {product.status === "active" ? "활성" : "비활성"}
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: "var(--hana-space-3)",
+                        marginBottom: "var(--hana-space-2)",
+                      }}
+                    >
+                      <div>
+                        <p
+                          style={{
+                            margin: "0.25rem 0",
+                            fontSize: "var(--hana-font-size-sm)",
+                          }}
+                        >
+                          <strong>상품 타입:</strong>{" "}
+                          {product.productType || product.product_type}
+                        </p>
+                        <p
+                          style={{
+                            margin: "0.25rem 0",
+                            fontSize: "var(--hana-font-size-sm)",
+                          }}
+                        >
+                          <strong>계좌번호:</strong>{" "}
+                          {product.accountNumber ||
+                            product.account_number ||
+                            "N/A"}
+                        </p>
+                      </div>
+                      <div>
+                        <p
+                          style={{
+                            margin: "0.25rem 0",
+                            fontSize: "var(--hana-font-size-sm)",
+                          }}
+                        >
+                          <strong>가입일:</strong>{" "}
+                          {product.enrollmentDate ||
+                            product.enrollment_date ||
+                            "N/A"}
+                        </p>
+                        <p
+                          style={{
+                            margin: "0.25rem 0",
+                            fontSize: "var(--hana-font-size-sm)",
+                          }}
+                        >
+                          <strong>잔액:</strong>{" "}
+                          {(
+                            product.balance ||
+                            product.amount ||
+                            0
+                          ).toLocaleString()}
+                          원
+                        </p>
+                      </div>
+                    </div>
+
+                    {product.description && (
+                      <p
+                        style={{
+                          margin: "0.5rem 0 0 0",
+                          fontSize: "var(--hana-font-size-sm)",
+                          color: "var(--hana-gray)",
+                          fontStyle: "italic",
+                        }}
+                      >
+                        {product.description}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "var(--hana-space-6)",
+                  color: "var(--hana-gray)",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "2rem",
+                    marginBottom: "var(--hana-space-2)",
+                  }}
+                >
+                  📋
+                </div>
+                <p>가입된 상품이 없습니다.</p>
+                <p
+                  style={{
+                    fontSize: "var(--hana-font-size-sm)",
+                    marginTop: "var(--hana-space-2)",
+                  }}
+                >
+                  새로운 상품을 추천해보세요!
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* 태블릿에 보여주기 버튼 */}
       {detailed && onSendToTablet && (
         <div
@@ -669,6 +916,7 @@ const EmployeeDashboard = () => {
   const [sessionId, setSessionId] = useState(null);
   const [stompClient, setStompClient] = useState(null);
   const [activeTab, setActiveTab] = useState("customer");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [testCustomers, setTestCustomers] = useState([]);
@@ -678,6 +926,8 @@ const EmployeeDashboard = () => {
   const [enrollmentData, setEnrollmentData] = useState(null);
   const [currentFormIndex, setCurrentFormIndex] = useState(0);
   const [forceUpdate, setForceUpdate] = useState(0); // 화면 강제 업데이트용
+  const [customerProducts, setCustomerProducts] = useState([]); // 고객이 가입한 상품 정보
+  const [loadingCustomerProducts, setLoadingCustomerProducts] = useState(false);
 
   const navigate = useNavigate();
   const webcamRef = useRef(null);
@@ -1095,6 +1345,30 @@ const EmployeeDashboard = () => {
     }
   }, [forceUpdate]);
 
+  // 고객 상품 정보 가져오기
+  const fetchCustomerProducts = async (customerId) => {
+    if (!customerId) return;
+
+    setLoadingCustomerProducts(true);
+    try {
+      const response = await axios.get(
+        `http://localhost:8080/api/employee/customers/${customerId}/products`
+      );
+      if (response.data.success) {
+        setCustomerProducts(response.data.data);
+        console.log("고객 상품 정보 로드 완료:", response.data.data);
+      } else {
+        console.error("고객 상품 정보 로드 실패:", response.data.message);
+        setCustomerProducts([]);
+      }
+    } catch (error) {
+      console.error("고객 상품 정보 로드 중 오류:", error);
+      setCustomerProducts([]);
+    } finally {
+      setLoadingCustomerProducts(false);
+    }
+  };
+
   const fetchTestCustomers = async () => {
     console.log("실제 고객 데이터를 로드합니다...");
 
@@ -1180,6 +1454,9 @@ const EmployeeDashboard = () => {
         setCurrentCustomer(customerData);
         setShowCustomerSelect(false);
 
+        // 고객 상품 정보 가져오기
+        await fetchCustomerProducts(customerData.CustomerID);
+
         console.log("선택된 고객:", customerData.Name);
         console.log("currentCustomer 상태 업데이트됨");
         console.log("STOMP 상태:", stompClient ? "연결됨" : "연결안됨");
@@ -1220,6 +1497,10 @@ const EmployeeDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
   };
 
   const handleLogout = () => {
@@ -1469,7 +1750,11 @@ const EmployeeDashboard = () => {
 
   return (
     <DashboardContainer>
-      <Sidebar>
+      {/* 사이드바 오버레이 */}
+      <SidebarOverlay isOpen={sidebarOpen} onClick={toggleSidebar} />
+
+      {/* 사이드바 */}
+      <Sidebar isOpen={sidebarOpen}>
         {/* 태블릿 연결 상태 및 QR 코드 */}
         {sessionId && employee && (
           <SessionQRCode sessionId={sessionId} employeeName={employee.name} />
@@ -1560,8 +1845,27 @@ const EmployeeDashboard = () => {
         )}
       </Sidebar>
 
-      <MainContent>
-        <TopBar>
+      <MainContent sidebarOpen={sidebarOpen}>
+        {/* 사이드바 토글 버튼 */}
+        <SidebarToggle isOpen={sidebarOpen} onClick={toggleSidebar}>
+          {sidebarOpen ? "✕" : "☰"}
+        </SidebarToggle>
+
+        {/* 새로운 탭 네비게이션 */}
+        <div
+          style={{
+            background:
+              "linear-gradient(135deg, var(--hana-primary), var(--hana-mint))",
+            padding: "var(--hana-space-6) var(--hana-space-8)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            color: "white",
+            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)",
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
           <div
             style={{
               display: "flex",
@@ -1569,27 +1873,30 @@ const EmployeeDashboard = () => {
               gap: "var(--hana-space-6)",
             }}
           >
-            <HanaLogo>
-              <img
-                src="/hana-logo.svg"
-                alt="Hana"
-                style={{ width: "40px", height: "40px" }}
-              />
-              <div className="logo-text">하나금융그룹 스마트 상담</div>
-            </HanaLogo>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                fontSize: "var(--hana-font-size-xl)",
+                fontWeight: 800,
+                textShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+              }}
+            >
+              🏦 하나금융그룹 스마트 상담
+            </div>
 
             <NavigationTabs>
               <NavTab
                 active={activeTab === "customer"}
                 onClick={() => setActiveTab("customer")}
               >
-                고객 정보
+                👤 고객 정보
               </NavTab>
               <NavTab
                 active={activeTab === "products"}
                 onClick={() => setActiveTab("products")}
               >
-                상품 탐색
+                💰 상품 탐색
               </NavTab>
 
               <NavTab
@@ -1602,7 +1909,7 @@ const EmployeeDashboard = () => {
                 active={activeTab === "simulation"}
                 onClick={() => setActiveTab("simulation")}
               >
-                혜택 시뮬레이션
+                🎯 혜택 시뮬레이션
               </NavTab>
               <NavTab
                 active={activeTab === "ai"}
@@ -1620,16 +1927,6 @@ const EmployeeDashboard = () => {
               gap: "var(--hana-space-4)",
             }}
           >
-            <EmployeeInfo>
-              <Avatar>{employee.name.charAt(0)}</Avatar>
-              <EmployeeDetails>
-                <div className="name">
-                  {employee.name} {employee.position}
-                </div>
-                <div className="role">{employee.department}</div>
-              </EmployeeDetails>
-            </EmployeeInfo>
-
             <SessionStatus active={!!sessionId}>
               {sessionId ? `세션 활성: ${sessionId.slice(-8)}` : "대기 중"}
             </SessionStatus>
@@ -1637,7 +1934,7 @@ const EmployeeDashboard = () => {
               🚪 로그아웃
             </Button>
           </div>
-        </TopBar>
+        </div>
 
         <TabContent>
           {activeTab === "customer" &&
@@ -1646,6 +1943,8 @@ const EmployeeDashboard = () => {
                 customer={currentCustomer}
                 detailed
                 onSendToTablet={sendCustomerInfoToTablet}
+                customerProducts={customerProducts}
+                loadingProducts={loadingCustomerProducts}
               />
             ) : (
               <div

@@ -21,12 +21,16 @@ interface TabletFieldInputProps {
   };
   onComplete: (value: string) => void;
   onCancel: () => void;
+  sessionId?: string;
+  onWebSocketMessage?: (message: any) => void;
 }
 
 const TabletFieldInput: React.FC<TabletFieldInputProps> = ({
   fieldData,
   onComplete,
   onCancel,
+  sessionId,
+  onWebSocketMessage,
 }) => {
   const [inputValue, setInputValue] = useState('');
 
@@ -34,6 +38,23 @@ const TabletFieldInput: React.FC<TabletFieldInputProps> = ({
     if (fieldData.required && !inputValue.trim()) {
       return;
     }
+
+    // 웹소켓으로 필드 입력 완료 메시지 전송
+    if (sessionId && onWebSocketMessage) {
+      const fieldInputMessage = {
+        type: 'field-input-completed', // 메시지 타입 통일
+        sessionId: sessionId,
+        fieldId: fieldData.id,
+        fieldValue: inputValue,
+        fieldLabel: fieldData.label,
+        fieldType: fieldData.type,
+        timestamp: Date.now(),
+      };
+
+      onWebSocketMessage(fieldInputMessage);
+      console.log('✅ 필드 입력 완료 메시지 전송:', fieldInputMessage);
+    }
+
     onComplete(inputValue);
   };
 

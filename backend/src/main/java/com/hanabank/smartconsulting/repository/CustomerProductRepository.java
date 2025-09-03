@@ -1,6 +1,5 @@
 package com.hanabank.smartconsulting.repository;
 
-import com.hanabank.smartconsulting.entity.Customer;
 import com.hanabank.smartconsulting.entity.CustomerProduct;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -12,8 +11,10 @@ import java.util.List;
 @Repository
 public interface CustomerProductRepository extends JpaRepository<CustomerProduct, Long> {
     
-    List<CustomerProduct> findByCustomer(Customer customer);
+    @Query("SELECT cp FROM CustomerProduct cp WHERE cp.customerId = :customerId")
+    List<CustomerProduct> findByCustomerId(@Param("customerId") String customerId);
     
+    // CustomerService에서 사용하는 메서드들 추가
     @Query("SELECT cp FROM CustomerProduct cp WHERE cp.customer.customerId = :customerId")
     List<CustomerProduct> findByCustomerCustomerId(@Param("customerId") String customerId);
     

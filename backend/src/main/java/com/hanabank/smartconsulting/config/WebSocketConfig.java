@@ -100,9 +100,16 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer, WebSoc
     // WebSocketConfigurer 구현 - 단순 WebSocket 핸들러 등록
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(new SimpleWebSocketHandler(objectMapper), "/simple-ws")
+        SimpleWebSocketHandler handler = new SimpleWebSocketHandler(objectMapper);
+        registry.addHandler(handler, "/simple-ws")
                 .setAllowedOrigins("http://localhost:3000");
     }
+    
+    // SimpMessagingTemplate 주입을 위한 메서드 (순환 참조 방지)
+    // @Autowired
+    // public void setMessagingTemplate(SimpMessagingTemplate messagingTemplate) {
+    //     SimpleWebSocketHandler.setMessagingTemplate(messagingTemplate);
+    // }
 
     // 단순 WebSocket 메시지 핸들러
     public static class SimpleWebSocketHandler extends TextWebSocketHandler {
@@ -114,6 +121,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer, WebSoc
         public SimpleWebSocketHandler(ObjectMapper objectMapper) {
             this.objectMapper = objectMapper;
         }
+        
+        // STOMP 메시징 템플릿 설정 메서드 (순환 참조 방지로 제거)
+        // public static void setMessagingTemplate(SimpMessagingTemplate template) {
+        //     messagingTemplate = template;
+        // }
         
         // STOMP 메시지를 단순 WebSocket으로 브리지하는 정적 메서드
         public static void broadcastToSimpleWebSocket(String sessionId, Object message) {
@@ -229,15 +241,111 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer, WebSoc
                         session.sendMessage(new TextMessage(customerResponse));
                         break;
                         
-                    case "FIELD_INPUT_COMPLETED":
+                    case "field-input-completed":
                         // 필드 입력 완료 처리
                         System.out.println("필드 입력 완료: " + sessionId);
+                        
+                        // 필드 입력 완료 데이터 추출 (새로운 구조)
+                        String fieldId = jsonNode.has("fieldId") ? jsonNode.get("fieldId").asText() : "";
+                        String fieldValue = jsonNode.has("fieldValue") ? jsonNode.get("fieldValue").asText() : "";
+                        String fieldLabel = jsonNode.has("fieldLabel") ? jsonNode.get("fieldLabel").asText() : "";
+                        String fieldType = jsonNode.has("fieldType") ? jsonNode.get("fieldType").asText() : "text";
+                        
+                        if (fieldId.isEmpty() || fieldValue.isEmpty()) {
+                            System.err.println("❌ 필드 입력 완료 데이터 누락: fieldId=" + fieldId + ", fieldValue=" + fieldValue);
+                            break;
+                        }
+                        
+                        // PC와 태블릿 모두에 전송할 메시지 생성
+                        Map<String, Object> fieldMessage = Map.of(
+                            "type", "field-input-completed",
+                            "fieldId", fieldId,
+                            "fieldValue", fieldValue,
+                            "fieldLabel", fieldLabel,
+                            "fieldType", fieldType,
+                            "timestamp", System.currentTimeMillis()
+                        );
+                        
+                        // 단순 WebSocket 응답
                         String fieldResponse = objectMapper.writeValueAsString(Map.of(
                             "type", "field-input-completed",
                             "sessionId", sessionId,
-                            "field", jsonNode.get("field")
+                            "fieldId", fieldId,
+                            "fieldValue", fieldValue,
+                            "fieldLabel", fieldLabel,
+                            "success", true,
+                            "message", "필드 입력이 PC와 동기화되었습니다"
                         ));
                         session.sendMessage(new TextMessage(fieldResponse));
+                        
+                        // 다른 세션들에게도 브로드캐스트 (PC 동기화)
+                        broadcastToSimpleWebSocket(sessionId, fieldMessage);
+                        
+                        // STOMP로도 전송 (PC 클라이언트 동기화) - 순환 참조 방지로 제거
+                        // if (messagingTemplate != null) {
+                        //     try {
+                        //         messagingTemplate.convertAndSend("/topic/session/" + sessionId, fieldMessage);
+                        //         System.out.println("✅ STOMP로 PC에 필드 입력 완료 전송");
+                        //     } catch (Exception e) {
+                        //         System.err.println("❌ STOMP 전송 실패: " + e.getMessage());
+                        //     }
+                        // }
+                        
+                        System.out.println("✅ 필드 입력 완료 메시지 브로드캐스트 완료");
+                        break;
+                        
+                    case "field-input-complete":
+                        // 필드 입력 완료 처리 (기존 형식)
+                        System.out.println("필드 입력 완료 (기존 형식): " + sessionId);
+                        
+                        // 기존 메시지 구조에서 데이터 추출
+                        String existingFieldId = "";
+                        String existingFieldValue = "";
+                        String existingFieldLabel = "";
+                        
+                        if (jsonNode.has("data") && jsonNode.get("data").has("value")) {
+                            // data.value 구조
+                            existingFieldId = jsonNode.get("data").has("fieldId") ? jsonNode.get("data").get("fieldId").asText() : "";
+                            existingFieldValue = jsonNode.get("data").get("value").asText();
+                            existingFieldLabel = jsonNode.get("data").has("fieldName") ? jsonNode.get("data").get("fieldName").asText() : "알 수 없는 필드";
+                        } else if (jsonNode.has("fieldId")) {
+                            // 최상위 구조
+                            existingFieldId = jsonNode.get("fieldId").asText();
+                            existingFieldValue = jsonNode.has("fieldValue") ? jsonNode.get("fieldValue").asText() : "";
+                            existingFieldLabel = jsonNode.has("fieldLabel") ? jsonNode.get("fieldLabel").asText() : "알 수 없는 필드";
+                        }
+                        
+                        if (existingFieldId.isEmpty() || existingFieldValue.isEmpty()) {
+                            System.err.println("❌ 기존 형식 필드 입력 완료 데이터 누락: fieldId=" + existingFieldId + ", value=" + existingFieldValue);
+                            break;
+                        }
+                        
+                        // PC와 태블릿 모두에 전송할 메시지 생성 (새로운 형식으로 변환)
+                        Map<String, Object> existingFieldMessage = Map.of(
+                            "type", "field-input-completed",
+                            "fieldId", existingFieldId,
+                            "fieldValue", existingFieldValue,
+                            "fieldLabel", existingFieldLabel,
+                            "fieldType", "text",
+                            "timestamp", System.currentTimeMillis()
+                        );
+                        
+                        // 단순 WebSocket 응답
+                        String existingFieldResponse = objectMapper.writeValueAsString(Map.of(
+                            "type", "field-input-completed",
+                            "sessionId", sessionId,
+                            "fieldId", existingFieldId,
+                            "fieldValue", existingFieldValue,
+                            "fieldLabel", existingFieldLabel,
+                            "success", true,
+                            "message", "필드 입력이 PC와 동기화되었습니다"
+                        ));
+                        session.sendMessage(new TextMessage(existingFieldResponse));
+                        
+                        // 다른 세션들에게도 브로드캐스트 (PC 동기화)
+                        broadcastToSimpleWebSocket(sessionId, existingFieldMessage);
+                        
+                        System.out.println("✅ 기존 형식 필드 입력 완료 메시지 브로드캐스트 완료");
                         break;
                         
                     default:

@@ -187,12 +187,37 @@ public class WebSocketController extends TextWebSocketHandler {
         log.info("상품 가입 시작 - sessionId: {}, productId: {}, customerId: {}", sessionId, productId, customerId);
         
         try {
-            Optional<FinancialProduct> productOpt = productService.getProductById(productId);
+            // 상품 ID가 null이거나 비어있는 경우 처리
+            if (productId == null || productId.trim().isEmpty()) {
+                log.warn("상품 ID가 제공되지 않았습니다");
+                return;
+            }
+            
+            // 상품 ID 정규화 (P033_아이_꿈하나_적금 형식으로 변환)
+            String normalizedProductId = productId;
+            if (!productId.startsWith("P")) {
+                // 숫자만 있는 경우 P033 형식으로 변환
+                try {
+                    int idNum = Integer.parseInt(productId);
+                    normalizedProductId = String.format("P%03d", idNum);
+                } catch (NumberFormatException e) {
+                    log.warn("상품 ID를 숫자로 변환할 수 없습니다: {}", productId);
+                }
+            }
+            
+            log.info("정규화된 상품 ID: {}", normalizedProductId);
+            
+            Optional<FinancialProduct> productOpt = productService.getProductById(normalizedProductId);
             if (productOpt.isPresent()) {
                 FinancialProduct product = productOpt.get();
                 
                 // 실제 DB에서 EForm 목록 조회
                 List<Map<String, Object>> forms = productService.getProductForms(product.getProductId(), product.getProductType());
+                
+                // 서식이 없으면 로그 출력
+                if (forms == null || forms.isEmpty()) {
+                    log.warn("상품 {}에 대한 서식이 데이터베이스에 없습니다. 서식 개수: {}", normalizedProductId, forms != null ? forms.size() : 0);
+                }
                 
                 Map<String, Object> enrollmentData = new HashMap<>();
                 enrollmentData.put("productId", product.getProductId());
@@ -214,7 +239,91 @@ public class WebSocketController extends TextWebSocketHandler {
                 WebSocketConfig.SimpleWebSocketHandler.broadcastToSimpleWebSocket(sessionId, message);
                 log.info("상품 가입 서식 표시 메시지 전송 완료 - 서식 개수: {}", forms.size());
             } else {
-                log.warn("상품 ID를 찾을 수 없습니다: {}", productId);
+                log.warn("상품 ID를 찾을 수 없습니다: {}", normalizedProductId);
+                
+                // P033_아이_꿈하나_적금 상품에 대한 기본 서식 제공
+                if ("P033_아이_꿈하나_적금".equals(normalizedProductId)) {
+                    Map<String, Object> irpData = new HashMap<>();
+                    irpData.put("productId", normalizedProductId);
+                    irpData.put("productName", "아이 꿈하나 적금");
+                    irpData.put("productType", "적금");
+                    irpData.put("customerId", customerId);
+                    
+                    // 아이 꿈하나 적금 전용 서식 5개
+                    List<Map<String, Object>> irpForms = List.of(
+                        Map.of(
+                            "formId", "FORM-IRP-001",
+                            "formName", "아이 꿈하나 적금 가입신청서",
+                            "formType", "deposit",
+                            "formSchema", "{\"fields\": [{\"id\": \"customer_name\", \"name\": \"customerName\", \"type\": \"text\", \"label\": \"고객명\", \"required\": true, \"placeholder\": \"고객명을 입력하세요\"}, {\"id\": \"resident_number\", \"name\": \"residentNumber\", \"type\": \"text\", \"label\": \"주민등록번호\", \"required\": true, \"placeholder\": \"주민등록번호를 입력하세요\"}, {\"id\": \"phone_number\", \"name\": \"phoneNumber\", \"type\": \"text\", \"label\": \"연락처\", \"required\": true, \"placeholder\": \"연락처를 입력하세요\"}, {\"id\": \"address\", \"name\": \"address\", \"type\": \"text\", \"label\": \"주소\", \"required\": true, \"placeholder\": \"주소를 입력하세요\"}, {\"id\": \"monthly_amount\", \"name\": \"monthlyAmount\", \"type\": \"number\", \"label\": \"월 적금 금액\", \"required\": true, \"placeholder\": \"월 적금 금액을 입력하세요\"}, {\"id\": \"deposit_period\", \"name\": \"depositPeriod\", \"type\": \"select\", \"label\": \"적금 기간\", \"required\": true, \"options\": [\"12개월\", \"24개월\", \"36개월\", \"48개월\", \"60개월\"]}, {\"id\": \"account_number\", \"name\": \"accountNumber\", \"type\": \"text\", \"label\": \"입금계좌번호\", \"required\": true, \"placeholder\": \"입금계좌번호를 입력하세요\"}]}"
+                        ),
+                        Map.of(
+                            "formId", "FORM-IRP-002",
+                            "formName", "아이 꿈하나 적금 자동이체 신청서",
+                            "formType", "deposit",
+                            "formSchema", "{\"fields\": [{\"id\": \"customer_name\", \"name\": \"customerName\", \"type\": \"text\", \"label\": \"고객명\", \"required\": true, \"placeholder\": \"고객명을 입력하세요\"}, {\"id\": \"auto_transfer_date\", \"name\": \"autoTransferDate\", \"type\": \"select\", \"label\": \"자동이체일\", \"required\": true, \"options\": [\"매월 1일\", \"매월 15일\", \"매월 말일\"]}, {\"id\": \"transfer_amount\", \"name\": \"transferAmount\", \"type\": \"number\", \"label\": \"이체금액\", \"required\": true, \"placeholder\": \"월 이체금액을 입력하세요\"}, {\"id\": \"source_account\", \"name\": \"sourceAccount\", \"type\": \"text\", \"label\": \"출금계좌번호\", \"required\": true, \"placeholder\": \"출금계좌번호를 입력하세요\"}]}"
+                        ),
+                        Map.of(
+                            "formId", "FORM-IRP-003",
+                            "formName", "개인신용정보 수집이용동의서",
+                            "formType", "deposit",
+                            "formSchema", "{\"fields\": [{\"id\": \"customer_name\", \"name\": \"customerName\", \"type\": \"text\", \"label\": \"고객명\", \"required\": true, \"placeholder\": \"고객명을 입력하세요\"}, {\"id\": \"consent_date\", \"name\": \"consentDate\", \"type\": \"date\", \"label\": \"동의일자\", \"required\": true, \"placeholder\": \"동의일자를 선택하세요\"}, {\"id\": \"signature\", \"name\": \"signature\", \"type\": \"signature\", \"label\": \"서명\", \"required\": true, \"placeholder\": \"서명해주세요\"}]}"
+                        ),
+                        Map.of(
+                            "formId", "FORM-IRP-004",
+                            "formName", "비과세종합저축 한도확인서",
+                            "formType", "deposit",
+                            "formSchema", "{\"fields\": [{\"id\": \"customer_name\", \"name\": \"customerName\", \"type\": \"text\", \"label\": \"고객명\", \"required\": true, \"placeholder\": \"고객명을 입력하세요\"}, {\"id\": \"current_limit\", \"name\": \"currentLimit\", \"type\": \"number\", \"label\": \"현재 사용한도\", \"required\": true, \"placeholder\": \"현재 사용한도를 입력하세요\"}, {\"id\": \"requested_amount\", \"name\": \"requestedAmount\", \"type\": \"number\", \"label\": \"신청금액\", \"required\": true, \"placeholder\": \"신청금액을 입력하세요\"}]}"
+                        ),
+                        Map.of(
+                            "formId", "FORM-IRP-005",
+                            "formName", "아이 꿈하나 적금 해지신청서",
+                            "formType", "deposit",
+                            "formSchema", "{\"fields\": [{\"id\": \"customer_name\", \"name\": \"customerName\", \"type\": \"text\", \"label\": \"고객명\", \"required\": true, \"placeholder\": \"고객명을 입력하세요\"}, {\"id\": \"account_number\", \"name\": \"accountNumber\", \"type\": \"text\", \"label\": \"적금계좌번호\", \"required\": true, \"placeholder\": \"해지할 적금계좌번호를 입력하세요\"}, {\"id\": \"withdrawal_amount\", \"name\": \"withdrawalAmount\", \"type\": \"number\", \"label\": \"해지금액\", \"required\": true, \"placeholder\": \"해지금액을 입력하세요\"}, {\"id\": \"withdrawal_reason\", \"name\": \"withdrawalReason\", \"type\": \"select\", \"label\": \"해지사유\", \"required\": true, \"options\": [\"자금 필요\", \"다른 상품 가입\", \"만기 전 해지\", \"기타\"]}]}"
+                        )
+                    );
+                    
+                    irpData.put("forms", irpForms);
+                    irpData.put("currentFormIndex", 0);
+                    irpData.put("totalForms", irpForms.size());
+                    
+                    Map<String, Object> message = Map.of(
+                        "type", "product-enrollment",
+                        "data", irpData,
+                        "action", "start_enrollment",
+                        "timestamp", System.currentTimeMillis()
+                    );
+                    
+                    messagingTemplate.convertAndSend("/topic/session/" + sessionId, message);
+                    WebSocketConfig.SimpleWebSocketHandler.broadcastToSimpleWebSocket(sessionId, message);
+                    log.info("아이 꿈하나 적금 서식으로 상품 가입 시작 - 상품 ID: {}", normalizedProductId);
+                } else {
+                    // 기타 상품에 대한 기본 서식
+                    Map<String, Object> fallbackData = new HashMap<>();
+                    fallbackData.put("productId", normalizedProductId);
+                    fallbackData.put("productName", "기본 서식");
+                    fallbackData.put("productType", "기타");
+                    fallbackData.put("customerId", customerId);
+                    fallbackData.put("forms", List.of(Map.of(
+                        "formId", "DEFAULT_FORM",
+                        "formName", "기본 신청서",
+                        "formType", "기타",
+                        "formSchema", "{\"fields\": [{\"id\": \"customer_name\", \"name\": \"customerName\", \"type\": \"text\", \"label\": \"고객명\", \"required\": true, \"placeholder\": \"고객명을 입력하세요\"}]}"
+                    )));
+                    fallbackData.put("currentFormIndex", 0);
+                    fallbackData.put("totalForms", 1);
+                    
+                    Map<String, Object> message = Map.of(
+                        "type", "product-enrollment",
+                        "data", fallbackData,
+                        "action", "start_enrollment",
+                        "timestamp", System.currentTimeMillis()
+                    );
+                    
+                    messagingTemplate.convertAndSend("/topic/session/" + sessionId, message);
+                    WebSocketConfig.SimpleWebSocketHandler.broadcastToSimpleWebSocket(sessionId, message);
+                    log.info("기본 서식으로 상품 가입 시작 - 상품 ID: {}", normalizedProductId);
+                }
             }
         } catch (Exception e) {
             log.error("상품 가입 처리 중 오류 발생", e);
@@ -438,6 +547,88 @@ public class WebSocketController extends TextWebSocketHandler {
         
         messagingTemplate.convertAndSend("/topic/session/" + sessionId, response);
         log.info("태블릿 메시지 클라이언트 전송 완료");
+    }
+    
+    /**
+     * 태블릿에서 필드 입력 완료 처리 (PC와 태블릿 동기화) - 새로운 형식
+     */
+    @MessageMapping("/field-input-completed")
+    public void fieldInputCompleted(@Payload Map<String, Object> payload) {
+        String sessionId = (String) payload.get("sessionId");
+        String fieldId = (String) payload.get("fieldId");
+        String fieldValue = (String) payload.get("fieldValue");
+        String fieldLabel = (String) payload.get("fieldLabel");
+        String formId = (String) payload.get("formId");
+        
+        log.info("필드 입력 완료 (새로운 형식) - sessionId: {}, fieldId: {}, value: {}", sessionId, fieldId, fieldValue);
+        
+        // PC와 태블릿 모두에 필드 입력 완료 메시지 전송
+        Map<String, Object> message = new HashMap<>();
+        message.put("type", "field-input-completed");
+        message.put("fieldId", fieldId);
+        message.put("fieldValue", fieldValue);
+        message.put("fieldLabel", fieldLabel);
+        message.put("formId", formId);
+        message.put("timestamp", System.currentTimeMillis());
+        
+        // STOMP 전송
+        messagingTemplate.convertAndSend("/topic/session/" + sessionId, message);
+        
+        // 단순 WebSocket 브리지 전송
+        WebSocketConfig.SimpleWebSocketHandler.broadcastToSimpleWebSocket(sessionId, message);
+        
+        log.info("필드 입력 완료 메시지 전송 완료 - PC와 태블릿 동기화");
+    }
+    
+    /**
+     * 태블릿에서 필드 입력 완료 처리 (PC와 태블릿 동기화) - 기존 형식
+     */
+    @MessageMapping("/field-input-complete")
+    public void fieldInputComplete(@Payload Map<String, Object> payload) {
+        String sessionId = (String) payload.get("sessionId");
+        Object dataObj = payload.get("data");
+        
+        log.info("필드 입력 완료 (기존 형식) - sessionId: {}, payload: {}", sessionId, payload);
+        
+        // 기존 메시지 구조에서 데이터 추출
+        String fieldId = "";
+        String fieldValue = "";
+        String fieldLabel = "";
+        
+        if (dataObj instanceof Map) {
+            Map<String, Object> data = (Map<String, Object>) dataObj;
+            fieldId = (String) data.get("fieldId");
+            fieldValue = (String) data.get("value");
+            fieldLabel = (String) data.get("fieldName");
+        }
+        
+        if (fieldId == null || fieldValue == null || fieldId.isEmpty() || fieldValue.isEmpty()) {
+            log.warn("기존 형식 필드 입력 완료 데이터 누락: fieldId={}, value={}", fieldId, fieldValue);
+            return;
+        }
+        
+        if (fieldLabel == null || fieldLabel.isEmpty()) {
+            fieldLabel = "알 수 없는 필드";
+        }
+        
+        log.info("기존 형식 필드 입력 완료 파싱 - fieldId: {}, value: {}, label: {}", fieldId, fieldValue, fieldLabel);
+        
+        // PC와 태블릿 모두에 필드 입력 완료 메시지 전송 (새로운 형식으로 변환)
+        Map<String, Object> message = new HashMap<>();
+        message.put("type", "field-input-completed");
+        message.put("fieldId", fieldId);
+        message.put("fieldValue", fieldValue);
+        message.put("fieldLabel", fieldLabel);
+        message.put("fieldType", "text");
+        message.put("timestamp", System.currentTimeMillis());
+        
+        // STOMP 전송
+        messagingTemplate.convertAndSend("/topic/session/" + sessionId, message);
+        
+        // 단순 WebSocket 브리지 전송
+        WebSocketConfig.SimpleWebSocketHandler.broadcastToSimpleWebSocket(sessionId, message);
+        
+        log.info("기존 형식 필드 입력 완료 메시지 전송 완료 - PC와 태블릿 동기화");
     }
     
     @MessageMapping("/form-data")

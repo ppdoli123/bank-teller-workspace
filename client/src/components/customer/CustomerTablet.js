@@ -12,43 +12,132 @@ const TabletContainer = styled.div`
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
 `;
 
-const Header = styled.div`
+const SidebarToggle = styled.button`
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 1001;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: scale(1.1);
+  }
+
+  svg {
+    width: 24px;
+    height: 24px;
+    color: #2d3748;
+  }
+`;
+
+const Sidebar = styled.div`
+  position: fixed;
+  top: 0;
+  left: ${(props) => (props.isOpen ? "0" : "-350px")};
+  width: 350px;
+  height: 100vh;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
-  padding: 1rem 2rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
   z-index: 1000;
+  transition: left 0.3s ease;
+  overflow-y: auto;
+  padding: 2rem;
+  box-shadow: ${(props) =>
+    props.isOpen ? "5px 0 25px rgba(0, 0, 0, 0.2)" : "none"};
 `;
 
-const HeaderTitle = styled.h1`
-  margin: 0;
-  font-size: 1.5rem;
+const SidebarSection = styled.div`
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+`;
+
+const SidebarTitle = styled.h3`
+  margin: 0 0 1rem 0;
   color: #2d3748;
+  font-size: 1.2rem;
+  font-weight: 600;
+`;
+
+const SidebarButton = styled.button`
+  width: 100%;
+  padding: 0.8rem 1rem;
+  margin: 0.5rem 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  }
+`;
+
+const CustomerInfoBox = styled.div`
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+`;
+
+const CustomerName = styled.h4`
+  margin: 0 0 0.5rem 0;
+  font-size: 1.3rem;
   font-weight: 700;
 `;
 
-const ConnectionStatus = styled.div`
-  padding: 0.5rem 1rem;
-  border-radius: 25px;
-  font-weight: 600;
+const CustomerDetail = styled.p`
+  margin: 0.3rem 0;
   font-size: 0.9rem;
-  background: ${(props) => (props.connected ? "#48bb78" : "#ed8936")};
-  color: white;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  opacity: 0.9;
 `;
 
-const ContentArea = styled.div`
+const MainContent = styled.div`
   flex: 1;
-  padding: 2rem;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  margin-left: ${(props) => (props.sidebarOpen ? "350px" : "0")};
+  transition: margin-left 0.3s ease;
+  height: 100vh;
+  overflow: hidden;
+`;
+
+const PDFContainer = styled.div`
+  width: 100%;
+  height: 100%;
+  background: white;
+  border-radius: 0;
+  overflow: hidden;
+`;
+
+const Overlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  display: ${(props) => (props.isOpen ? "block" : "none")};
 `;
 
 const CustomerTablet = () => {
@@ -65,6 +154,7 @@ const CustomerTablet = () => {
   const [isFieldFocusMode, setIsFieldFocusMode] = useState(false);
   const [commonFormData, setCommonFormData] = useState({}); // 공통 필드 데이터 저장
   const [fieldValues, setFieldValues] = useState({}); // 입력된 필드 값들을 저장
+  const [sidebarOpen, setSidebarOpen] = useState(false); // 사이드바 열림/닫힘 상태
 
   // 공통 필드 ID들 (자동 입력 대상)
   const commonFieldIds = [
@@ -99,104 +189,42 @@ const CustomerTablet = () => {
       setConnected(true);
       setStompClient(client);
 
-      // stompClient 설정 후 세션 참여
-      console.log("🔍 연결 성공 후 세션 참여 시작");
-      setTimeout(() => {
-        joinSession();
-      }, 100);
+      // 태블릿 세션 참여
+      client.subscribe("/topic/session/tablet_main", (message) => {
+        try {
+          const data = JSON.parse(message.body);
+          console.log("📨 태블릿에서 메시지 수신:", data);
+          handleWebSocketMessage(data);
+        } catch (error) {
+          console.error("❌ 메시지 파싱 오류:", error);
+        }
+      });
+
+      // 태블릿 세션 참여
+      client.publish({
+        destination: "/app/join-session",
+        body: JSON.stringify({
+          sessionId: "tablet_main",
+          userType: "tablet",
+        }),
+      });
     };
 
     client.onStompError = (frame) => {
-      console.error("❌ STOMP 에러:", frame);
+      console.error("❌ STOMP 오류:", frame);
       setConnected(false);
     };
 
     client.activate();
   };
 
-  const joinSession = () => {
-    if (!stompClient) return;
-
-    // PC와 동일한 세션 ID 사용
-    const sessionId = "tablet_main";
-    setSessionId(sessionId);
-
-    console.log("🔍 joinSession 시작:");
-    console.log("- stompClient:", !!stompClient);
-    console.log("- sessionId:", sessionId);
-
-    // 세션 참여 요청
-    stompClient.publish({
-      destination: "/app/join-session",
-      body: JSON.stringify({
-        sessionId: sessionId,
-        userType: "customer-tablet",
-        userId: "anonymous",
-      }),
-    });
-
-    console.log("✅ 세션 참여 요청 전송 완료");
-
-    // 세션 메시지 구독
-    console.log("🔍 세션 메시지 구독 시작:");
-    console.log("- 구독 토픽:", `/topic/session/${sessionId}`);
-    console.log("- stompClient 상태:", !!stompClient);
-
-    const subscription = stompClient.subscribe(
-      `/topic/session/${sessionId}`,
-      (message) => {
-        console.log("📨 메시지 수신:", message);
-        console.log("📨 메시지 헤더:", message.headers);
-        console.log("📨 메시지 본문:", message.body);
-
-        try {
-          const data = JSON.parse(message.body);
-          console.log("✅ 메시지 파싱 성공:", data);
-          handleSessionMessage(data);
-        } catch (error) {
-          console.error("❌ 메시지 파싱 실패:", error);
-          console.error("원본 메시지:", message.body);
-        }
-      }
-    );
-
-    console.log("✅ 세션 메시지 구독 완료:", subscription);
-    console.log("📱 태블릿 세션 참여:", sessionId);
-  };
-
-  const handleSessionMessage = (data) => {
+  const handleWebSocketMessage = (data) => {
     console.log("🔍 메시지 타입:", data.type);
-    console.log("🔍 전체 메시지 데이터:", data);
-    console.log("🔍 메시지 본문:", data.data);
 
     switch (data.type) {
-      case "session-joined":
-        console.log("🔍 세션 참여 메시지 수신!");
-        console.log("🔍 세션 정보:", data.data);
-        break;
-
-      case "tablet-connected":
-        console.log("🔍 태블릿 연결 메시지 수신!");
-        console.log("🔍 연결 정보:", data.data);
-        break;
-
-      case "participant-joined":
-        console.log("🔍 참가자 참여 메시지 수신!");
-        console.log("🔍 참가자 정보:", data.data);
-
-        if (data.data && data.data.userType === "customer-tablet") {
-          console.log("✅ 태블릿 세션 참여 완료");
-          // 태블릿이 세션에 참여했음을 확인
-        }
-        break;
-
-      case "customer-info-display":
-        console.log("🔍 고객 정보 표시 메시지 수신!");
-        console.log("🔍 전체 데이터:", data);
-        console.log("🔍 data.data:", data.data);
-        console.log("🔍 data.data.customer:", data.data?.customer);
-
-        if (data.data && data.data.customer) {
+      case "customer-info-update":
+        console.log("🔍 고객 정보 업데이트:", data.data);
+        if (data.data) {
           console.log("✅ 고객 정보 설정 시작");
           setCurrentCustomer(data.data.customer);
           setCurrentProduct(null);
@@ -303,906 +331,453 @@ const CustomerTablet = () => {
         }
         break;
 
-      case "field-input-complete":
-        console.log("🔍 태블릿에서 field-input-complete 메시지 수신:", data);
+      case "field-input-completed":
+        console.log("🔍 필드 입력 완료:", data.data);
         if (data.data) {
-          console.log("✅ 필드 입력 완료 메시지 처리:", data.data);
-          const { fieldId, fieldName, value } = data.data;
-          if (fieldId && value) {
-            setFieldValues((prev) => ({
-              ...prev,
-              [fieldId]: value,
-            }));
+          const { fieldId, value } = data.data;
+          setFieldValues((prev) => ({
+            ...prev,
+            [fieldId]: value,
+          }));
+
+          // 공통 필드인 경우 자동으로 다른 서식에도 적용
+          if (commonFieldIds.includes(fieldId)) {
             setCommonFormData((prev) => ({
               ...prev,
               [fieldId]: value,
-              [fieldName]: value,
             }));
-            console.log("✅ 태블릿 화면에 필드 값 저장됨:", fieldId, value);
-            console.log("🔍 현재 fieldValues:", {
-              ...fieldValues,
-              [fieldId]: value,
-            });
           }
         }
         break;
 
+      case "form-navigation":
+        console.log("🔍 서식 네비게이션:", data.data);
+        if (data.data) {
+          const { direction } = data.data;
+          if (
+            direction === "next" &&
+            currentFormIndex < (currentProduct?.forms?.length || 0) - 1
+          ) {
+            setCurrentFormIndex(currentFormIndex + 1);
+            setCurrentForm(currentProduct.forms[currentFormIndex + 1]);
+          } else if (direction === "prev" && currentFormIndex > 0) {
+            setCurrentFormIndex(currentFormIndex - 1);
+            setCurrentForm(currentProduct.forms[currentFormIndex - 1]);
+          }
+        }
+        break;
+
+      case "test-connection":
+        console.log("🔍 연결 테스트:", data.data);
+        break;
+
       default:
         console.log("🔍 알 수 없는 메시지 타입:", data.type);
+        break;
     }
   };
 
-  const handleFieldInput = (fieldId, fieldName, value) => {
-    if (!fieldId || !fieldName) {
-      console.log("❌ 필수 파라미터 누락:");
-      console.log("- fieldId:", fieldId);
-      console.log("- fieldName:", fieldName);
-      console.log("- value:", value);
-      console.log("- highlightedField:", highlightedField);
-      return;
-    }
-
-    console.log("🔍 필드 입력 시작");
-    console.log("- fieldId:", fieldId);
-    console.log("- fieldName:", fieldName);
-    console.log("- value:", value);
-    console.log("- highlightedField:", highlightedField);
-
-    // 필드 값 저장
-    setFieldValues((prev) => ({
-      ...prev,
-      [fieldId]: value,
-    }));
-
-    // 공통 필드 데이터에도 저장
-    setCommonFormData((prev) => ({
-      ...prev,
-      [fieldId]: value,
-      [fieldName]: value,
-    }));
-
-    // PC에 필드 입력 완료 메시지 전송
-    if (stompClient && sessionId) {
-      const fieldInputMessage = {
-        type: "field-input-complete",
-        data: {
-          fieldId: fieldId,
-          fieldName: fieldName,
-          value: value,
-          formIndex: currentFormIndex,
-          formName:
-            currentForm?.formName ||
-            currentProduct?.forms[currentFormIndex]?.formName,
-        },
-        timestamp: Date.now(),
-      };
-
-      stompClient.publish({
-        destination: "/topic/session/" + sessionId,
-        body: JSON.stringify(fieldInputMessage),
-      });
-
-      console.log(
-        "📤 태블릿에서 field-input-complete 메시지 전송:",
-        fieldInputMessage
-      );
-    }
-
-    // 입력 모드 종료
-    setIsFieldFocusMode(false);
-    setFocusedField(null);
-    setHighlightedField(null);
-
-    console.log("✅ 필드 입력 완료 및 메시지 전송 완료");
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
   };
 
-  // 공통 필드 자동 채우기 함수
-  const autoFillCommonFields = () => {
-    if (!currentForm?.formSchema) return;
+  const renderWelcomePage = () => (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        height: "100%",
+        color: "white",
+        textAlign: "center",
+        padding: "2rem",
+      }}
+    >
+      <h1 style={{ fontSize: "3rem", marginBottom: "2rem" }}>
+        🏦 하나은행 스마트 상담
+      </h1>
+      <p style={{ fontSize: "1.5rem", marginBottom: "1rem" }}>
+        고객님의 금융 상담을 도와드리겠습니다
+      </p>
+      <p style={{ fontSize: "1.2rem", opacity: 0.8 }}>
+        상담원이 연결되면 자동으로 상담이 시작됩니다
+      </p>
+      <div
+        style={{
+          marginTop: "3rem",
+          padding: "1rem 2rem",
+          background: "rgba(255,255,255,0.2)",
+          borderRadius: "10px",
+          border: "1px solid rgba(255,255,255,0.3)",
+        }}
+      >
+        <p style={{ margin: 0, fontSize: "1.1rem" }}>
+          연결 상태: {connected ? "✅ 연결됨" : "❌ 연결 중..."}
+        </p>
+      </div>
+    </div>
+  );
 
-    try {
-      const schema =
-        typeof currentForm.formSchema === "string"
-          ? JSON.parse(currentForm.formSchema)
-          : currentForm.formSchema;
+  const renderCustomerInfoPage = () => (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        height: "100%",
+        color: "white",
+        textAlign: "center",
+        padding: "2rem",
+      }}
+    >
+      <h1 style={{ fontSize: "2.5rem", marginBottom: "2rem" }}>👤 고객 정보</h1>
+      {currentCustomer && (
+        <div
+          style={{
+            background: "rgba(255,255,255,0.2)",
+            padding: "2rem",
+            borderRadius: "15px",
+            border: "1px solid rgba(255,255,255,0.3)",
+            minWidth: "400px",
+          }}
+        >
+          <h2 style={{ marginBottom: "1.5rem" }}>
+            {currentCustomer.name} 고객님
+          </h2>
+          <p style={{ fontSize: "1.2rem", margin: "0.5rem 0" }}>
+            생년월일: {currentCustomer.dateOfBirth}
+          </p>
+          <p style={{ fontSize: "1.2rem", margin: "0.5rem 0" }}>
+            연락처: {currentCustomer.contactNumber}
+          </p>
+          <p style={{ fontSize: "1.2rem", margin: "0.5rem 0" }}>
+            주소: {currentCustomer.address}
+          </p>
+        </div>
+      )}
+    </div>
+  );
 
-      let hasUpdates = false;
-      const newFieldValues = { ...fieldValues };
+  const renderProductDetailPage = () => (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        height: "100%",
+        color: "white",
+        textAlign: "center",
+        padding: "2rem",
+      }}
+    >
+      <h1 style={{ fontSize: "2.5rem", marginBottom: "2rem" }}>📊 상품 상세</h1>
+      {currentProduct && (
+        <div
+          style={{
+            background: "rgba(255,255,255,0.2)",
+            padding: "2rem",
+            borderRadius: "15px",
+            border: "1px solid rgba(255,255,255,0.3)",
+            minWidth: "500px",
+          }}
+        >
+          <h2 style={{ marginBottom: "1.5rem" }}>
+            {currentProduct.productName}
+          </h2>
+          <p style={{ fontSize: "1.2rem", margin: "0.5rem 0" }}>
+            상품 타입: {currentProduct.productType}
+          </p>
+          <p style={{ fontSize: "1.2rem", margin: "0.5rem 0" }}>
+            기본 금리: {currentProduct.baseRate}%
+          </p>
+          <p style={{ fontSize: "1.2rem", margin: "0.5rem 0" }}>
+            최소 금액: {currentProduct.minAmount?.toLocaleString()}원
+          </p>
+          <p style={{ fontSize: "1.2rem", margin: "0.5rem 0" }}>
+            최대 금액: {currentProduct.maxAmount?.toLocaleString()}원
+          </p>
+          <p style={{ fontSize: "1.1rem", margin: "1rem 0 0 0", opacity: 0.8 }}>
+            {currentProduct.description}
+          </p>
+        </div>
+      )}
+    </div>
+  );
 
-      schema.fields.forEach((field) => {
-        if (
-          commonFieldIds.includes(field.id) &&
-          commonFormData[field.id] &&
-          !fieldValues[field.id]
-        ) {
-          newFieldValues[field.id] = commonFormData[field.id];
-          hasUpdates = true;
-          console.log(
-            `🔄 자동 채우기: ${field.id} = ${commonFormData[field.id]}`
-          );
-        }
-      });
+  const renderProductEnrollmentPage = () => (
+    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      {/* 상품 정보 표시 */}
+      {currentProduct && (
+        <div
+          style={{
+            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            color: "white",
+            padding: "1rem 2rem",
+            textAlign: "center",
+            borderBottom: "3px solid #4a5568",
+          }}
+        >
+          <h2 style={{ margin: "0 0 0.5rem 0", fontSize: "1.5rem" }}>
+            {currentProduct.productName}
+          </h2>
+          <p style={{ margin: "0", fontSize: "1rem", opacity: 0.9 }}>
+            {currentProduct.description}
+          </p>
+        </div>
+      )}
 
-      if (hasUpdates) {
-        setFieldValues(newFieldValues);
-        console.log("✅ 공통 필드 자동 채우기 완료");
-      }
-    } catch (error) {
-      console.error("공통 필드 자동 채우기 실패:", error);
-    }
-  };
+      {/* PDF 뷰어 */}
+      {currentForm?.formTemplatePath && (
+        <PDFContainer>
+          <PDFViewer
+            pdfUrl={
+              currentForm?.formTemplatePath ||
+              currentProduct.forms[currentFormIndex]?.formTemplatePath
+            }
+            formSchema={
+              currentForm?.formSchema ||
+              currentProduct.forms[currentFormIndex]?.formSchema
+            }
+            fieldValues={fieldValues}
+            onFieldClick={(field) => {
+              console.log("🔍 PDF에서 필드 클릭됨:", field);
+              setHighlightedField({
+                id: field.id,
+                label: field.label,
+                type: field.type,
+                placeholder: field.placeholder,
+              });
+              setFocusedField({
+                fieldId: field.id,
+                fieldName: field.name,
+                fieldLabel: field.label,
+                fieldType: field.type,
+                fieldPlaceholder: field.placeholder,
+                formName:
+                  currentForm?.formName ||
+                  currentProduct.forms[currentFormIndex]?.formName,
+              });
+              setIsFieldFocusMode(true);
 
-  // 서식이 변경될 때마다 공통 필드 자동 채우기 실행
-  useEffect(() => {
-    if (currentForm && Object.keys(commonFormData).length > 0) {
-      setTimeout(() => {
-        autoFillCommonFields();
-      }, 500);
-    }
-  }, [currentForm, currentFormIndex]);
+              // PC에 field-focus 메시지 전송
+              if (stompClient && sessionId) {
+                const fieldFocusMessage = {
+                  type: "field-focus",
+                  data: {
+                    fieldId: field.id,
+                    fieldName: field.name,
+                    fieldLabel: field.label,
+                    fieldType: field.type,
+                    fieldPlaceholder: field.placeholder,
+                    formIndex: currentFormIndex,
+                    formName:
+                      currentForm?.formName ||
+                      currentProduct.forms[currentFormIndex]?.formName,
+                  },
+                  timestamp: Date.now(),
+                };
+                stompClient.publish({
+                  destination: "/topic/session/" + sessionId,
+                  body: JSON.stringify(fieldFocusMessage),
+                });
+                console.log(
+                  "📤 태블릿에서 field-focus 메시지 전송:",
+                  fieldFocusMessage
+                );
+              }
+            }}
+            highlightedField={highlightedField}
+            isFieldFocusMode={isFieldFocusMode}
+          />
+        </PDFContainer>
+      )}
 
-  // WebSocket 연결 상태 모니터링
-  useEffect(() => {
-    console.log("🔍 WebSocket 상태 변화:");
-    console.log("- connected:", connected);
-    console.log("- stompClient:", !!stompClient);
-    console.log("- sessionId:", sessionId);
-  }, [connected, stompClient, sessionId]);
+      {/* 스마트창구 필드 입력 모드 */}
+      {isFieldFocusMode && focusedField && (
+        <div
+          style={{
+            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            border: "3px solid #4a5568",
+            borderRadius: "12px",
+            padding: "2rem",
+            marginBottom: "1.5rem",
+            textAlign: "center",
+            boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "1.4rem",
+              fontWeight: "bold",
+              color: "white",
+              marginBottom: "0.5rem",
+              textShadow: "2px 2px 4px rgba(0,0,0,0.3)",
+            }}
+          >
+            📋 {focusedField.fieldLabel} 입력
+          </div>
+          <div
+            style={{
+              color: "#e2e8f0",
+              marginBottom: "1.5rem",
+              fontSize: "1rem",
+            }}
+          >
+            {focusedField.fieldPlaceholder}
+          </div>
+          <div
+            style={{
+              display: "flex",
+              gap: "1rem",
+              justifyContent: "center",
+            }}
+          >
+            <button
+              onClick={() => {
+                setIsFieldFocusMode(false);
+                setFocusedField(null);
+                setHighlightedField(null);
+              }}
+              style={{
+                padding: "0.8rem 1.5rem",
+                background: "#e53e3e",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontWeight: "600",
+              }}
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
-  // 테스트용 자동 페이지 설정 제거 - 올바른 흐름으로 복원
-
-  const renderPage = () => {
-    console.log("🔍 renderPage 호출됨:");
-    console.log("- currentPage:", currentPage);
-    console.log("- currentProduct:", currentProduct);
-    console.log("- currentForm:", currentForm);
-    console.log("- currentFormIndex:", currentFormIndex);
-
+  const renderCurrentPage = () => {
     switch (currentPage) {
-      case "customer-info":
-        console.log("📱 customer-info 페이지 렌더링");
-        return (
-          <div
-            style={{
-              background: "white",
-              borderRadius: "12px",
-              padding: "2rem",
-              boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-            }}
-          >
-            {/* 고객 정보 */}
-            <div
-              style={{
-                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                color: "white",
-                padding: "1.5rem",
-                borderRadius: "8px",
-                marginBottom: "2rem",
-                textAlign: "center",
-              }}
-            >
-              <h2 style={{ margin: "0 0 0.5rem 0", fontSize: "1.8rem" }}>
-                👤 고객 정보
-              </h2>
-              <div style={{ fontSize: "1.1rem", opacity: 0.9 }}>
-                선택된 고객 정보
-              </div>
-            </div>
-
-            {/* 고객 상세 정보 */}
-            <div style={{ fontSize: "1rem", lineHeight: "1.5" }}>
-              <p>
-                <strong>고객명:</strong> {currentCustomer?.Name || "정보 없음"}
-              </p>
-              <p>
-                <strong>고객ID:</strong>{" "}
-                {currentCustomer?.CustomerID || "정보 없음"}
-              </p>
-              <p>
-                <strong>연락처:</strong> {currentCustomer?.Phone || "정보 없음"}
-              </p>
-              <p>
-                <strong>나이:</strong> {currentCustomer?.Age || "정보 없음"}세
-              </p>
-              <p>
-                <strong>주소:</strong> {currentCustomer?.Address || "정보 없음"}
-              </p>
-            </div>
-
-            <div
-              style={{
-                textAlign: "center",
-                marginTop: "2rem",
-                padding: "1rem",
-                background: "#f8f9fa",
-                borderRadius: "8px",
-                color: "#6c757d",
-              }}
-            >
-              직원이 상품을 선택할 때까지 대기중입니다...
-            </div>
-          </div>
-        );
-
-      case "product-detail":
-        console.log("📱 product-detail 페이지 렌더링");
-        return (
-          <div
-            style={{
-              background: "white",
-              borderRadius: "12px",
-              padding: "2rem",
-              boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-            }}
-          >
-            {/* 상품 정보 */}
-            <div
-              style={{
-                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                color: "white",
-                padding: "1.5rem",
-                borderRadius: "8px",
-                marginBottom: "2rem",
-                textAlign: "center",
-              }}
-            >
-              <h2 style={{ margin: "0 0 0.5rem 0", fontSize: "1.8rem" }}>
-                {currentProduct?.product_name || "상품 정보"}
-              </h2>
-              <div style={{ fontSize: "1.1rem", opacity: 0.9 }}>
-                상품 상세 정보
-              </div>
-            </div>
-
-            {/* 상품 상세 정보 */}
-            {currentProduct && (
-              <div style={{ fontSize: "1rem", lineHeight: "1.5" }}>
-                <p>
-                  <strong>상품명:</strong> {currentProduct.product_name}
-                </p>
-                <p>
-                  <strong>상품ID:</strong> {currentProduct.id}
-                </p>
-                <p>
-                  <strong>상품타입:</strong> {currentProduct.producttype}
-                </p>
-                <p>
-                  <strong>기본금리:</strong> {currentProduct.baserate}%
-                </p>
-                <p>
-                  <strong>최소금액:</strong>{" "}
-                  {currentProduct.minamount?.toLocaleString()}원
-                </p>
-                <p>
-                  <strong>최대금액:</strong>{" "}
-                  {currentProduct.maxamount?.toLocaleString()}원
-                </p>
-                <p>
-                  <strong>설명:</strong> {currentProduct.description}
-                </p>
-              </div>
-            )}
-
-            <div
-              style={{
-                textAlign: "center",
-                marginTop: "2rem",
-                padding: "1rem",
-                background: "#f8f9fa",
-                borderRadius: "8px",
-                color: "#6c757d",
-              }}
-            >
-              "상품 가입하기"를 클릭하면 서식 작성이 시작됩니다.
-            </div>
-          </div>
-        );
-
       case "welcome":
-        console.log("📱 welcome 페이지 렌더링");
-        return (
-          <div
-            style={{
-              textAlign: "center",
-              color: "white",
-              padding: "4rem 2rem",
-            }}
-          >
-            <h1
-              style={{
-                fontSize: "3rem",
-                marginBottom: "2rem",
-                textShadow: "2px 2px 4px rgba(0,0,0,0.3)",
-              }}
-            >
-              🏦 하나금융그룹
-            </h1>
-            <h2
-              style={{
-                fontSize: "2rem",
-                marginBottom: "3rem",
-                textShadow: "2px 2px 4px rgba(0,0,0,0.3)",
-              }}
-            >
-              스마트 상담 시스템
-            </h2>
-            <div style={{ fontSize: "1.2rem", opacity: 0.9 }}>
-              직원이 서식을 선택할 때까지 대기중입니다...
-            </div>
-          </div>
-        );
-
+        return renderWelcomePage();
+      case "customer-info":
+        return renderCustomerInfoPage();
+      case "product-detail":
+        return renderProductDetailPage();
       case "product-enrollment":
-        console.log("📱 product-enrollment 페이지 렌더링 시도");
-        console.log("- currentProduct 존재:", !!currentProduct);
-        console.log("- currentForm 존재:", !!currentForm);
-
-        if (!currentProduct || !currentForm) {
-          console.log("❌ product-enrollment 페이지 렌더링 실패 - 데이터 부족");
-          console.log("- currentProduct:", currentProduct);
-          console.log("- currentForm:", currentForm);
-          return (
-            <div
-              style={{
-                textAlign: "center",
-                color: "white",
-                padding: "4rem 2rem",
-              }}
-            >
-              <div style={{ fontSize: "1.2rem", opacity: 0.9 }}>
-                직원이 서식을 선택할 때까지 대기중입니다...
-              </div>
-              <div
-                style={{ fontSize: "1rem", opacity: 0.7, marginTop: "1rem" }}
-              >
-                디버그: currentProduct={!!currentProduct}, currentForm=
-                {!!currentForm}
-              </div>
-
-              {/* 고객 정보 표시 */}
-              {currentProduct && (
-                <div style={{ marginTop: "2rem", textAlign: "left" }}>
-                  <h3 style={{ color: "#FFD700", marginBottom: "1rem" }}>
-                    📋 상품 정보
-                  </h3>
-                  <div style={{ fontSize: "1rem", lineHeight: "1.5" }}>
-                    <p>
-                      <strong>상품명:</strong> {currentProduct.productName}
-                    </p>
-                    <p>
-                      <strong>상품ID:</strong> {currentProduct.productId}
-                    </p>
-                    <p>
-                      <strong>서식 개수:</strong>{" "}
-                      {currentProduct.forms?.length || 0}개
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* 현재 서식 정보 */}
-              {currentForm && (
-                <div style={{ marginTop: "2rem", textAlign: "left" }}>
-                  <h3 style={{ color: "#FFD700", marginBottom: "1rem" }}>
-                    📄 현재 서식
-                  </h3>
-                  <div style={{ fontSize: "1rem", lineHeight: "1.5" }}>
-                    <p>
-                      <strong>서식명:</strong> {currentForm.formName}
-                    </p>
-                    <p>
-                      <strong>서식ID:</strong> {currentForm.formId}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        }
-
-        return (
-          <div
-            style={{
-              background: "white",
-              borderRadius: "12px",
-              padding: "2rem",
-              boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-            }}
-          >
-            {/* 상품 정보 */}
-            <div
-              style={{
-                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                color: "white",
-                padding: "1.5rem",
-                borderRadius: "8px",
-                marginBottom: "2rem",
-                textAlign: "center",
-              }}
-            >
-              <h2 style={{ margin: "0 0 0.5rem 0", fontSize: "1.8rem" }}>
-                {currentProduct.productName}
-              </h2>
-              <div style={{ fontSize: "1.1rem", opacity: 0.9 }}>
-                상품 가입 서식 작성
-              </div>
-            </div>
-
-            {/* 서식 네비게이션 */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "2rem",
-                padding: "1rem",
-                background: "#f8f9fa",
-                borderRadius: "8px",
-                border: "1px solid #e9ecef",
-              }}
-            >
-              <button
-                onClick={() => {
-                  if (currentFormIndex > 0) {
-                    setCurrentFormIndex(currentFormIndex - 1);
-                    setCurrentForm(currentProduct.forms[currentFormIndex - 1]);
-                  }
-                }}
-                disabled={currentFormIndex <= 0}
-                style={{
-                  padding: "0.75rem 1.5rem",
-                  border: "1px solid #dee2e6",
-                  borderRadius: "6px",
-                  background: currentFormIndex <= 0 ? "#f8f9fa" : "white",
-                  color: currentFormIndex <= 0 ? "#adb5bd" : "#495057",
-                  cursor: currentFormIndex <= 0 ? "not-allowed" : "pointer",
-                  fontSize: "1rem",
-                }}
-              >
-                ◀ 이전 서식
-              </button>
-
-              <div style={{ textAlign: "center" }}>
-                <div
-                  style={{
-                    fontSize: "1.2rem",
-                    fontWeight: "bold",
-                    color: "#495057",
-                  }}
-                >
-                  서식 {currentFormIndex + 1} / {currentProduct.forms.length}
-                </div>
-                <div
-                  style={{
-                    fontSize: "1rem",
-                    color: "#6c757d",
-                    marginTop: "0.25rem",
-                  }}
-                >
-                  {currentForm?.formName || "서식명 없음"}
-                </div>
-              </div>
-
-              <button
-                onClick={() => {
-                  if (currentFormIndex < currentProduct.forms.length - 1) {
-                    setCurrentFormIndex(currentFormIndex + 1);
-                    setCurrentForm(currentProduct.forms[currentFormIndex + 1]);
-                  }
-                }}
-                disabled={currentFormIndex >= currentProduct.forms.length - 1}
-                style={{
-                  padding: "0.75rem 1.5rem",
-                  border: "1px solid #dee2e6",
-                  borderRadius: "6px",
-                  background:
-                    currentFormIndex >= currentProduct.forms.length - 1
-                      ? "#f8f9fa"
-                      : "white",
-                  color:
-                    currentFormIndex >= currentProduct.forms.length - 1
-                      ? "#adb5bd"
-                      : "#495057",
-                  cursor:
-                    currentFormIndex >= currentProduct.forms.length - 1
-                      ? "not-allowed"
-                      : "pointer",
-                  fontSize: "1rem",
-                }}
-              >
-                다음 서식 ▶
-              </button>
-            </div>
-
-            {/* PDF 서식 뷰어 */}
-            {currentForm?.formTemplatePath && (
-              <div
-                style={{
-                  background: "white",
-                  border: "1px solid #ddd",
-                  borderRadius: "8px",
-                  padding: "1.5rem",
-                  marginBottom: "1rem",
-                }}
-              >
-                <div
-                  style={{
-                    fontWeight: "bold",
-                    marginBottom: "1rem",
-                    color: "#008485",
-                  }}
-                >
-                  📄 PDF 서식 뷰어
-                </div>
-
-                {/* PDF 뷰어 컴포넌트 */}
-                <div
-                  style={{
-                    background: "white",
-                    borderRadius: "8px",
-                    padding: "1rem",
-                    marginBottom: "1rem",
-                    border: "1px solid #ddd",
-                  }}
-                >
-                  <PDFViewer
-                    pdfUrl={
-                      currentForm?.formTemplatePath ||
-                      currentProduct.forms[currentFormIndex]?.formTemplatePath
-                    }
-                    formSchema={
-                      currentForm?.formSchema ||
-                      currentProduct.forms[currentFormIndex]?.formSchema
-                    }
-                    fieldValues={fieldValues}
-                    onFieldClick={(field) => {
-                      console.log("🔍 PDF에서 필드 클릭됨:", field);
-                      setHighlightedField({
-                        id: field.id,
-                        label: field.label,
-                        type: field.type,
-                        placeholder: field.placeholder,
-                      });
-                      setFocusedField({
-                        fieldId: field.id,
-                        fieldName: field.name,
-                        fieldLabel: field.label,
-                        fieldType: field.type,
-                        fieldPlaceholder: field.placeholder,
-                        formName:
-                          currentForm?.formName ||
-                          currentProduct.forms[currentFormIndex]?.formName,
-                      });
-                      setIsFieldFocusMode(true);
-
-                      // PC에 field-focus 메시지 전송
-                      if (stompClient && sessionId) {
-                        const fieldFocusMessage = {
-                          type: "field-focus",
-                          data: {
-                            fieldId: field.id,
-                            fieldName: field.name,
-                            fieldLabel: field.label,
-                            fieldType: field.type,
-                            fieldPlaceholder: field.placeholder,
-                            formIndex: currentFormIndex,
-                            formName:
-                              currentForm?.formName ||
-                              currentProduct.forms[currentFormIndex]?.formName,
-                          },
-                          timestamp: Date.now(),
-                        };
-                        stompClient.publish({
-                          destination: "/topic/session/" + sessionId,
-                          body: JSON.stringify(fieldFocusMessage),
-                        });
-                        console.log(
-                          "📤 태블릿에서 field-focus 메시지 전송:",
-                          fieldFocusMessage
-                        );
-                      }
-                    }}
-                    highlightedField={highlightedField}
-                    isFieldFocusMode={isFieldFocusMode}
-                  />
-                </div>
-
-                {/* 스마트창구 필드 입력 모드 */}
-                {isFieldFocusMode && focusedField && (
-                  <div
-                    style={{
-                      background:
-                        "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                      border: "3px solid #4a5568",
-                      borderRadius: "12px",
-                      padding: "2rem",
-                      marginBottom: "1.5rem",
-                      textAlign: "center",
-                      boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: "1.4rem",
-                        fontWeight: "bold",
-                        color: "white",
-                        marginBottom: "0.5rem",
-                        textShadow: "2px 2px 4px rgba(0,0,0,0.3)",
-                      }}
-                    >
-                      📋 {focusedField.fieldLabel} 입력
-                    </div>
-                    <div
-                      style={{
-                        color: "#e2e8f0",
-                        marginBottom: "1.5rem",
-                        fontSize: "1rem",
-                      }}
-                    >
-                      {focusedField.formName}
-                    </div>
-                    {(() => {
-                      const field = focusedField;
-                      return (
-                        <div
-                          style={{
-                            maxWidth: "500px",
-                            margin: "0 auto",
-                          }}
-                        >
-                          <div
-                            style={{
-                              background: "white",
-                              borderRadius: "8px",
-                              padding: "1.5rem",
-                              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                            }}
-                          >
-                            <label
-                              style={{
-                                display: "block",
-                                fontWeight: "bold",
-                                marginBottom: "0.5rem",
-                                color: "#2d3748",
-                                fontSize: "1.1rem",
-                              }}
-                            >
-                              {field.fieldLabel}
-                            </label>
-                            <input
-                              type={
-                                field.fieldType === "number" ? "number" : "text"
-                              }
-                              placeholder={field.fieldPlaceholder}
-                              style={{
-                                width: "100%",
-                                padding: "1rem",
-                                border: "2px solid #e2e8f0",
-                                borderRadius: "8px",
-                                fontSize: "1.1rem",
-                                outline: "none",
-                                transition: "border-color 0.2s ease",
-                              }}
-                              onKeyPress={(e) => {
-                                if (e.key === "Enter") {
-                                  const value = e.target.value.trim();
-                                  if (value) {
-                                    handleFieldInput(
-                                      field.fieldId,
-                                      field.fieldName,
-                                      value
-                                    );
-                                  }
-                                }
-                              }}
-                            />
-                            <div
-                              style={{
-                                marginTop: "1rem",
-                                display: "flex",
-                                gap: "1rem",
-                                justifyContent: "center",
-                              }}
-                            >
-                              <button
-                                onClick={() => {
-                                  const input = document.querySelector("input");
-                                  const value = input.value.trim();
-                                  if (value) {
-                                    handleFieldInput(
-                                      field.fieldId,
-                                      field.fieldName,
-                                      value
-                                    );
-                                  }
-                                }}
-                                style={{
-                                  padding: "0.75rem 2rem",
-                                  background: "#48bb78",
-                                  color: "white",
-                                  border: "none",
-                                  borderRadius: "8px",
-                                  fontSize: "1.1rem",
-                                  fontWeight: "bold",
-                                  cursor: "pointer",
-                                  boxShadow:
-                                    "0 4px 12px rgba(72, 187, 120, 0.3)",
-                                }}
-                              >
-                                입력 완료
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setIsFieldFocusMode(false);
-                                  setFocusedField(null);
-                                  setHighlightedField(null);
-                                }}
-                                style={{
-                                  padding: "0.75rem 2rem",
-                                  background: "#e53e3e",
-                                  color: "white",
-                                  border: "none",
-                                  borderRadius: "8px",
-                                  fontSize: "1.1rem",
-                                  fontWeight: "bold",
-                                  cursor: "pointer",
-                                  boxShadow:
-                                    "0 4px 12px rgba(229, 62, 62, 0.3)",
-                                }}
-                              >
-                                취소
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
-
-                {/* 입력 완료된 필드들 표시 */}
-                {Object.keys(fieldValues).length > 0 && (
-                  <div
-                    style={{
-                      background: "white",
-                      border: "1px solid #4caf50",
-                      borderRadius: "8px",
-                      padding: "1.5rem",
-                      marginBottom: "1rem",
-                      boxShadow: "0 2px 8px rgba(76, 175, 80, 0.2)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontWeight: "bold",
-                        marginBottom: "1rem",
-                        color: "#4caf50",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.5rem",
-                      }}
-                    >
-                      ✅ 입력 완료된 필드들
-                    </div>
-                    <div style={{ display: "grid", gap: "0.5rem" }}>
-                      {Object.entries(fieldValues).map(([fieldId, value]) => (
-                        <div
-                          key={fieldId}
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            padding: "0.75rem",
-                            background: "#f1f8e9",
-                            borderRadius: "6px",
-                            border: "1px solid #c8e6c9",
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontWeight: "500",
-                              color: "#2e7d32",
-                            }}
-                          >
-                            {fieldId}
-                          </span>
-                          <span
-                            style={{
-                              color: "#4caf50",
-                              fontWeight: "bold",
-                            }}
-                          >
-                            {value}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* PDF 뷰어 (메인) - product-enrollment 페이지에서만 표시 */}
-            {currentPage === "product-enrollment" &&
-              currentForm?.formtemplatepath && (
-                <div
-                  style={{
-                    background: "white",
-                    border: "1px solid #ddd",
-                    borderRadius: "8px",
-                    padding: "1rem",
-                    marginBottom: "1rem",
-                    maxHeight: "85vh",
-                    overflow: "auto",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontWeight: "bold",
-                      marginBottom: "1rem",
-                      color: "#008485",
-                      textAlign: "center",
-                    }}
-                  >
-                    📄 {currentForm.formName}
-                  </div>
-                  <PDFViewer
-                    pdfUrl={currentForm.formtemplatepath}
-                    formSchema={currentForm.formSchema}
-                    fieldValues={fieldValues}
-                    onFieldClick={(field) => {
-                      console.log("🔍 PDF에서 필드 클릭됨:", field);
-                      setHighlightedField({
-                        id: field.id,
-                        label: field.label,
-                        type: field.type,
-                        placeholder: field.placeholder,
-                      });
-                      setFocusedField({
-                        fieldId: field.id,
-                        fieldName: field.name,
-                        fieldLabel: field.label,
-                        fieldType: field.type,
-                        fieldPlaceholder: field.placeholder,
-                        formName: currentForm?.formName,
-                      });
-                      setIsFieldFocusMode(true);
-                    }}
-                    highlightedField={highlightedField}
-                    isFieldFocusMode={isFieldFocusMode}
-                  />
-                </div>
-              )}
-          </div>
-        );
-
+        return renderProductEnrollmentPage();
       default:
-        return (
-          <div
-            style={{
-              textAlign: "center",
-              color: "white",
-              padding: "4rem 2rem",
-            }}
-          >
-            <div style={{ fontSize: "1.2rem", opacity: 0.9 }}>
-              알 수 없는 페이지입니다.
-            </div>
-          </div>
-        );
+        return renderWelcomePage();
     }
   };
 
   return (
     <TabletContainer>
-      <Header>
-        <HeaderTitle>🏦 하나은행 스마트 상담</HeaderTitle>
-        <ConnectionStatus connected={connected}>
-          {connected ? "🟢 연결됨" : "🟡 연결 대기중"}
-        </ConnectionStatus>
-      </Header>
+      {/* 사이드바 토글 버튼 */}
+      <SidebarToggle onClick={toggleSidebar}>
+        {sidebarOpen ? (
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        ) : (
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+          </svg>
+        )}
+      </SidebarToggle>
 
-      <ContentArea>{renderPage()}</ContentArea>
+      {/* 사이드바 오버레이 */}
+      <Overlay isOpen={sidebarOpen} onClick={toggleSidebar} />
+
+      {/* 사이드바 */}
+      <Sidebar isOpen={sidebarOpen}>
+        {/* 대면상담 섹션 */}
+        <SidebarSection>
+          <SidebarTitle>대면상담</SidebarTitle>
+          <div style={{ textAlign: "center", marginBottom: "1rem" }}>
+            <div
+              style={{
+                width: "120px",
+                height: "120px",
+                background: "#f0f0f0",
+                margin: "0 auto 1rem",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "8px",
+                fontSize: "0.8rem",
+                color: "#666",
+              }}
+            >
+              QR코드
+            </div>
+            <p style={{ fontSize: "0.9rem", color: "#666", margin: 0 }}>
+              QR코드 스캔 후 고객정보를 입력해주세요.
+            </p>
+          </div>
+          <div style={{ fontSize: "0.9rem", color: "#666" }}>
+            <p style={{ margin: "0.3rem 0" }}>1. QR코드 스캔</p>
+            <p style={{ margin: "0.3rem 0" }}>2. 고객정보 입력</p>
+            <p style={{ margin: "0.3rem 0" }}>3. 상품선택</p>
+            <p style={{ margin: "0.3rem 0" }}>4. 서식작성</p>
+            <p style={{ margin: "0.3rem 0" }}>5. 전자서명</p>
+            <p style={{ margin: "0.3rem 0" }}>6. 상담종료</p>
+          </div>
+        </SidebarSection>
+
+        {/* 고객정보 섹션 */}
+        <SidebarSection>
+          <SidebarTitle>고객정보</SidebarTitle>
+          <SidebarButton>고객정보 확인</SidebarButton>
+          <SidebarButton>고객정보 수정</SidebarButton>
+        </SidebarSection>
+
+        {/* 고객 상세 정보 */}
+        {currentCustomer && (
+          <CustomerInfoBox>
+            <CustomerName>{currentCustomer.name} 고객님</CustomerName>
+            <CustomerDetail>
+              생년월일: {currentCustomer.dateOfBirth}
+            </CustomerDetail>
+            <CustomerDetail>
+              연락처: {currentCustomer.contactNumber}
+            </CustomerDetail>
+            <CustomerDetail>주소: {currentCustomer.address}</CustomerDetail>
+            {currentProduct && (
+              <>
+                <CustomerDetail>
+                  상품명: {currentProduct.productName}
+                </CustomerDetail>
+                <CustomerDetail>계좌번호: 123-456-7890</CustomerDetail>
+              </>
+            )}
+          </CustomerInfoBox>
+        )}
+
+        {/* 고객서식 섹션 */}
+        <SidebarSection>
+          <SidebarTitle>고객서식</SidebarTitle>
+          <SidebarButton>서식함</SidebarButton>
+          <SidebarButton>서식작성</SidebarButton>
+          <SidebarButton>전자서명</SidebarButton>
+        </SidebarSection>
+      </Sidebar>
+
+      {/* 메인 콘텐츠 */}
+      <MainContent sidebarOpen={sidebarOpen}>{renderCurrentPage()}</MainContent>
     </TabletContainer>
   );
 };

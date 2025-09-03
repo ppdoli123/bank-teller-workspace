@@ -488,10 +488,25 @@ const CustomerTablet: React.FC = () => {
       case 'FIELD_INPUT_REQUEST':
         // 필드 입력 요청 처리
         console.log('필드 입력 요청 수신:', messageData);
-        setFieldInputData(messageData.field);
+        console.log('필드 데이터 상세:', messageData.field);
+
+        // 필드 데이터를 올바른 구조로 변환
+        const fieldData = {
+          id: messageData.field.id,
+          label: messageData.field.label,
+          type: messageData.field.type || 'text',
+          required: messageData.field.required || false,
+          placeholder:
+            messageData.field.placeholder ||
+            `${messageData.field.label}을(를) 입력해주세요`,
+          currentValue: messageData.field.currentValue || '',
+        };
+
+        setFieldInputData(fieldData);
         setShowFieldInput(true);
+        console.log('✅ 필드 입력 모달 표시:', fieldData);
         break;
-      case 'FIELD_INPUT_COMPLETED':
+      case 'field-input-completed':
         // 필드 입력 완료 메시지 (태블릿에서 보낸 것이 다시 돌아옴)
         console.log('필드 입력 완료 메시지 수신 (에코):', messageData);
         break;
@@ -560,17 +575,22 @@ const CustomerTablet: React.FC = () => {
 
   // 필드 입력 완료 핸들러
   const handleFieldInputComplete = (inputValue: string) => {
-    // stompClient.publish({ // STOMP 클라이언트 제거
-    //   destination: '/app/send-message',
-    //   body: JSON.stringify({
-    //     sessionId: sessionId,
-    //     type: 'FIELD_INPUT_COMPLETED',
-    //     field: {
-    //       id: fieldInputData.id,
-    //       value: inputValue,
-    //     },
-    //   }),
-    // });
+    // 웹소켓으로 필드 입력 완료 메시지 전송
+    if (fieldInputData && sessionId) {
+      const fieldInputMessage = {
+        type: 'field-input-completed', // 메시지 타입 통일
+        sessionId: sessionId,
+        fieldId: fieldInputData.id,
+        fieldValue: inputValue,
+        fieldLabel: fieldInputData.label,
+        fieldType: fieldInputData.type,
+        timestamp: Date.now(),
+      };
+
+      // SimpleWebSocket을 통해 메시지 전송
+      handleWebSocketMessage(fieldInputMessage);
+      console.log('✅ 필드 입력 완료 메시지 전송:', fieldInputMessage);
+    }
 
     setShowFieldInput(false);
     setFieldInputData(null);
@@ -1053,6 +1073,8 @@ const CustomerTablet: React.FC = () => {
           fieldData={fieldInputData}
           onComplete={handleFieldInputComplete}
           onCancel={handleFieldInputCancel}
+          sessionId={sessionId}
+          onWebSocketMessage={handleWebSocketMessage}
         />
       )}
 
