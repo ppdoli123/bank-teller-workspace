@@ -14,6 +14,7 @@
 ## 🎯 프로젝트 구성
 
 ### � 폴더 구조
+
 ```
 📦 은행 상담 시스템
 ├── �️ backend/          # Spring Boot API 서버
@@ -25,10 +26,45 @@
 └── 📱 start-tablet-app.bat # 태블릿 앱 실행 스크립트
 ```
 
-## 🚀 빠른 시작 (다른 컴퓨터에서 실행)
+## 🚀 빠른 시작
 
-### 📋 사전 요구사항
-#### 필수 설치 프로그램
+### 🐳 Docker 사용 (권장 - 윈도우/맥 호환)
+
+**윈도우와 맥 간의 환경 차이 문제를 해결하기 위해 Docker 사용을 권장합니다.**
+
+#### 📋 Docker 사전 요구사항
+
+- **Docker Desktop** 설치
+  - [Windows용 Docker Desktop](https://docs.docker.com/desktop/install/windows-install/)
+  - [Mac용 Docker Desktop](https://docs.docker.com/desktop/install/mac-install/)
+
+#### 🚀 Docker로 실행
+
+```bash
+# 프로젝트 클론
+git clone <repository-url>
+cd bank-teller-workspace
+
+# Docker 환경 시작
+# Windows: start-docker.bat
+# Mac/Linux: ./start-docker.sh
+
+# 또는 수동으로
+docker-compose up --build -d
+```
+
+**접속 URL:**
+
+- 프론트엔드: http://localhost:3000
+- 백엔드: http://localhost:8080
+- 데이터베이스: localhost:5432
+
+자세한 Docker 사용법은 [DOCKER_GUIDE.md](./DOCKER_GUIDE.md)를 참조하세요.
+
+### 🔧 로컬 개발 환경 (다른 컴퓨터에서 실행)
+
+#### 📋 사전 요구사항
+
 - **Java Development Kit (JDK) 11 이상**
   - [Oracle JDK](https://www.oracle.com/java/technologies/downloads/) 또는 [OpenJDK](https://openjdk.org/install/)
 - **Node.js v16 이상**
@@ -37,11 +73,13 @@
   - [Git 공식 사이트](https://git-scm.com/)
 
 #### 안드로이드 앱 개발용 (선택사항)
+
 - **Android Studio**
   - [Android Studio 공식 사이트](https://developer.android.com/studio)
 - **Android SDK (API Level 28 이상)**
 
 ### 📥 1. 프로젝트 클론
+
 ```bash
 git clone https://github.com/ppdoli123/bank-teller-workspace.git
 cd bank-teller-workspace
@@ -50,29 +88,34 @@ cd bank-teller-workspace
 ### ⚙️ 2. 환경 설정 및 의존성 설치
 
 #### 🚀 자동 설치 (Windows) - 가장 빠른 방법
+
 ```bash
 # 모든 의존성 자동 설치
 setup.bat
 ```
 
 #### 🔧 수동 설치
+
 ##### 백엔드 설정
+
 ```bash
 cd backend
 # Windows
 mvnw.cmd clean install
 
-# Mac/Linux  
+# Mac/Linux
 ./mvnw clean install
 ```
 
 ##### 프론트엔드 설정
+
 ```bash
 cd ../client
 npm install
 ```
 
 ##### 태블릿 앱 설정 (선택사항)
+
 ```bash
 cd ../TabletApp
 npm install
@@ -81,6 +124,7 @@ npm install
 ### 🚀 3. 실행
 
 #### 방법 1: 배치 파일 사용 (Windows) - 권장
+
 ```bash
 # 백엔드 실행
 start-backend.bat
@@ -93,6 +137,7 @@ start-tablet-app.bat
 ```
 
 #### 방법 2: 수동 실행
+
 ```bash
 # 1. 백엔드 실행 (포트 8080)
 cd backend
@@ -113,11 +158,13 @@ npm run android  # Android 에뮬레이터 필요
 ```
 
 ### 🚨 실행 순서 중요!
+
 1. **백엔드 먼저 실행** → 데이터베이스 초기화 대기
 2. **백엔드 완전 시작 확인** → "Started SmartConsultingApplication" 메시지 확인
 3. **프론트엔드 실행** → 백엔드 API 연결 확인
 
 ### 🌐 4. 접속 주소
+
 - **직원용 웹 인터페이스**: http://localhost:3000
 - **고객용 태블릿 (웹)**: http://localhost:3000/tablet
 - **고객용 태블릿 (앱)**: Android 에뮬레이터 또는 실제 디바이스
@@ -127,9 +174,11 @@ npm run android  # Android 에뮬레이터 필요
 ### 🔧 문제 해결 (Troubleshooting)
 
 #### ❌ 백엔드 실행 실패
+
 **증상**: `mvnw.cmd spring-boot:run` 실행 시 오류 발생
 
 **해결방법**:
+
 ```bash
 # 1. Java 버전 확인
 java -version
@@ -145,9 +194,11 @@ mvnw.cmd spring-boot:run
 ```
 
 #### ❌ 프론트엔드 의존성 설치 실패
+
 **증상**: `npm install` 실행 시 오류 발생
 
 **해결방법**:
+
 ```bash
 # 1. Node.js 버전 확인 (v16 이상 필요)
 node --version
@@ -164,9 +215,11 @@ npm install
 ```
 
 #### ❌ 포트 충돌 오류
+
 **증상**: "Port 8080 already in use" 또는 "Port 3000 already in use"
 
 **해결방법**:
+
 ```bash
 # Windows에서 포트 사용 프로세스 확인 및 종료
 netstat -ano | findstr :8080
@@ -179,25 +232,30 @@ lsof -ti:3000 | xargs kill -9
 ```
 
 #### ❌ CORS 오류
+
 **증상**: "Access to fetch at 'http://localhost:8080' from origin 'http://localhost:3000' has been blocked by CORS policy"
 
 **해결방법**: 백엔드가 완전히 시작되었는지 확인 후, 브라우저 새로고침
 
 #### ❌ 데이터베이스 연결 실패
+
 **증상**: H2 데이터베이스 접속 불가
 
-**해결방법**: 
+**해결방법**:
+
 1. 백엔드 서버가 완전히 시작되었는지 확인
 2. http://localhost:8080/h2-console 접속
 3. JDBC URL: `jdbc:h2:mem:testdb`, Username: `sa`, Password: 비워둠
 
 #### ⚠️ 일반적인 실행 문제
+
 1. **관리자 권한으로 실행**: 일부 환경에서는 관리자 권한 필요
 2. **방화벽 설정**: Windows Defender 방화벽에서 Java, Node.js 허용
 3. **바이러스 백신 소프트웨어**: 프로젝트 폴더를 예외 목록에 추가
 4. **경로 공백 문제**: 프로젝트 경로에 한글이나 공백이 있으면 이동
 
 ### � 기본 로그인 정보
+
 ```
 직원 로그인:
 - ID: employee1
@@ -208,6 +266,7 @@ H2 데이터베이스:
 - Username: sa
 - Password: (빈 값)
 ```
+
 - **Spring Boot 3.2**: 엔터프라이즈급 Java 프레임워크
 - **Spring Data JPA**: 데이터베이스 ORM
 - **Spring Security**: 보안 및 인증
@@ -218,6 +277,7 @@ H2 데이터베이스:
 - **Maven**: 빌드 도구
 
 ### Frontend
+
 - **React 18**: 사용자 인터페이스
 - **Styled Components**: CSS-in-JS 스타일링
 - **Axios**: HTTP 클라이언트
@@ -225,11 +285,12 @@ H2 데이터베이스:
 - **sockjs-client**: WebSocket 폴백 지원
 
 ### Database Schema
+
 ```sql
 -- 직원 정보
 employees (id, employee_id, name, password, position)
 
--- 고객 정보  
+-- 고객 정보
 customers (customer_id, name, phone, age, address, income, assets)
 
 -- 고객 보유 상품
@@ -245,6 +306,7 @@ consultation_sessions (id, session_id, employee_id, customer_id)
 ## 🚀 빠른 시작
 
 ### 필수 요구사항
+
 - **Java 17 이상**
 - **Node.js 16.0 이상**
 - **npm 8.0 이상**
@@ -252,11 +314,13 @@ consultation_sessions (id, session_id, employee_id, customer_id)
 ### Windows 자동 실행
 
 #### 백엔드 서버 시작
+
 ```cmd
 start-backend.bat
 ```
 
 #### 프론트엔드 서버 시작 (새 터미널)
+
 ```cmd
 start-frontend.bat
 ```
@@ -264,12 +328,14 @@ start-frontend.bat
 ### 수동 설치 및 실행
 
 #### 1. 저장소 클론
+
 ```bash
 git clone https://github.com/ppdoli123/bank-teller-workspace.git
 cd bank-teller-workspace
 ```
 
 #### 2. Spring Boot 백엔드 설치 및 실행
+
 ```bash
 # 백엔드 디렉토리로 이동
 cd backend
@@ -279,6 +345,7 @@ cd backend
 ```
 
 #### 3. React 클라이언트 설치 및 실행 (새 터미널)
+
 ```bash
 # 클라이언트 디렉토리로 이동
 cd client
@@ -293,16 +360,19 @@ npm start
 ## 📖 사용 방법
 
 ### 1. 시스템 접속
+
 - **직원용**: http://localhost:3000
 - **고객 태블릿**: http://localhost:3000/tablet
 
 ### 2. 직원 로그인
+
 ```
 ID: 1234
 비밀번호: 1234
 ```
 
 ### 3. 고객 상담 시작
+
 1. **고객 선택**: "🧪 테스트 고객 선택" 버튼 클릭
 2. **고객 정보 확인**: 태블릿에서 고객 정보 자동 표시
 3. **보유 상품 검토**: 기존 예금, 적금, 대출 현황 확인
@@ -311,13 +381,13 @@ ID: 1234
 
 ### 4. 테스트 고객 정보
 
-| 고객명 | 나이 | 투자목적 | 순자산 | 특징 |
-|--------|------|----------|--------|------|
-| 김철수 | 35세 | 주택구매 | +2,860만원 | 안정적 자산 보유 |
-| 이영희 | 28세 | 결혼자금 | +430만원 | 소액 대출 보유 |
-| 박민수 | 42세 | 교육비 | -8,000만원 | 주택담보대출 보유 |
-| 최지연 | 31세 | 노후준비 | +2,690만원 | 연금상품 가입 |
-| 정태호 | 26세 | 창업자금 | -640만원 | 청년층 고객 |
+| 고객명 | 나이 | 투자목적 | 순자산     | 특징              |
+| ------ | ---- | -------- | ---------- | ----------------- |
+| 김철수 | 35세 | 주택구매 | +2,860만원 | 안정적 자산 보유  |
+| 이영희 | 28세 | 결혼자금 | +430만원   | 소액 대출 보유    |
+| 박민수 | 42세 | 교육비   | -8,000만원 | 주택담보대출 보유 |
+| 최지연 | 31세 | 노후준비 | +2,690만원 | 연금상품 가입     |
+| 정태호 | 26세 | 창업자금 | -640만원   | 청년층 고객       |
 
 ## 🏗️ 시스템 구조
 
@@ -351,6 +421,7 @@ ID: 1234
 ```
 
 ### 🔄 시스템 플로우
+
 ```mermaid
 graph TD
     A[직원 로그인] --> B[고객 선택/OCR]
@@ -367,17 +438,21 @@ graph TD
 ### 주요 테이블
 
 #### 고객 보유 상품 (customer_products)
+
 - 실제 은행 고객의 포트폴리오 시뮬레이션
 - 예금, 적금, 대출 등 다양한 상품 유형
 - 잔액, 금리, 만기일 등 상세 정보
 
-#### 금융 상품 (financial_products)  
+#### 금융 상품 (financial_products)
+
 - 179개 실제 하나은행 상품 데이터
 - 예금, 적금, 대출, 카드 등 전 상품군
 - 금리, 가입조건, 우대혜택 포함
 
 ### 데이터 초기화
+
 시스템 시작 시 `DataLoader` 클래스가 자동으로 다음 데이터를 로드합니다:
+
 - 테스트 직원 계정 (ID: 1234, PW: 1234)
 - 5명의 테스트 고객 및 보유 상품
 - 179개의 하나은행 금융 상품
@@ -385,6 +460,7 @@ graph TD
 ## 🔧 개발 환경
 
 ### Spring Boot 설정 (application.properties)
+
 ```properties
 # 서버 설정
 server.port=8080
@@ -418,32 +494,39 @@ cors.allowed-origins=http://localhost:3000
 **Base URL**: `http://localhost:8080/api`
 
 #### 인증
+
 - `POST /auth/login` - 직원 로그인
 - `GET /auth/verify` - 토큰 검증
 
 #### 고객 관리
+
 - `GET /customers/{id}` - 고객 정보 조회
 - `GET /customers/{id}/products` - 고객 보유 상품 조회
 - `GET /customers/search/name/{name}` - 이름으로 고객 검색
 - `GET /customers/search/idnumber/{idNumber}` - 신분증번호로 고객 검색
 
 #### 상품 관리
+
 - `GET /products` - 전체 상품 조회 (페이징 지원)
 - `GET /products/{id}` - 상품 상세 조회
 - `GET /products/search?keyword={keyword}` - 상품 검색
 - `GET /products/types` - 상품 타입 목록
 
 #### OCR 시뮬레이션
+
 - `POST /ocr/id-card` - 신분증 인식
 - `GET /ocr/test-customers` - 테스트 고객 목록
 
 #### 상담 세션
+
 - `POST /consultation/sessions` - 상담 세션 생성
 
 #### 시스템
+
 - `GET /health` - 헬스체크
 
 ### WebSocket 엔드포인트
+
 - **연결**: `/api/ws` (SockJS + STOMP)
 - **세션 참여**: `/app/join-session`
 - **상품 동기화**: `/app/product-detail-sync`
@@ -459,11 +542,13 @@ cors.allowed-origins=http://localhost:3000
 5. Pull Request를 생성합니다
 
 ### 개발 가이드라인
+
 - **코드 스타일**: Java는 Google Java Style, JavaScript는 Prettier + ESLint 설정 준수
 - **커밋 메시지**: [Conventional Commits](https://www.conventionalcommits.org/) 형식
 - **테스트**: 새 기능 추가 시 테스트 코드 작성
 
 ### 최근 업데이트 (v2.0)
+
 - **Node.js → Spring Boot**: 백엔드를 엔터프라이즈급 Java 프레임워크로 마이그레이션
 - **Socket.IO → STOMP**: 표준 WebSocket 프로토콜 적용
 - **SQLite → H2**: JPA 호환 인메모리 데이터베이스 사용

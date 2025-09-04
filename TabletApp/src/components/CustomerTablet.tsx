@@ -25,6 +25,7 @@ import ProductDetailModal from './ProductDetailModal';
 import SessionConnector from './SessionConnector';
 import SimpleWebSocket from './SimpleWebSocket';
 import FormViewer from './FormViewer';
+import ProductDescriptionViewer from './ProductDescriptionViewer';
 import {
   API_BASE_URL,
   SIMPLE_WS_URL,
@@ -47,6 +48,10 @@ const CustomerTablet: React.FC = () => {
   const [stompClient, setStompClient] = useState<any>(null); // STOMP 클라이언트 제거
   const [showSignature, setShowSignature] = useState(false);
   const signatureRef = useRef<any>(null);
+  const [showProductDescription, setShowProductDescription] = useState(false);
+  const [currentProductDescription, setCurrentProductDescription] =
+    useState<any>(null);
+  const [descriptionCurrentPage, setDescriptionCurrentPage] = useState(1);
 
   // 웹 버전에서 추가된 상태들
   const [sessionId, setSessionId] = useState<string>('tablet_main');
@@ -352,16 +357,71 @@ const CustomerTablet: React.FC = () => {
   };
 
   const handleWebSocketMessage = (message: WebSocketMessage) => {
+    console.log('🎯 handleWebSocketMessage 함수 호출됨!');
     console.log('=== 태블릿 메시지 수신 ===', message);
     console.log('현재 세션 ID:', sessionId);
     console.log('메시지 타입:', message.type);
     console.log('메시지 전체 데이터:', JSON.stringify(message, null, 2));
+
+    // 디버깅을 위한 메시지 수신 알림
+    setLastMessage(`메시지 수신: ${message.type || 'unknown'}`);
+    setTimeout(() => setLastMessage(''), 3000);
+
+    // 메시지 타입 디버깅
+    console.log('🔍 메시지 타입 비교:');
+    console.log('message.type:', message.type);
+    console.log(
+      'message.type === "product-description":',
+      message.type === 'product-description',
+    );
+    console.log('typeof message.type:', typeof message.type);
 
     // receive-message 타입으로 래핑된 메시지 처리
     let messageData = message;
     if (message.type === 'receive-message' && message.data) {
       messageData = message.data;
       console.log('래핑된 메시지 데이터:', messageData);
+    }
+
+    // 상품설명서 동기화 처리 (가장 먼저 처리)
+    console.log('🔍 상품설명서 처리 조건 확인:');
+    console.log('message.type:', message.type);
+    console.log('조건 결과:', message.type === 'product-description');
+
+    if (message.type === 'product-description') {
+      console.log('=== 태블릿 상품설명서 동기화 메시지 수신 ===');
+      console.log('메시지 데이터:', JSON.stringify(message, null, 2));
+      console.log('상품 정보:', message.data?.product);
+      console.log('현재 페이지:', message.data?.currentPage);
+
+      if (message.data?.product) {
+        console.log('상품설명서 상태 설정 시작...');
+        setCurrentProductDescription(message.data.product);
+        setDescriptionCurrentPage(message.data.currentPage || 1);
+        setShowProductDescription(true);
+        console.log('✅ 상품설명서 뷰어 표시 설정 완료');
+        console.log('showProductDescription:', true);
+        console.log('currentProductDescription:', message.data.product);
+        console.log('descriptionCurrentPage:', message.data.currentPage || 1);
+
+        // 디버깅을 위한 추가 로그
+        setTimeout(() => {
+          console.log('상태 확인 (1초 후):');
+          console.log('showProductDescription:', showProductDescription);
+          console.log('currentProductDescription:', currentProductDescription);
+        }, 1000);
+      } else {
+        console.warn('❌ 상품설명서 데이터가 없습니다:', message.data);
+      }
+      return; // 중요: 여기서 return하여 다른 처리 로직으로 넘어가지 않도록 함
+    }
+
+    // 화면 하이라이트 동기화 처리
+    if (message.type === 'screen-highlight') {
+      console.log('=== 태블릿 화면 하이라이트 동기화 메시지 수신 ===');
+      console.log('하이라이트 데이터:', message.data);
+      // 하이라이트 처리 로직 추가 가능
+      return;
     }
 
     // 일반 메시지 수신 알림 (고객 정보 메시지는 별도 처리)
@@ -380,6 +440,24 @@ const CustomerTablet: React.FC = () => {
     }
 
     switch (messageData.type) {
+      // 상품설명서 동기화 처리
+      case 'product-description':
+        console.log('=== Switch문에서 상품설명서 처리 ===');
+        if (messageData.data?.product) {
+          setCurrentProductDescription(messageData.data.product);
+          setDescriptionCurrentPage(messageData.data.currentPage || 1);
+          setShowProductDescription(true);
+          console.log('✅ Switch문에서 상품설명서 뷰어 표시 설정 완료');
+        }
+        break;
+
+      // 화면 하이라이트 동기화 처리
+      case 'screen-highlight':
+        console.log('=== Switch문에서 화면 하이라이트 처리 ===');
+        console.log('하이라이트 데이터:', messageData.data);
+        // 하이라이트 처리 로직 추가 가능
+        break;
+
       // 기존 메시지 타입들
       case 'CUSTOMER_INFO_REQUEST':
         setCustomer(prev => ({ ...prev, currentStep: 'info_input' }));
@@ -1051,6 +1129,20 @@ const CustomerTablet: React.FC = () => {
         onMessage={handleWebSocketMessage}
       />
 
+      {/* WebSocket 연결 상태 디버깅 */}
+      {__DEV__ && (
+        <View style={styles.debugContainer}>
+          <Text style={styles.debugTitle}>🔍 WebSocket 연결 상태</Text>
+          <Text style={styles.debugText}>
+            isConnected: {isConnected ? 'true' : 'false'}
+          </Text>
+          <Text style={styles.debugText}>sessionId: {sessionId}</Text>
+          <Text style={styles.debugText}>
+            lastMessage: {lastMessage || '없음'}
+          </Text>
+        </View>
+      )}
+
       <TouchableOpacity
         style={styles.sessionChangeButton}
         onPress={() => setShowSessionConnector(true)}
@@ -1087,6 +1179,64 @@ const CustomerTablet: React.FC = () => {
           setSelectedProductDetail(null);
         }}
       />
+
+      {/* 상품설명서 뷰어 */}
+      {showProductDescription && currentProductDescription && (
+        <ProductDescriptionViewer
+          product={currentProductDescription}
+          currentPage={descriptionCurrentPage}
+          totalPages={80}
+          onPageChange={page => setDescriptionCurrentPage(page)}
+          onClose={() => {
+            console.log('상품설명서 뷰어 닫기');
+            setShowProductDescription(false);
+            setCurrentProductDescription(null);
+          }}
+          onNext={() => {
+            console.log('상품설명서 뷰어에서 시뮬레이션으로 전환');
+            setShowProductDescription(false);
+            setCurrentProductDescription(null);
+            // 시뮬레이션으로 전환하는 로직 추가 가능
+          }}
+        />
+      )}
+
+      {/* 디버깅: 상품설명서 뷰어 렌더링 조건 확인 */}
+      {__DEV__ && (
+        <View style={styles.debugContainer}>
+          <Text style={styles.debugTitle}>🔍 상품설명서 뷰어 디버깅</Text>
+          <Text style={styles.debugText}>
+            showProductDescription: {showProductDescription ? 'true' : 'false'}
+          </Text>
+          <Text style={styles.debugText}>
+            currentProductDescription:{' '}
+            {currentProductDescription ? '있음' : '없음'}
+          </Text>
+          <Text style={styles.debugText}>
+            렌더링 조건:{' '}
+            {showProductDescription && currentProductDescription
+              ? '✅ 렌더링됨'
+              : '❌ 렌더링 안됨'}
+          </Text>
+        </View>
+      )}
+
+      {/* 디버깅 정보 */}
+      {__DEV__ && (
+        <View style={styles.debugContainer}>
+          <Text style={styles.debugTitle}>🔍 디버깅 정보</Text>
+          <Text style={styles.debugText}>
+            showProductDescription: {showProductDescription ? 'true' : 'false'}
+          </Text>
+          <Text style={styles.debugText}>
+            currentProductDescription:{' '}
+            {currentProductDescription ? '있음' : '없음'}
+          </Text>
+          <Text style={styles.debugText}>
+            descriptionCurrentPage: {descriptionCurrentPage}
+          </Text>
+        </View>
+      )}
 
       {/* 서식 뷰어 모달 */}
       {showFormViewer && (

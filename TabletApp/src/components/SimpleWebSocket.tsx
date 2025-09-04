@@ -271,14 +271,19 @@ const SimpleWebSocket: React.FC<SimpleWebSocketProps> = ({
               console.log('📨 태블릿 메시지 수신 시작');
               console.log('메시지 헤더:', message.headers);
               console.log('메시지 바디:', message.body);
+              console.log('메시지 전체:', JSON.stringify(message, null, 2));
 
               try {
                 const data = JSON.parse(message.body);
                 console.log('📨 태블릿 메시지 수신:', data);
+                console.log('메시지 타입:', data.type);
+                console.log('onMessage 콜백 호출 시작...');
                 onMessage(data);
+                console.log('onMessage 콜백 호출 완료');
                 setLastMessage(`메시지 수신: ${data.type}`);
               } catch (error) {
                 console.error('메시지 파싱 오류:', error);
+                console.error('원본 메시지:', message.body);
                 setLastMessage('메시지 파싱 오류');
               }
             },
@@ -288,15 +293,18 @@ const SimpleWebSocket: React.FC<SimpleWebSocketProps> = ({
 
           // 세션 참여 (웹과 동일)
           console.log('🚀 세션 참여 시도:', sessionId);
+          const joinMessage = {
+            sessionId: sessionId,
+            userType: 'tablet',
+            userId: 'tablet_' + Date.now(),
+          };
+
           client.publish({
             destination: '/app/join-session',
-            body: JSON.stringify({
-              sessionId: sessionId,
-              userType: 'customer-tablet',
-            }),
+            body: JSON.stringify(joinMessage),
           });
 
-          console.log('✅ 세션 참여 메시지 전송 완료');
+          console.log('✅ 세션 참여 메시지 전송 완료:', joinMessage);
           setLastMessage('세션 참여 완료');
           setConnectionStatus('세션 참여 완료');
         } catch (error) {

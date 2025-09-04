@@ -336,16 +336,20 @@ public class WebSocketController extends TextWebSocketHandler {
     @MessageMapping("/screen-highlight")
     public void screenHighlight(@Payload Map<String, Object> payload) {
         String sessionId = (String) payload.get("sessionId");
-        String elementId = (String) payload.get("elementId");
-        String highlightType = (String) payload.get("highlightType"); // "highlight", "underline", "clear"
-        String color = (String) payload.get("color");
+        Map<String, Object> data = (Map<String, Object>) payload.get("data");
         
-        log.info("화면 하이라이트 동기화 - sessionId: {}, elementId: {}, type: {}", sessionId, elementId, highlightType);
+        log.info("화면 하이라이트 동기화 - sessionId: {}, payload: {}", sessionId, payload);
         
+        // 새로운 메시지 구조 처리
         Map<String, Object> highlightData = new HashMap<>();
-        highlightData.put("elementId", elementId);
-        highlightData.put("highlightType", highlightType);
-        highlightData.put("color", color);
+        if (data != null) {
+            highlightData.putAll(data);
+        } else {
+            // 기존 구조 호환성 유지
+            highlightData.put("elementId", payload.get("elementId"));
+            highlightData.put("highlightType", payload.get("highlightType"));
+            highlightData.put("color", payload.get("color"));
+        }
         highlightData.put("timestamp", System.currentTimeMillis());
         
         Map<String, Object> message = Map.of(
@@ -354,9 +358,92 @@ public class WebSocketController extends TextWebSocketHandler {
             "timestamp", System.currentTimeMillis()
         );
         
+        log.info("하이라이트 메시지 생성: {}", message);
+        
         messagingTemplate.convertAndSend("/topic/session/" + sessionId, message);
         WebSocketConfig.SimpleWebSocketHandler.broadcastToSimpleWebSocket(sessionId, message);
         log.info("화면 하이라이트 동기화 메시지 전송 완료");
+    }
+    
+    /**
+     * 상품설명서 동기화
+     */
+    @MessageMapping("/product-description")
+    public void productDescription(@Payload Map<String, Object> payload) {
+        String sessionId = (String) payload.get("sessionId");
+        Map<String, Object> product = (Map<String, Object>) payload.get("product");
+        Integer currentPage = (Integer) payload.get("currentPage");
+        Integer totalPages = (Integer) payload.get("totalPages");
+        
+        log.info("상품설명서 동기화 - sessionId: {}, product: {}, page: {}/{}", 
+                sessionId, product != null ? product.get("productName") : "null", currentPage, totalPages);
+        
+        Map<String, Object> descriptionData = new HashMap<>();
+        descriptionData.put("product", product);
+        descriptionData.put("currentPage", currentPage);
+        descriptionData.put("totalPages", totalPages);
+        descriptionData.put("timestamp", System.currentTimeMillis());
+        
+        Map<String, Object> message = Map.of(
+            "type", "product-description",
+            "data", descriptionData,
+            "timestamp", System.currentTimeMillis()
+        );
+        
+        messagingTemplate.convertAndSend("/topic/session/" + sessionId, message);
+        WebSocketConfig.SimpleWebSocketHandler.broadcastToSimpleWebSocket(sessionId, message);
+        log.info("상품설명서 동기화 메시지 전송 완료");
+    }
+    
+    /**
+     * 상품 시뮬레이션 동기화
+     */
+    @MessageMapping("/product-simulation")
+    public void productSimulation(@Payload Map<String, Object> payload) {
+        String sessionId = (String) payload.get("sessionId");
+        Map<String, Object> data = (Map<String, Object>) payload.get("data");
+        
+        log.info("상품 시뮬레이션 동기화 - sessionId: {}, payload: {}", sessionId, payload);
+        
+        Map<String, Object> simulationData = new HashMap<>();
+        if (data != null) {
+            simulationData.putAll(data);
+        }
+        simulationData.put("timestamp", System.currentTimeMillis());
+        
+        Map<String, Object> message = Map.of(
+            "type", "product-simulation",
+            "data", simulationData,
+            "timestamp", System.currentTimeMillis()
+        );
+        
+        log.info("시뮬레이션 메시지 생성: {}", message);
+        
+        messagingTemplate.convertAndSend("/topic/session/" + sessionId, message);
+        WebSocketConfig.SimpleWebSocketHandler.broadcastToSimpleWebSocket(sessionId, message);
+        log.info("상품 시뮬레이션 동기화 메시지 전송 완료");
+    }
+    
+    /**
+     * 상품설명서 닫기
+     */
+    @MessageMapping("/product-description-close")
+    public void productDescriptionClose(@Payload Map<String, Object> payload) {
+        String sessionId = (String) payload.get("sessionId");
+        
+        log.info("상품설명서 닫기 요청 수신 - sessionId: {}, payload: {}", sessionId, payload);
+        
+        Map<String, Object> message = Map.of(
+            "type", "product-description-close",
+            "data", Map.of("sessionId", sessionId),
+            "timestamp", System.currentTimeMillis()
+        );
+        
+        log.info("상품설명서 닫기 메시지 생성: {}", message);
+        
+        messagingTemplate.convertAndSend("/topic/session/" + sessionId, message);
+        WebSocketConfig.SimpleWebSocketHandler.broadcastToSimpleWebSocket(sessionId, message);
+        log.info("상품설명서 닫기 메시지 전송 완료 - sessionId: {}", sessionId);
     }
     
     /**
@@ -549,6 +636,30 @@ public class WebSocketController extends TextWebSocketHandler {
         log.info("태블릿 메시지 클라이언트 전송 완료");
     }
     
+    /**
+     * PC에서 필드 포커스 처리 (태블릿에 필드 입력 모드 활성화)
+     */
+    @MessageMapping("/field-focus")
+    public void fieldFocus(@Payload Map<String, Object> payload) {
+        String sessionId = (String) payload.get("sessionId");
+        Map<String, Object> data = (Map<String, Object>) payload.get("data");
+        
+        log.info("필드 포커스 - sessionId: {}, data: {}", sessionId, data);
+        
+        Map<String, Object> message = new HashMap<>();
+        message.put("type", "field-focus");
+        message.put("data", data);
+        message.put("timestamp", System.currentTimeMillis());
+        
+        // STOMP 전송
+        messagingTemplate.convertAndSend("/topic/session/" + sessionId, message);
+        
+        // 단순 WebSocket 브리지 전송
+        WebSocketConfig.SimpleWebSocketHandler.broadcastToSimpleWebSocket(sessionId, message);
+        
+        log.info("필드 포커스 메시지 전송 완료");
+    }
+
     /**
      * 태블릿에서 필드 입력 완료 처리 (PC와 태블릿 동기화) - 새로운 형식
      */

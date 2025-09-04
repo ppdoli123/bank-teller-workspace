@@ -13,7 +13,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 import java.util.ArrayList;
@@ -29,6 +33,7 @@ public class ProductService {
     private final ProductRateRepository productRateRepository;
     private final LoanRateRepository loanRateRepository;
     private final ProductFormRepository productFormRepository;
+    private final JdbcTemplate jdbcTemplate;
     
     public Page<FinancialProduct> getAllProducts(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
@@ -40,7 +45,30 @@ public class ProductService {
     }
     
     public Optional<FinancialProduct> getProductById(String productId) {
-        return financialProductRepository.findById(productId);
+        try {
+            String sql = "SELECT * FROM product WHERE productid = ?";
+            List<FinancialProduct> products = jdbcTemplate.query(sql, new Object[]{productId}, new RowMapper<FinancialProduct>() {
+                @Override
+                public FinancialProduct mapRow(ResultSet rs, int rowNum) throws SQLException {
+                    FinancialProduct product = new FinancialProduct();
+                    product.setProductId(rs.getString("productid"));
+                    product.setProductName(rs.getString("productname"));
+                    product.setProductType(rs.getString("producttype"));
+                    product.setBaseRate(rs.getBigDecimal("baserate"));
+                    product.setMinAmount(rs.getBigDecimal("minamount"));
+                    product.setMaxAmount(rs.getBigDecimal("maxamount"));
+                    product.setDescription(rs.getString("description"));
+                    product.setLaunchDate(rs.getDate("launchdate") != null ? rs.getDate("launchdate").toLocalDate() : null);
+                    product.setSalesStatus(rs.getString("salesstatus"));
+                    return product;
+                }
+            });
+            
+            return products.isEmpty() ? Optional.empty() : Optional.of(products.get(0));
+        } catch (Exception e) {
+            log.error("상품 조회 중 오류 발생: {}", e.getMessage(), e);
+            return Optional.empty();
+        }
     }
     
     public List<FinancialProduct> getProductsByType(String productType) {

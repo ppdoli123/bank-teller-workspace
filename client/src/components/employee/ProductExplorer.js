@@ -1394,6 +1394,8 @@ const ProductExplorer = ({
       {showDescription && selectedProduct && (
         <ProductDescriptionViewer
           product={selectedProduct}
+          stompClient={stompClient}
+          sessionId={sessionId}
           onClose={() => {
             setShowDescription(false);
             setSelectedProduct(null);
@@ -1413,6 +1415,8 @@ const ProductExplorer = ({
             setShowSimulation(false);
             setSelectedProduct(null);
           }}
+          stompClient={stompClient}
+          sessionId={sessionId}
         />
       )}
     </>

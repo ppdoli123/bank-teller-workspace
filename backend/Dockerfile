@@ -1,17 +1,35 @@
-# Use OpenJDK 17 slim image
-FROM openjdk:17-jdk-slim
+# Multi-stage build for Spring Boot application
+FROM maven:3.9.4-openjdk-21-slim AS build
 
-# Set working directory
+# 작업 디렉토리 설정
 WORKDIR /app
 
-# Copy the JAR file
-COPY target/smart-consulting-1.0.0.jar app.jar
+# Maven wrapper와 pom.xml 복사
+COPY mvnw .
+COPY mvnw.cmd .
+COPY .mvn .mvn
+COPY pom.xml .
 
-# Expose port
+# 의존성 다운로드 (캐시 최적화)
+RUN mvn dependency:go-offline -B
+
+# 소스 코드 복사
+COPY src src
+
+# 애플리케이션 빌드
+RUN mvn clean package -DskipTests
+
+# 실행 단계
+FROM openjdk:21-jdk-slim
+
+# 작업 디렉토리 설정
+WORKDIR /app
+
+# 빌드된 JAR 파일 복사
+COPY --from=build /app/target/*.jar app.jar
+
+# 포트 노출
 EXPOSE 8080
 
-# Set environment variables
-ENV JAVA_OPTS="-Xmx512m -Xms256m"
-
-# Run the application
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+# 애플리케이션 실행
+ENTRYPOINT ["java", "-jar", "app.jar"]

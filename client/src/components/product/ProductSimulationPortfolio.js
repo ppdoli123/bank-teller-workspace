@@ -17,8 +17,15 @@ import {
   AreaChart,
 } from "recharts";
 import axios from "axios";
+import ConsentForm from "../customer/ConsentForm";
+import ApplicationForm from "../customer/ApplicationForm";
 
-const ProductSimulationPortfolio = ({ product, onClose }) => {
+const ProductSimulationPortfolio = ({
+  product,
+  onClose,
+  stompClient,
+  sessionId,
+}) => {
   const [simulationData, setSimulationData] = useState({
     amount: 10000000, // 1천만원 기본값
     period: 12, // 12개월 기본값
@@ -39,6 +46,10 @@ const ProductSimulationPortfolio = ({ product, onClose }) => {
     salaryAccount: false,
     multipleProducts: false,
   });
+
+  // 상품 가입 서식 상태 관리
+  const [showEnrollmentForm, setShowEnrollmentForm] = useState(false);
+  const [currentFormType, setCurrentFormType] = useState("consent"); // "consent" 또는 "application"
 
   // 상품 금리 정보 가져오기
   useEffect(() => {
@@ -149,6 +160,115 @@ const ProductSimulationPortfolio = ({ product, onClose }) => {
   };
 
   if (!product) return null;
+
+  // 상품 가입 서식이 표시되어야 하는 경우
+  if (showEnrollmentForm) {
+    return (
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100vw",
+          height: "100vh",
+          background: "rgba(0, 0, 0, 0.8)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1000,
+          overflow: "auto",
+        }}
+      >
+        <div
+          style={{
+            background: "white",
+            borderRadius: "12px",
+            padding: "2rem",
+            maxWidth: "90vw",
+            maxHeight: "90vh",
+            overflow: "auto",
+            position: "relative",
+          }}
+        >
+          {/* 서식 헤더 */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "1rem",
+              borderBottom: "1px solid #e2e8f0",
+              paddingBottom: "1rem",
+            }}
+          >
+            <h2 style={{ margin: 0, color: "#2d3748" }}>
+              {currentFormType === "consent"
+                ? "개인정보 동의서"
+                : "은행거래신청서"}
+            </h2>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              {/* 서식 전환 버튼 */}
+              <button
+                onClick={() => setCurrentFormType("consent")}
+                style={{
+                  padding: "0.5rem 1rem",
+                  background:
+                    currentFormType === "consent" ? "#4CAF50" : "#e2e8f0",
+                  color: currentFormType === "consent" ? "white" : "#4a5568",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontSize: "0.9rem",
+                }}
+              >
+                개인정보 동의서
+              </button>
+              <button
+                onClick={() => setCurrentFormType("application")}
+                style={{
+                  padding: "0.5rem 1rem",
+                  background:
+                    currentFormType === "application" ? "#2196F3" : "#e2e8f0",
+                  color:
+                    currentFormType === "application" ? "white" : "#4a5568",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontSize: "0.9rem",
+                }}
+              >
+                은행거래신청서
+              </button>
+              {/* 닫기 버튼 */}
+              <button
+                onClick={() => setShowEnrollmentForm(false)}
+                style={{
+                  padding: "0.5rem 1rem",
+                  background: "#e53e3e",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontSize: "0.9rem",
+                }}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+
+          {/* 서식 내용 */}
+          <div style={{ maxHeight: "70vh", overflow: "auto" }}>
+            {currentFormType === "consent" ? (
+              <ConsentForm />
+            ) : (
+              <ApplicationForm />
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -619,6 +739,78 @@ const ProductSimulationPortfolio = ({ product, onClose }) => {
                 {simulationData.maturityAmount.toLocaleString()}원
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* 상품 가입 버튼 */}
+        <div
+          style={{
+            padding: "var(--hana-space-6)",
+            borderTop: "1px solid var(--hana-border-color)",
+            background: "var(--hana-background-light)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: "var(--hana-space-4)",
+            }}
+          >
+            <button
+              onClick={onClose}
+              style={{
+                padding: "var(--hana-space-3) var(--hana-space-6)",
+                background: "var(--hana-gray-500)",
+                color: "white",
+                border: "none",
+                borderRadius: "var(--hana-border-radius)",
+                cursor: "pointer",
+                fontSize: "var(--hana-font-size-base)",
+                fontWeight: "600",
+              }}
+            >
+              닫기
+            </button>
+            <button
+              onClick={() => {
+                console.log("📝 PC 상품 가입 버튼 클릭");
+
+                // PC에서도 상품 가입 서식 표시
+                setShowEnrollmentForm(true);
+                setCurrentFormType("consent");
+
+                // 태블릿에 상품 가입 프로세스 시작 알림
+                if (stompClient && sessionId && stompClient.active) {
+                  console.log("📤 태블릿에 상품 가입 프로세스 시작 전송");
+                  stompClient.publish({
+                    destination: "/app/product-enrollment",
+                    body: JSON.stringify({
+                      sessionId: sessionId,
+                      productId: product?.productId || product?.id,
+                      customerId: "C001", // 기본 고객 ID
+                      timestamp: new Date().toISOString(),
+                    }),
+                  });
+                } else {
+                  console.log(
+                    "❌ STOMP 클라이언트가 비활성화되어 태블릿 동기화 불가"
+                  );
+                }
+              }}
+              style={{
+                padding: "var(--hana-space-3) var(--hana-space-6)",
+                background: "var(--hana-primary)",
+                color: "white",
+                border: "none",
+                borderRadius: "var(--hana-border-radius)",
+                cursor: "pointer",
+                fontSize: "var(--hana-font-size-base)",
+                fontWeight: "600",
+              }}
+            >
+              📝 상품 가입하기
+            </button>
           </div>
         </div>
       </div>

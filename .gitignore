@@ -184,3 +184,12 @@ buildNumber.properties
 .classpath
 .project
 .settings/
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+docker-compose.*.yml
+!docker-compose.yml
+
+# Docker volumes
+postgres_data/

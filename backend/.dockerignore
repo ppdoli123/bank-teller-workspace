@@ -1,13 +1,12 @@
-# Maven
+# Build outputs
 target/
-!target/*.jar
-!target/classes/
-!target/maven-status/
+*.jar
+*.war
 
 # IDE
-.idea/
+.vscode
+.idea
 *.iml
-.vscode/
 
 # OS
 .DS_Store
@@ -15,15 +14,8 @@ Thumbs.db
 
 # Logs
 *.log
+logs/
 
-# Environment files
-.env
-application-local.properties
-
-# Git
-.git/
-.gitignore
-
-# Documentation
-README.md
-*.md
+# Temporary files
+tmp/
+temp/

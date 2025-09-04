@@ -1,0 +1,67 @@
+version: "3.8"
+
+services:
+  # PostgreSQL 데이터베이스
+  postgres:
+    image: postgres:15
+    container_name: bank-teller-postgres
+    environment:
+      POSTGRES_DB: smart_consulting
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/supabase-employee-setup.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - bank-teller-network
+
+  # 백엔드 (Spring Boot)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: bank-teller-backend
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/smart_consulting
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    depends_on:
+      - postgres
+    volumes:
+      - ./backend:/app
+      - /app/target
+    networks:
+      - bank-teller-network
+    restart: unless-stopped
+
+  # 프론트엔드 (React)
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: bank-teller-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8080
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - bank-teller-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  bank-teller-network:
+    driver: bridge

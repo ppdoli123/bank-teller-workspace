@@ -17,6 +17,8 @@ import AiQuestionGenerator from "./AiQuestionGenerator";
 import PDFViewer from "../customer/PDFViewer";
 import ForeignCurrencyRemittanceForm from "../customer/ForeignCurrencyRemittanceForm";
 import PortfolioVisualization from "../portfolio/PortfolioVisualization";
+import ConsentForm from "../customer/ConsentForm";
+import ApplicationForm from "../customer/ApplicationForm";
 
 const DashboardContainer = styled.div`
   display: flex;
@@ -1262,6 +1264,7 @@ const EmployeeDashboard = () => {
   const [forceUpdate, setForceUpdate] = useState(0); // 화면 강제 업데이트용
   const [customerProducts, setCustomerProducts] = useState([]); // 고객이 가입한 상품 정보
   const [loadingCustomerProducts, setLoadingCustomerProducts] = useState(false);
+  const [fieldValues, setFieldValues] = useState({}); // 필드 값들 (PC와 태블릿 동기화용)
 
   const navigate = useNavigate();
   const webcamRef = useRef(null);
@@ -1342,51 +1345,7 @@ const EmployeeDashboard = () => {
               window.updateFormField(data.field, data.value);
             }
             break;
-          case "field-input-completed":
-            console.log("📝 태블릿에서 필드 입력 완료:", data);
-            console.log("📝 전체 메시지 데이터:", data);
-
-            // 태블릿에서 보내는 메시지 구조에 맞게 수정
-            const { fieldId, fieldValue, fieldLabel } = data;
-            console.log(`✅ 필드 입력 완료: ${fieldLabel} = ${fieldValue}`);
-
-            // PC 화면에서 해당 필드에 입력된 값 표시
-            if (
-              enrollmentData &&
-              enrollmentData.forms &&
-              enrollmentData.forms[currentFormIndex]
-            ) {
-              // 현재 서식의 필드 데이터 업데이트
-              const updatedForms = [...enrollmentData.forms];
-              const currentForm = updatedForms[currentFormIndex];
-
-              try {
-                const schema = JSON.parse(currentForm.formSchema);
-                if (schema.fields) {
-                  const fieldIndex = schema.fields.findIndex(
-                    (f) => f.id === fieldId
-                  );
-                  if (fieldIndex !== -1) {
-                    // 필드값 업데이트
-                    schema.fields[fieldIndex].value = fieldValue;
-                    currentForm.formSchema = JSON.stringify(schema);
-
-                    // 상태 업데이트
-                    setEnrollmentData({
-                      ...enrollmentData,
-                      forms: updatedForms,
-                    });
-
-                    console.log(
-                      `✅ 필드 "${fieldLabel}" 값 "${fieldValue}"로 업데이트 완료`
-                    );
-                  }
-                }
-              } catch (e) {
-                console.error("서식 스키마 파싱 오류:", e);
-              }
-            }
-            break;
+          // case "field-input-completed": // 중복 제거 - 아래에서 처리
 
           case "field-input-complete":
             console.log("📝 태블릿에서 필드 입력 완료 (기존 형식):", data);
@@ -1505,45 +1464,56 @@ const EmployeeDashboard = () => {
             console.log("🔍 PC에서 data.action:", data.action);
             console.log("🔍 PC에서 data.data:", data.data);
             if (data.action === "start_enrollment" && data.data) {
-              // 백엔드에서 보내는 실제 서식 데이터 사용
-              console.log("🔍 백엔드에서 받은 서식 데이터:", data.data);
-              console.log("🔍 서식 개수:", data.data.forms?.length || 0);
+              // 모든 상품에서 우리가 만든 React 서식 두 개를 무조건 표시
+              console.log("🔍 상품 가입 시작 - 우리가 만든 React 서식 사용");
+              console.log("🔍 상품 정보:", data.data);
 
-              if (data.data.forms && data.data.forms.length > 0) {
-                // 실제 서식 데이터 사용
-                console.log("🔍 setEnrollmentData 호출 전:", data.data);
-                setEnrollmentData(data.data);
-                setCurrentFormIndex(0);
-                setActiveTab("pdf-forms"); // 서식 작성 탭으로 전환
-                console.log(
-                  "✅ 직원 화면에 실제 서식 데이터 설정:",
-                  data.data.forms.length,
-                  "개 서식"
-                );
+              // 우리가 만든 React 서식 두 개를 사용
+              const enrollmentWithReactForms = {
+                ...data.data,
+                forms: [
+                  {
+                    formId: "CONSENT-FORM",
+                    formName: "개인정보 동의서",
+                    formType: "consent",
+                    isReactForm: true, // React 서식임을 표시
+                  },
+                  {
+                    formId: "APPLICATION-FORM",
+                    formName: "은행거래신청서",
+                    formType: "application",
+                    isReactForm: true, // React 서식임을 표시
+                  },
+                ],
+              };
 
-                // 상태 업데이트는 useEffect에서 감지됨
-              } else {
-                console.log(
-                  "⚠️ 백엔드에서 서식이 없습니다. 하드코딩된 서식 사용"
-                );
-                // 백엔드에 서식이 없을 때만 하드코딩된 서식 사용
-                const enrollmentWithForms = {
-                  ...data.data,
-                  forms: [
-                    {
-                      formId: "FORM-IRP-001",
-                      formName: "퇴직연금 거래신청서(개인형IRP)",
-                      formType: "deposit",
-                      formSchema:
-                        '{"fields": [{"id": "customer_name", "name": "customerName", "type": "text", "label": "고객명", "required": true, "placeholder": "고객명을 입력하세요"}, {"id": "phone_number", "name": "phoneNumber", "type": "text", "label": "연락처", "required": true, "placeholder": "연락처를 입력하세요"}, {"id": "resident_number", "name": "residentNumber", "type": "text", "label": "주민등록번호", "required": true, "placeholder": "주민등록번호를 입력하세요"}, {"id": "address", "name": "address", "type": "text", "label": "주소", "required": true, "placeholder": "주소를 입력하세요"}, {"id": "account_number", "name": "accountNumber", "type": "text", "label": "계좌번호", "required": true, "placeholder": "계좌번호를 입력하세요"}]}',
-                    },
-                  ],
-                };
-                setEnrollmentData(enrollmentWithForms);
-                setCurrentFormIndex(0);
-                setActiveTab("pdf-forms");
-                console.log("✅ 하드코딩된 서식 데이터 설정");
-              }
+              setEnrollmentData(enrollmentWithReactForms);
+              setCurrentFormIndex(0);
+              setActiveTab("pdf-forms"); // 서식 작성 탭으로 전환
+              console.log("✅ 우리가 만든 React 서식 2개 설정 완료");
+            }
+            break;
+          case "product-description":
+            console.log("🔍 직원이 상품설명서 동기화 메시지 수신:", data);
+            // 상품설명서 동기화 메시지는 별도 처리하지 않음 (이미 PC에서 처리됨)
+            break;
+          case "screen-highlight":
+            console.log("🔍 직원이 화면 하이라이트 동기화 메시지 수신:", data);
+            // 화면 하이라이트 동기화 메시지는 별도 처리하지 않음 (이미 PC에서 처리됨)
+            break;
+          case "field-input-completed":
+            console.log("🔍 직원이 필드 입력 완료 메시지 수신:", data);
+            if (data.data) {
+              const { fieldId, fieldValue } = data.data;
+              console.log("✅ 필드 값 업데이트:", fieldId, fieldValue);
+
+              // PC의 fieldValues 상태 업데이트
+              setFieldValues((prev) => ({
+                ...prev,
+                [fieldId]: fieldValue,
+              }));
+
+              console.log("✅ PC fieldValues 상태 업데이트 완료");
             }
             break;
           default:
@@ -2372,7 +2342,8 @@ const EmployeeDashboard = () => {
                       </div>
 
                       {/* 서식 필드 표시 */}
-                      {enrollmentData.forms[currentFormIndex]?.formSchema && (
+                      {enrollmentData.forms[currentFormIndex]?.isReactForm ? (
+                        // React 서식 표시
                         <div
                           style={{
                             background: "#f8f9fa",
@@ -2389,194 +2360,354 @@ const EmployeeDashboard = () => {
                               color: "#008485",
                             }}
                           >
-                            📄 PDF 서식 뷰어
+                            📄 React 서식 뷰어
                           </div>
 
-                          {/* PDF 뷰어 컴포넌트 */}
-                          <PDFViewer
-                            pdfUrl={
-                              enrollmentData.forms[currentFormIndex]
-                                ?.formTemplatePath
-                            }
-                            formSchema={
-                              enrollmentData.forms[currentFormIndex]?.formSchema
-                            }
-                            fieldValues={(() => {
-                              try {
-                                const schema = JSON.parse(
-                                  enrollmentData.forms[currentFormIndex]
-                                    ?.formSchema || "{}"
-                                );
-                                const values = {};
-                                schema.fields?.forEach((field) => {
-                                  if (field.value) {
-                                    values[field.id] = field.value;
-                                  }
-                                });
-                                return values;
-                              } catch (e) {
-                                return {};
-                              }
-                            })()}
-                            onFieldClick={(field) => {
-                              // PC에서 필드 클릭 시 태블릿에 필드 확대 메시지 전송
-                              if (stompClient && sessionId) {
-                                const fieldFocusMessage = {
-                                  type: "field-focus",
-                                  data: {
-                                    fieldId: field.id,
-                                    fieldName: field.name,
-                                    fieldLabel: field.label,
-                                    fieldType: field.type,
-                                    fieldPlaceholder: field.placeholder,
-                                    formIndex: currentFormIndex,
-                                    formName:
-                                      enrollmentData.forms[currentFormIndex]
-                                        .formName,
-                                  },
-                                  timestamp: Date.now(),
-                                };
-
-                                stompClient.publish({
-                                  destination: "/topic/session/" + sessionId,
-                                  body: JSON.stringify(fieldFocusMessage),
-                                });
-
+                          {/* React 서식 컴포넌트 */}
+                          {enrollmentData.forms[currentFormIndex]?.formType ===
+                          "consent" ? (
+                            <ConsentForm
+                              fieldValues={fieldValues}
+                              onFieldClick={(
+                                fieldId,
+                                fieldLabel,
+                                fieldType
+                              ) => {
                                 console.log(
-                                  "📤 PC에서 field-focus 메시지 전송:",
-                                  fieldFocusMessage
+                                  "🖱️ EmployeeDashboard ConsentForm 필드 클릭:",
+                                  { fieldId, fieldLabel, fieldType }
                                 );
-                              }
-                            }}
-                            highlightedField={null}
-                            isFieldFocusMode={false}
-                          />
+                                // 태블릿에 필드 포커스 메시지 전송
+                                if (stompClient && sessionId) {
+                                  const messageBody = {
+                                    sessionId: sessionId,
+                                    data: {
+                                      fieldId: fieldId,
+                                      fieldName: fieldId,
+                                      fieldLabel: fieldLabel,
+                                      fieldType: fieldType,
+                                      fieldPlaceholder: `${fieldLabel}을(를) 입력해주세요`,
+                                      formIndex: currentFormIndex,
+                                      formName: "개인정보 수집·이용 동의서",
+                                    },
+                                    timestamp: new Date().toISOString(),
+                                  };
 
-                          {/* 필드 목록 (백업용) */}
-                          <details style={{ marginTop: "1rem" }}>
-                            <summary
+                                  console.log(
+                                    "📤 EmployeeDashboard field-focus 메시지 전송 준비:",
+                                    messageBody
+                                  );
+                                  console.log(
+                                    "🔍 stompClient 상태:",
+                                    !!stompClient
+                                  );
+                                  console.log("🔍 sessionId:", sessionId);
+
+                                  stompClient.publish({
+                                    destination: "/app/field-focus",
+                                    body: JSON.stringify(messageBody),
+                                  });
+                                  console.log(
+                                    "📤 EmployeeDashboard에서 field-focus 메시지 전송 완료:",
+                                    { fieldId, fieldLabel, fieldType }
+                                  );
+                                } else {
+                                  console.log(
+                                    "❌ stompClient 또는 sessionId가 없음:",
+                                    { stompClient: !!stompClient, sessionId }
+                                  );
+                                }
+                              }}
+                            />
+                          ) : (
+                            <ApplicationForm fieldValues={fieldValues} />
+                          )}
+                        </div>
+                      ) : (
+                        enrollmentData.forms[currentFormIndex]?.formSchema && (
+                          <div
+                            style={{
+                              background: "#f8f9fa",
+                              border: "1px solid #ddd",
+                              borderRadius: "8px",
+                              padding: "1.5rem",
+                              marginBottom: "1rem",
+                            }}
+                          >
+                            <div
                               style={{
-                                cursor: "pointer",
                                 fontWeight: "bold",
-                                color: "#666",
+                                marginBottom: "1rem",
+                                color: "#008485",
                               }}
                             >
-                              📋 필드 목록 보기
-                            </summary>
-                            {(() => {
-                              try {
-                                const schema = JSON.parse(
-                                  enrollmentData.forms[currentFormIndex]
-                                    .formSchema
-                                );
-                                return schema.fields?.map((field, index) => (
-                                  <div
-                                    key={index}
-                                    onClick={() => {
-                                      // PC에서 필드 클릭 시 태블릿에 필드 확대 메시지 전송
-                                      if (stompClient && sessionId) {
-                                        const fieldFocusMessage = {
-                                          type: "field-focus",
-                                          data: {
-                                            fieldId: field.id,
-                                            fieldName: field.name,
-                                            fieldLabel: field.label,
-                                            fieldType: field.type,
-                                            fieldPlaceholder: field.placeholder,
-                                            formIndex: currentFormIndex,
-                                            formName:
-                                              enrollmentData.forms[
-                                                currentFormIndex
-                                              ].formName,
-                                          },
-                                          timestamp: Date.now(),
-                                        };
+                              📄 PDF 서식 뷰어
+                            </div>
 
-                                        stompClient.publish({
-                                          destination:
-                                            "/topic/session/" + sessionId,
-                                          body: JSON.stringify(
-                                            fieldFocusMessage
-                                          ),
-                                        });
+                            {/* PDF 뷰어 컴포넌트 */}
+                            <PDFViewer
+                              pdfUrl={
+                                enrollmentData.forms[currentFormIndex]
+                                  ?.formTemplatePath
+                              }
+                              formSchema={
+                                enrollmentData.forms[currentFormIndex]
+                                  ?.formSchema
+                              }
+                              fieldValues={(() => {
+                                try {
+                                  const schema = JSON.parse(
+                                    enrollmentData.forms[currentFormIndex]
+                                      ?.formSchema || "{}"
+                                  );
+                                  const values = {};
+                                  schema.fields?.forEach((field) => {
+                                    if (field.value) {
+                                      values[field.id] = field.value;
+                                    }
+                                  });
+                                  return values;
+                                } catch (e) {
+                                  return {};
+                                }
+                              })()}
+                              onFieldClick={(field) => {
+                                // PC에서 필드 클릭 시 태블릿에 필드 확대 메시지 전송
+                                if (stompClient && sessionId) {
+                                  const fieldFocusMessage = {
+                                    type: "field-focus",
+                                    data: {
+                                      fieldId: field.id,
+                                      fieldName: field.name,
+                                      fieldLabel: field.label,
+                                      fieldType: field.type,
+                                      fieldPlaceholder: field.placeholder,
+                                      formIndex: currentFormIndex,
+                                      formName:
+                                        enrollmentData.forms[currentFormIndex]
+                                          .formName,
+                                    },
+                                    timestamp: Date.now(),
+                                  };
 
+                                  stompClient.publish({
+                                    destination: "/topic/session/" + sessionId,
+                                    body: JSON.stringify(fieldFocusMessage),
+                                  });
+
+                                  console.log(
+                                    "📤 PC에서 field-focus 메시지 전송:",
+                                    fieldFocusMessage
+                                  );
+                                }
+                              }}
+                              highlightedField={null}
+                              isFieldFocusMode={false}
+                            />
+
+                            {/* 필드 목록 (백업용) */}
+                            <details style={{ marginTop: "1rem" }}>
+                              <summary
+                                style={{
+                                  cursor: "pointer",
+                                  fontWeight: "bold",
+                                  color: "#666",
+                                }}
+                              >
+                                📋 필드 목록 보기
+                              </summary>
+                              {(() => {
+                                try {
+                                  const schema = JSON.parse(
+                                    enrollmentData.forms[currentFormIndex]
+                                      .formSchema
+                                  );
+                                  return schema.fields?.map((field, index) => (
+                                    <div
+                                      key={index}
+                                      onClick={() => {
+                                        console.log("🖱️ 필드 클릭됨:", field);
                                         console.log(
-                                          "📤 PC에서 field-focus 메시지 전송:",
-                                          fieldFocusMessage
+                                          "🔍 stompClient 상태:",
+                                          !!stompClient
                                         );
-                                      }
-                                    }}
-                                    style={{
-                                      marginBottom: "0.5rem",
-                                      padding: "0.5rem",
-                                      background: "white",
-                                      borderRadius: "4px",
-                                      border: "1px solid #e9ecef",
-                                      cursor: "pointer",
-                                      transition: "all 0.2s ease",
-                                    }}
-                                    onMouseEnter={(e) => {
-                                      e.target.style.background = "#f8f9fa";
-                                      e.target.style.borderColor =
-                                        "var(--hana-mint)";
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      e.target.style.background = "white";
-                                      e.target.style.borderColor = "#e9ecef";
-                                    }}
-                                  >
-                                    <span style={{ fontWeight: "bold" }}>
-                                      {field.label}
-                                    </span>
-                                    {field.required && (
-                                      <span style={{ color: "red" }}> *</span>
-                                    )}
-                                    <span
+                                        console.log("🔍 sessionId:", sessionId);
+
+                                        // PC에서 필드 클릭 시 태블릿에 필드 확대 메시지 전송
+                                        if (stompClient && sessionId) {
+                                          const fieldFocusMessage = {
+                                            type: "field-focus",
+                                            data: {
+                                              fieldId: field.id,
+                                              fieldName: field.name,
+                                              fieldLabel: field.label,
+                                              fieldType: field.type,
+                                              fieldPlaceholder:
+                                                field.placeholder,
+                                              formIndex: currentFormIndex,
+                                              formName:
+                                                enrollmentData.forms[
+                                                  currentFormIndex
+                                                ].formName,
+                                            },
+                                            timestamp: Date.now(),
+                                          };
+
+                                          stompClient.publish({
+                                            destination: "/app/field-focus",
+                                            body: JSON.stringify({
+                                              sessionId: sessionId,
+                                              data: {
+                                                fieldId: field.id,
+                                                fieldName: field.name,
+                                                fieldLabel: field.label,
+                                                fieldType: field.type,
+                                                fieldPlaceholder:
+                                                  field.placeholder,
+                                                formIndex: currentFormIndex,
+                                                formName:
+                                                  enrollmentData.forms[
+                                                    currentFormIndex
+                                                  ].formName,
+                                              },
+                                              timestamp:
+                                                new Date().toISOString(),
+                                            }),
+                                          });
+
+                                          console.log(
+                                            "📤 PC에서 field-focus 메시지 전송:",
+                                            fieldFocusMessage
+                                          );
+                                        }
+                                      }}
                                       style={{
-                                        color: "#666",
-                                        fontSize: "0.9rem",
-                                        marginLeft: "0.5rem",
+                                        marginBottom: "0.5rem",
+                                        padding: "0.5rem",
+                                        background: "white",
+                                        borderRadius: "4px",
+                                        border: "1px solid #e9ecef",
+                                        cursor: "pointer",
+                                        transition: "all 0.2s ease",
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        e.target.style.background = "#f8f9fa";
+                                        e.target.style.borderColor =
+                                          "var(--hana-mint)";
+
+                                        // 호버 시 필드 포커스 메시지 전송
+                                        console.log("🖱️ 필드 호버됨:", field);
+                                        console.log(
+                                          "🔍 stompClient 상태:",
+                                          !!stompClient
+                                        );
+                                        console.log("🔍 sessionId:", sessionId);
+
+                                        if (stompClient && sessionId) {
+                                          const fieldFocusMessage = {
+                                            type: "field-focus",
+                                            data: {
+                                              fieldId: field.id,
+                                              fieldName: field.name,
+                                              fieldLabel: field.label,
+                                              fieldType: field.type,
+                                              fieldPlaceholder:
+                                                field.placeholder,
+                                              formIndex: currentFormIndex,
+                                              formName:
+                                                enrollmentData.forms[
+                                                  currentFormIndex
+                                                ].formName,
+                                            },
+                                            timestamp: Date.now(),
+                                          };
+
+                                          stompClient.publish({
+                                            destination: "/app/field-focus",
+                                            body: JSON.stringify({
+                                              sessionId: sessionId,
+                                              data: {
+                                                fieldId: field.id,
+                                                fieldName: field.name,
+                                                fieldLabel: field.label,
+                                                fieldType: field.type,
+                                                fieldPlaceholder:
+                                                  field.placeholder,
+                                                formIndex: currentFormIndex,
+                                                formName:
+                                                  enrollmentData.forms[
+                                                    currentFormIndex
+                                                  ].formName,
+                                              },
+                                              timestamp:
+                                                new Date().toISOString(),
+                                            }),
+                                          });
+
+                                          console.log(
+                                            "📤 PC에서 field-focus 메시지 전송 (호버):",
+                                            fieldFocusMessage
+                                          );
+                                        }
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.target.style.background = "white";
+                                        e.target.style.borderColor = "#e9ecef";
                                       }}
                                     >
-                                      ({field.type})
-                                    </span>
-                                    {field.value && (
-                                      <div
+                                      <span style={{ fontWeight: "bold" }}>
+                                        {field.label}
+                                      </span>
+                                      {field.required && (
+                                        <span style={{ color: "red" }}> *</span>
+                                      )}
+                                      <span
                                         style={{
+                                          color: "#666",
                                           fontSize: "0.9rem",
-                                          color: "var(--hana-mint)",
-                                          fontWeight: "bold",
-                                          marginTop: "0.25rem",
-                                          padding: "0.25rem 0.5rem",
-                                          background: "#e8f5e8",
-                                          borderRadius: "4px",
-                                          border: "1px solid #4caf50",
+                                          marginLeft: "0.5rem",
                                         }}
                                       >
-                                        ✅ 입력됨: {field.value}
+                                        ({field.type})
+                                      </span>
+                                      {field.value && (
+                                        <div
+                                          style={{
+                                            fontSize: "0.9rem",
+                                            color: "var(--hana-mint)",
+                                            fontWeight: "bold",
+                                            marginTop: "0.25rem",
+                                            padding: "0.25rem 0.5rem",
+                                            background: "#e8f5e8",
+                                            borderRadius: "4px",
+                                            border: "1px solid #4caf50",
+                                          }}
+                                        >
+                                          ✅ 입력됨: {field.value}
+                                        </div>
+                                      )}
+                                      <div
+                                        style={{
+                                          fontSize: "0.8rem",
+                                          color: "#999",
+                                          marginTop: "0.25rem",
+                                        }}
+                                      >
+                                        클릭하여 태블릿에서 입력
                                       </div>
-                                    )}
-                                    <div
-                                      style={{
-                                        fontSize: "0.8rem",
-                                        color: "#999",
-                                        marginTop: "0.25rem",
-                                      }}
-                                    >
-                                      클릭하여 태블릿에서 입력
                                     </div>
-                                  </div>
-                                ));
-                              } catch (e) {
-                                return (
-                                  <div style={{ color: "red" }}>
-                                    서식 데이터를 불러올 수 없습니다.
-                                  </div>
-                                );
-                              }
-                            })()}
-                          </details>
-                        </div>
+                                  ));
+                                } catch (e) {
+                                  return (
+                                    <div style={{ color: "red" }}>
+                                      서식 데이터를 불러올 수 없습니다.
+                                    </div>
+                                  );
+                                }
+                              })()}
+                            </details>
+                          </div>
+                        )
                       )}
 
                       {/* PC 전용 네비게이션 버튼 */}
