@@ -10,6 +10,8 @@ import {
   productIcons,
   productColors,
 } from "../../data/hanaProducts";
+import ProductSimulationPortfolio from "../product/ProductSimulationPortfolio";
+import ProductDescriptionViewer from "../product/ProductDescriptionViewer";
 
 const ExplorerContainer = styled.div`
   padding: var(--hana-space-8);
@@ -518,6 +520,8 @@ const ProductExplorer = ({
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showSimulation, setShowSimulation] = useState(false);
+  const [showDescription, setShowDescription] = useState(false);
 
   // 하이라이트 기능
   const highlightElement = (
@@ -698,6 +702,16 @@ const ProductExplorer = ({
   };
 
   const handleProductDetail = (product) => {
+    console.log("🚀 === 상품 자세히보기 클릭 시작 ===");
+    console.log("클릭한 상품 전체:", JSON.stringify(product, null, 2));
+    console.log("상품명:", product.productName);
+
+    // 상품설명서 뷰어 열기 (실제 창구 프로세스)
+    setSelectedProduct(product);
+    setShowDescription(true);
+  };
+
+  const handleProductDetailOld = (product) => {
     console.log("🚀 === 상품 상세보기 클릭 시작 ===");
     console.log("클릭한 상품 전체:", JSON.stringify(product, null, 2));
     console.log("상품명:", product.productName);
@@ -912,7 +926,7 @@ const ProductExplorer = ({
                       className="primary"
                       onClick={() => handleProductDetail(product)}
                     >
-                      자세히 보기
+                      📋 자세히보기
                     </ActionButton>
                   </ProductActions>
                 </ProductBody>
@@ -1374,6 +1388,32 @@ const ProductExplorer = ({
             </div>
           </ModalContent>
         </Modal>
+      )}
+
+      {/* 상품설명서 뷰어 */}
+      {showDescription && selectedProduct && (
+        <ProductDescriptionViewer
+          product={selectedProduct}
+          onClose={() => {
+            setShowDescription(false);
+            setSelectedProduct(null);
+          }}
+          onNext={() => {
+            setShowDescription(false);
+            setShowSimulation(true);
+          }}
+        />
+      )}
+
+      {/* 시뮬레이션 포트폴리오 모달 */}
+      {showSimulation && selectedProduct && (
+        <ProductSimulationPortfolio
+          product={selectedProduct}
+          onClose={() => {
+            setShowSimulation(false);
+            setSelectedProduct(null);
+          }}
+        />
       )}
     </>
   );

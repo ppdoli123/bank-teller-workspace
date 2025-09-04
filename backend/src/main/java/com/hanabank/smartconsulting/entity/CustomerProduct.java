@@ -3,30 +3,80 @@ package com.hanabank.smartconsulting.entity;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "customerproduct")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@ToString(exclude = "customer")
 public class CustomerProduct {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "customerproductid")
-    private Long id;
+    @Column(name = "enrollmentid")
+    private String enrollmentId;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customerid", referencedColumnName = "customerid")
     @JsonBackReference
     private Customer customer;
+    
+    @Column(name = "productid", nullable = false)
+    private String productId;
+    
+    @Column(name = "enrollmentdate", nullable = false)
+    private String enrollmentDate;
+    
+    @Column(name = "maturitydate")
+    private String maturityDate;
+    
+    @Column(name = "currentbalance")
+    private Long currentBalance;
+    
+    @Column(name = "currentappliedrate")
+    private Double currentAppliedRate;
+    
+    @Column(name = "status", nullable = false)
+    private String status;
+    
+    @Column(name = "cancellationdate")
+    private LocalDateTime cancellationDate;
+    
+    // 새로 추가된 컬럼들
+    @Column(name = "productname")
+    private String productName;
+    
+    @Column(name = "producttype")
+    private String productType;
+    
+    @Column(name = "balance")
+    private Long balance;
+    
+    @Column(name = "monthlypayment")
+    private Long monthlyPayment;
+    
+    @Column(name = "interestrate")
+    private Double interestRate;
+    
+    @Column(name = "startdate")
+    private String startDate;
+    
+    @Column(name = "createdat")
+    private LocalDateTime createdAt;
+    
+    @Column(name = "accountnumber")
+    private String accountNumber;
+    
+    @Column(name = "description")
+    private String description;
     
     // 고객 ID를 직접 접근할 수 있도록 추가
     @Transient
@@ -34,47 +84,9 @@ public class CustomerProduct {
         return customer != null ? customer.getCustomerId() : null;
     }
     
-    @Column(name = "productname", nullable = false)
-    private String productName;
-    
-    @Column(name = "producttype")
-    private String productType;
-    
-    @Column(name = "balance", columnDefinition = "INTEGER DEFAULT 0")
-    private Long balance;
-    
-    @Column(name = "monthlypayment", columnDefinition = "INTEGER DEFAULT 0")
-    private Long monthlyPayment;
-    
-    @Column(name = "interestrate", columnDefinition = "REAL DEFAULT 0")
-    private Double interestRate;
-    
-    @Column(name = "startdate")
-    private String startDate;
-    
-    @Column(name = "maturitydate")
-    private String maturityDate;
-    
-    @Column(name = "status", columnDefinition = "TEXT DEFAULT 'active'")
-    private String status;
-    
-    @CreationTimestamp
-    @Column(name = "createdat", updatable = false)
-    private LocalDateTime createdAt;
-    
-    // 계좌번호 필드 추가
-    @Column(name = "accountnumber")
-    private String accountNumber;
-    
-    // 가입일 필드 추가
-    @Column(name = "enrollmentdate")
-    private String enrollmentDate;
-    
-    // 상품 설명 필드 추가
-    @Column(name = "description", columnDefinition = "TEXT")
-    private String description;
-    
-    // Product ID 필드 추가
-    @Column(name = "productid")
-    private String productId;
+    // 기존 코드와의 호환성을 위한 getter 메서드들
+    @Transient
+    public Long getId() {
+        return Long.valueOf(enrollmentId.hashCode());
+    }
 }

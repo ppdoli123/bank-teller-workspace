@@ -16,6 +16,7 @@ import FormManager from "./FormManager";
 import AiQuestionGenerator from "./AiQuestionGenerator";
 import PDFViewer from "../customer/PDFViewer";
 import ForeignCurrencyRemittanceForm from "../customer/ForeignCurrencyRemittanceForm";
+import PortfolioVisualization from "../portfolio/PortfolioVisualization";
 
 const DashboardContainer = styled.div`
   display: flex;
@@ -402,18 +403,40 @@ const Tab = styled.button`
 
 const CustomerCard = styled.div`
   background: var(--hana-white);
-  border: var(--hana-border-light);
-  border-radius: var(--hana-radius-lg);
-  padding: var(--hana-space-4);
+  border: 2px solid var(--hana-border-light);
+  border-radius: 16px;
+  padding: 20px;
   margin-bottom: var(--hana-space-3);
   cursor: pointer;
-  transition: all var(--hana-transition-base);
-  box-shadow: var(--hana-shadow-light);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--hana-primary), var(--hana-mint));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--hana-shadow-medium);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
     border-color: var(--hana-primary);
+
+    &::before {
+      opacity: 1;
+    }
+  }
+
+  &:active {
+    transform: translateY(-2px);
   }
 
   &.selected {
@@ -567,8 +590,16 @@ const CustomerInfoDisplay = ({
     );
   }
 
+  // 디버깅 로그 (문제 해결용)
+  console.log("CustomerInfoDisplay - customer:", customer);
+  console.log("CustomerInfoDisplay - detailed:", detailed);
+  console.log("CustomerInfoDisplay - customerProducts:", customerProducts);
+  console.log("CustomerInfoDisplay - customer.products:", customer?.products);
+  console.log("CustomerInfoDisplay - loadingProducts:", loadingProducts);
+
   return (
     <div style={{ padding: "var(--hana-space-4)" }}>
+      {/* 고객 기본 정보 헤더 */}
       <div
         style={{
           background:
@@ -578,42 +609,306 @@ const CustomerInfoDisplay = ({
           borderRadius: "var(--hana-radius-lg)",
           marginBottom: "var(--hana-space-6)",
           boxShadow: "var(--hana-shadow-medium)",
+          position: "relative",
+          overflow: "hidden",
         }}
       >
-        <h2
-          style={{
-            margin: "0 0 var(--hana-space-4) 0",
-            fontSize: "var(--hana-font-size-2xl)",
-            fontWeight: "700",
-          }}
-        >
-          {customer.Name} 고객님
-        </h2>
+        {/* 배경 장식 */}
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "var(--hana-space-4)",
+            position: "absolute",
+            top: "-50px",
+            right: "-50px",
+            width: "150px",
+            height: "150px",
+            borderRadius: "50%",
+            background: "rgba(255, 255, 255, 0.1)",
+            zIndex: 0,
           }}
-        >
-          <div>
-            <p style={{ margin: "0.5rem 0", opacity: 0.9 }}>
-              <strong>연락처:</strong> {customer.Phone}
-            </p>
-            <p style={{ margin: "0.5rem 0", opacity: 0.9 }}>
-              <strong>나이:</strong> {customer.Age}세
-            </p>
+        />
+        <div
+          style={{
+            position: "absolute",
+            bottom: "-30px",
+            left: "-30px",
+            width: "100px",
+            height: "100px",
+            borderRadius: "50%",
+            background: "rgba(255, 255, 255, 0.05)",
+            zIndex: 0,
+          }}
+        />
+
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "16px",
+              marginBottom: "var(--hana-space-4)",
+            }}
+          >
+            <div
+              style={{
+                width: "60px",
+                height: "60px",
+                borderRadius: "50%",
+                background: "rgba(255, 255, 255, 0.2)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "24px",
+                fontWeight: "bold",
+                backdropFilter: "blur(10px)",
+              }}
+            >
+              {customer.Name?.charAt(0) || customer.name?.charAt(0) || "👤"}
+            </div>
+            <div>
+              <h2
+                style={{
+                  margin: "0 0 4px 0",
+                  fontSize: "var(--hana-font-size-2xl)",
+                  fontWeight: "700",
+                }}
+              >
+                {customer.Name || customer.name} 고객님
+              </h2>
+              <p style={{ margin: 0, opacity: 0.9, fontSize: "14px" }}>
+                {customer.CustomerID || customer.customer_id} •{" "}
+                {customer.Age || customer.age}세 •{" "}
+                {customer.Gender || customer.gender === "남" ? "👨" : "👩"}
+              </p>
+            </div>
           </div>
-          <div>
-            <p style={{ margin: "0.5rem 0", opacity: 0.9 }}>
-              <strong>고객 ID:</strong> {customer.CustomerID}
-            </p>
-            <p style={{ margin: "0.5rem 0", opacity: 0.9 }}>
-              <strong>주소:</strong> {customer.Address}
-            </p>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "var(--hana-space-4)",
+            }}
+          >
+            <div>
+              <p style={{ margin: "0.5rem 0", opacity: 0.9 }}>
+                <strong>📞 연락처:</strong> {customer.Phone || customer.phone}
+              </p>
+              <p style={{ margin: "0.5rem 0", opacity: 0.9 }}>
+                <strong>🏠 주소:</strong> {customer.Address || customer.address}
+              </p>
+            </div>
+            <div>
+              <p style={{ margin: "0.5rem 0", opacity: 0.9 }}>
+                <strong>🆔 고객 ID:</strong>{" "}
+                {customer.CustomerID || customer.customer_id}
+              </p>
+              <p style={{ margin: "0.5rem 0", opacity: 0.9 }}>
+                <strong>📅 등록일:</strong>{" "}
+                {customer.RegistrationDate
+                  ? new Date(customer.RegistrationDate).toLocaleDateString()
+                  : customer.registrationDate
+                  ? new Date(customer.registrationDate).toLocaleDateString()
+                  : "정보 없음"}
+              </p>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* 상품 정보 카드 */}
+      {customer.productSummary && (
+        <div
+          style={{
+            background: "var(--hana-white)",
+            padding: "var(--hana-space-6)",
+            borderRadius: "var(--hana-radius-lg)",
+            marginBottom: "var(--hana-space-6)",
+            boxShadow: "var(--hana-shadow-light)",
+            border: "1px solid var(--hana-border-light)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              marginBottom: "var(--hana-space-4)",
+            }}
+          >
+            <div
+              style={{
+                width: "40px",
+                height: "40px",
+                borderRadius: "50%",
+                background:
+                  "linear-gradient(135deg, var(--hana-orange), var(--hana-yellow))",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "18px",
+              }}
+            >
+              💼
+            </div>
+            <h3
+              style={{
+                margin: 0,
+                color: "var(--hana-primary)",
+                fontSize: "var(--hana-font-size-xl)",
+                fontWeight: "600",
+              }}
+            >
+              보유 상품 현황
+            </h3>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: "var(--hana-space-4)",
+            }}
+          >
+            <div
+              style={{
+                background: "var(--hana-bg-gray)",
+                padding: "var(--hana-space-4)",
+                borderRadius: "var(--hana-radius-md)",
+                textAlign: "center",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "24px",
+                  fontWeight: "bold",
+                  color: "var(--hana-primary)",
+                  marginBottom: "4px",
+                }}
+              >
+                {customer.productSummary.totalProducts || 0}
+              </div>
+              <div style={{ fontSize: "14px", color: "var(--hana-gray)" }}>
+                총 상품 수
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: "var(--hana-bg-gray)",
+                padding: "var(--hana-space-4)",
+                borderRadius: "var(--hana-radius-md)",
+                textAlign: "center",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "24px",
+                  fontWeight: "bold",
+                  color: "var(--hana-mint)",
+                  marginBottom: "4px",
+                }}
+              >
+                {(customer.productSummary.totalAssets || 0).toLocaleString()}원
+              </div>
+              <div style={{ fontSize: "14px", color: "var(--hana-gray)" }}>
+                총 자산
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: "var(--hana-bg-gray)",
+                padding: "var(--hana-space-4)",
+                borderRadius: "var(--hana-radius-md)",
+                textAlign: "center",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "24px",
+                  fontWeight: "bold",
+                  color: "var(--hana-orange)",
+                  marginBottom: "4px",
+                }}
+              >
+                {customer.productSummary.totalDepositProducts || 0}
+              </div>
+              <div style={{ fontSize: "14px", color: "var(--hana-gray)" }}>
+                예금/적금
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: "var(--hana-bg-gray)",
+                padding: "var(--hana-space-4)",
+                borderRadius: "var(--hana-radius-md)",
+                textAlign: "center",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "24px",
+                  fontWeight: "bold",
+                  color: "var(--hana-red)",
+                  marginBottom: "4px",
+                }}
+              >
+                {customer.productSummary.totalLoanProducts || 0}
+              </div>
+              <div style={{ fontSize: "14px", color: "var(--hana-gray)" }}>
+                대출 상품
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: "var(--hana-bg-gray)",
+                padding: "var(--hana-space-4)",
+                borderRadius: "var(--hana-radius-md)",
+                textAlign: "center",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "24px",
+                  fontWeight: "bold",
+                  color: "var(--hana-purple)",
+                  marginBottom: "4px",
+                }}
+              >
+                {customer.productSummary.totalInvestmentProducts || 0}
+              </div>
+              <div style={{ fontSize: "14px", color: "var(--hana-gray)" }}>
+                투자 상품
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: "var(--hana-bg-gray)",
+                padding: "var(--hana-space-4)",
+                borderRadius: "var(--hana-radius-md)",
+                textAlign: "center",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "24px",
+                  fontWeight: "bold",
+                  color: "var(--hana-primary)",
+                  marginBottom: "4px",
+                }}
+              >
+                {customer.productSummary.averageInterestRate || 0}%
+              </div>
+              <div style={{ fontSize: "14px", color: "var(--hana-gray)" }}>
+                평균 금리
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {detailed && (
         <div
@@ -635,34 +930,38 @@ const CustomerInfoDisplay = ({
               💰 재정 정보
             </h4>
             <p style={{ margin: "0.25rem 0" }}>
-              <strong>연소득:</strong> {customer.Income?.toLocaleString()}원
+              <strong>연소득:</strong>{" "}
+              {customer.Income?.toLocaleString() || "정보 없음"}원
             </p>
             <p style={{ margin: "0.25rem 0" }}>
-              <strong>총 자산:</strong> {customer.Assets?.toLocaleString()}원
+              <strong>총 자산:</strong>{" "}
+              {(
+                customer.Assets ||
+                customer.productSummary?.totalAssets ||
+                0
+              ).toLocaleString()}
+              원
+            </p>
+            <p style={{ margin: "0.25rem 0" }}>
+              <strong>급여통장 여부:</strong>
+              <span
+                style={{
+                  color: customer.salaryAccount
+                    ? "var(--hana-success)"
+                    : "var(--hana-orange)",
+                  fontWeight: "bold",
+                  marginLeft: "8px",
+                }}
+              >
+                {customer.salaryAccount
+                  ? "✅ 급여통장 보유"
+                  : "❌ 급여통장 없음"}
+              </span>
             </p>
           </div>
 
-          <div
-            style={{
-              background: "#f8f9fa",
-              padding: "1rem",
-              borderRadius: "8px",
-              border: "1px solid #e9ecef",
-            }}
-          >
-            <h4 style={{ color: "var(--hana-mint)", marginBottom: "0.5rem" }}>
-              🎯 투자 성향
-            </h4>
-            <p style={{ margin: "0.25rem 0" }}>
-              <strong>투자 목적:</strong> {customer.InvestmentGoal}
-            </p>
-            <p style={{ margin: "0.25rem 0" }}>
-              <strong>위험 성향:</strong> {customer.RiskTolerance}
-            </p>
-            <p style={{ margin: "0.25rem 0" }}>
-              <strong>투자 기간:</strong> {customer.InvestmentPeriod}개월
-            </p>
-          </div>
+          {/* 포트폴리오 시각화 추가 */}
+          <PortfolioVisualization customer={customer} />
         </div>
       )}
 
@@ -717,9 +1016,17 @@ const CustomerInfoDisplay = ({
                 </div>
                 <p>상품 정보를 불러오는 중...</p>
               </div>
-            ) : customerProducts && customerProducts.length > 0 ? (
+            ) : (Array.isArray(customerProducts) &&
+                customerProducts.length > 0) ||
+              (Array.isArray(customer?.products) &&
+                customer.products.length > 0) ? (
               <div style={{ display: "grid", gap: "var(--hana-space-4)" }}>
-                {customerProducts.map((product, index) => (
+                {(Array.isArray(customerProducts)
+                  ? customerProducts
+                  : Array.isArray(customer.products)
+                  ? customer.products
+                  : []
+                ).map((product, index) => (
                   <div
                     key={index}
                     style={{
@@ -745,7 +1052,9 @@ const CustomerInfoDisplay = ({
                           fontSize: "var(--hana-font-size-lg)",
                         }}
                       >
-                        {product.productName || product.product_name}
+                        {product.productName ||
+                          product.product_name ||
+                          "상품명 없음"}
                       </h4>
                       <span
                         style={{
@@ -779,8 +1088,7 @@ const CustomerInfoDisplay = ({
                             fontSize: "var(--hana-font-size-sm)",
                           }}
                         >
-                          <strong>상품 타입:</strong>{" "}
-                          {product.productType || product.product_type}
+                          <strong>상품 ID:</strong> {product.productId || "N/A"}
                         </p>
                         <p
                           style={{
@@ -788,10 +1096,8 @@ const CustomerInfoDisplay = ({
                             fontSize: "var(--hana-font-size-sm)",
                           }}
                         >
-                          <strong>계좌번호:</strong>{" "}
-                          {product.accountNumber ||
-                            product.account_number ||
-                            "N/A"}
+                          <strong>가입일:</strong>{" "}
+                          {product.startDate || product.enrollmentDate || "N/A"}
                         </p>
                       </div>
                       <div>
@@ -801,10 +1107,8 @@ const CustomerInfoDisplay = ({
                             fontSize: "var(--hana-font-size-sm)",
                           }}
                         >
-                          <strong>가입일:</strong>{" "}
-                          {product.enrollmentDate ||
-                            product.enrollment_date ||
-                            "N/A"}
+                          <strong>만료일:</strong>{" "}
+                          {product.maturityDate || "N/A"}
                         </p>
                         <p
                           style={{
@@ -812,15 +1116,21 @@ const CustomerInfoDisplay = ({
                             fontSize: "var(--hana-font-size-sm)",
                           }}
                         >
-                          <strong>잔액:</strong>{" "}
-                          {(
-                            product.balance ||
-                            product.amount ||
-                            0
-                          ).toLocaleString()}
-                          원
+                          <strong>금리:</strong> {product.interestRate || 0}%
                         </p>
                       </div>
+                    </div>
+
+                    <div style={{ marginTop: "var(--hana-space-2)" }}>
+                      <p
+                        style={{
+                          margin: "0.25rem 0",
+                          fontSize: "var(--hana-font-size-sm)",
+                        }}
+                      >
+                        <strong>월 납입금:</strong>{" "}
+                        {(product.monthlyPayment || 0).toLocaleString()}원
+                      </p>
                     </div>
 
                     {product.description && (
@@ -863,6 +1173,29 @@ const CustomerInfoDisplay = ({
                 >
                   새로운 상품을 추천해보세요!
                 </p>
+                <div style={{ marginTop: "var(--hana-space-4)" }}>
+                  <p
+                    style={{
+                      fontSize: "14px",
+                      color: "var(--hana-primary)",
+                      fontWeight: "600",
+                    }}
+                  >
+                    💡 상품 정보가 표시되지 않는 경우:
+                  </p>
+                  <ul
+                    style={{
+                      fontSize: "12px",
+                      color: "var(--hana-gray)",
+                      textAlign: "left",
+                      margin: "8px 0",
+                    }}
+                  >
+                    <li>고객이 실제로 가입한 상품이 없을 수 있습니다</li>
+                    <li>API에서 상품 정보를 가져오는 중일 수 있습니다</li>
+                    <li>상품 데이터가 아직 로드되지 않았을 수 있습니다</li>
+                  </ul>
+                </div>
               </div>
             )}
           </div>
@@ -1356,8 +1689,12 @@ const EmployeeDashboard = () => {
         `http://localhost:8080/api/employee/customers/${customerId}/products`
       );
       if (response.data.success) {
-        setCustomerProducts(response.data.data);
-        console.log("고객 상품 정보 로드 완료:", response.data.data);
+        // API 응답 구조: { success: true, data: { products: [...], summary: {...} } }
+        const products = Array.isArray(response.data.data?.products)
+          ? response.data.data.products
+          : [];
+        setCustomerProducts(products);
+        console.log("고객 상품 정보 로드 완료:", products);
       } else {
         console.error("고객 상품 정보 로드 실패:", response.data.message);
         setCustomerProducts([]);
@@ -1383,14 +1720,31 @@ const EmployeeDashboard = () => {
           customer_id: customer.customerId,
           name: customer.name,
           age: customer.age,
-          phone: customer.phone,
+          phone: customer.phone || customer.contactNumber,
           address: customer.address,
-          income: customer.income,
-          assets: customer.assets,
-          investment_goal: customer.investmentGoal,
-          risk_tolerance: customer.riskTolerance,
-          investment_period: customer.investmentPeriod,
-          id_number: customer.idNumber,
+          gender: customer.gender,
+          registrationDate: customer.registrationDate,
+          dateOfBirth: customer.dateOfBirth,
+          // 상품 정보 추가
+          products: customer.products || [],
+          productSummary: customer.productSummary || {
+            totalAssets: 0,
+            totalDebts: 0,
+            netAssets: 0,
+            totalProducts: 0,
+            totalDepositProducts: 0,
+            totalLoanProducts: 0,
+            totalInvestmentProducts: 0,
+            averageInterestRate: 0.0,
+            totalMonthlyPayment: 0,
+          },
+          // 기본값 설정
+          income: 0,
+          assets: customer.productSummary?.totalAssets || 0,
+          investment_goal: "자산 증식",
+          risk_tolerance: "보통",
+          investment_period: "중장기",
+          id_number: customer.customerId,
         }));
 
         setTestCustomers(testCustomerData);
@@ -1428,26 +1782,36 @@ const EmployeeDashboard = () => {
     console.log("selectTestCustomer 호출됨 - customerId:", customerId);
     setLoading(true);
     try {
-      // 임시로 클라이언트에서 직접 고객 데이터 생성
-      const selectedCustomer = testCustomers.find(
-        (customer) => customer.customer_id === customerId
+      // API에서 실제 고객 데이터 가져오기
+      const response = await axios.get(
+        `http://localhost:8080/api/employee/customers/${customerId}`
       );
-      console.log("찾은 고객:", selectedCustomer);
 
-      if (selectedCustomer) {
-        // OCR 결과와 같은 형태로 변환
+      if (response.data.success) {
+        const backendCustomerData = response.data.data;
+        console.log("백엔드에서 가져온 고객 데이터:", backendCustomerData);
+
+        // 백엔드 응답을 기존 형태로 변환
         const customerData = {
-          CustomerID: selectedCustomer.customer_id,
-          Name: selectedCustomer.name,
-          Phone: selectedCustomer.phone,
-          Age: selectedCustomer.age,
-          Address: selectedCustomer.address,
-          IdNumber: selectedCustomer.id_number || "******-*******",
-          Income: selectedCustomer.income,
-          Assets: selectedCustomer.assets,
-          InvestmentGoal: selectedCustomer.investment_goal,
-          RiskTolerance: selectedCustomer.risk_tolerance,
-          InvestmentPeriod: selectedCustomer.investment_period,
+          CustomerID: backendCustomerData.customerId,
+          Name: backendCustomerData.name,
+          Age: backendCustomerData.age,
+          Phone: backendCustomerData.phone || backendCustomerData.contactNumber,
+          Address: backendCustomerData.address,
+          Gender: backendCustomerData.gender,
+          RegistrationDate: backendCustomerData.registrationDate,
+          DateOfBirth: backendCustomerData.dateOfBirth,
+          IdNumber: backendCustomerData.customerId || "******-*******",
+          Income: 0, // 기본값
+          Assets: backendCustomerData.productSummary?.totalAssets || 0,
+          InvestmentGoal: "자산 증식", // 기본값
+          RiskTolerance: "보통", // 기본값
+          InvestmentPeriod: "중장기", // 기본값
+          // 상품 정보 추가
+          productSummary: backendCustomerData.productSummary,
+          products: Array.isArray(backendCustomerData.products)
+            ? backendCustomerData.products
+            : [],
         };
 
         console.log("변환된 고객 데이터:", customerData);
@@ -2536,16 +2900,27 @@ const EmployeeDashboard = () => {
                 >
                   👥
                 </div>
-                <h2
-                  style={{
-                    color: "var(--hana-primary)",
-                    margin: 0,
-                    fontSize: "var(--hana-font-size-2xl)",
-                    fontWeight: "700",
-                  }}
-                >
-                  테스트 고객 선택
-                </h2>
+                <div>
+                  <h2
+                    style={{
+                      color: "var(--hana-primary)",
+                      margin: 0,
+                      fontSize: "var(--hana-font-size-2xl)",
+                      fontWeight: "700",
+                    }}
+                  >
+                    고객 목록
+                  </h2>
+                  <p
+                    style={{
+                      margin: "4px 0 0 0",
+                      color: "var(--hana-gray)",
+                      fontSize: "14px",
+                    }}
+                  >
+                    총 {testCustomers.length}명의 고객이 있습니다
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => setShowCustomerSelect(false)}
@@ -2590,21 +2965,130 @@ const EmployeeDashboard = () => {
                     }}
                   >
                     <div style={{ flex: 1 }}>
-                      <CustomerName>
-                        {customer.name} ({customer.age}세)
-                      </CustomerName>
-                      <CustomerDetails>
-                        <div className="customer-id">
-                          ID: {customer.customer_id}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "12px",
+                          marginBottom: "12px",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: "48px",
+                            height: "48px",
+                            borderRadius: "50%",
+                            background: `linear-gradient(135deg, var(--hana-primary), var(--hana-mint))`,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "white",
+                            fontSize: "18px",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          {customer.name.charAt(0)}
                         </div>
+                        <div>
+                          <CustomerName>
+                            {customer.name} ({customer.age}세,{" "}
+                            {customer.gender === "남" ? "👨" : "👩"})
+                          </CustomerName>
+                          <div
+                            style={{
+                              fontSize: "12px",
+                              color: "var(--hana-gray)",
+                              marginTop: "2px",
+                            }}
+                          >
+                            ID: {customer.customer_id}
+                          </div>
+                        </div>
+                      </div>
+
+                      <CustomerDetails>
                         <div className="customer-phone">
                           📞 {customer.phone}
                         </div>
-                        <div>📍 {customer.address}</div>
-                        <div>
-                          💰 연소득: {customer.income?.toLocaleString()}원
+                        <div style={{ marginBottom: "8px" }}>
+                          📍 {customer.address}
                         </div>
-                        <div>🎯 목표: {customer.investment_goal}</div>
+
+                        {/* 상품 정보 표시 */}
+                        <div
+                          style={{
+                            background: "var(--hana-bg-gray)",
+                            padding: "12px",
+                            borderRadius: "8px",
+                            marginTop: "8px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: "14px",
+                              fontWeight: "600",
+                              color: "var(--hana-primary)",
+                              marginBottom: "8px",
+                            }}
+                          >
+                            💼 보유 상품 현황
+                          </div>
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "1fr 1fr",
+                              gap: "8px",
+                              fontSize: "12px",
+                            }}
+                          >
+                            <div>
+                              총 상품:{" "}
+                              <strong>
+                                {customer.productSummary?.totalProducts || 0}개
+                              </strong>
+                            </div>
+                            <div>
+                              총 자산:{" "}
+                              <strong>
+                                {customer.productSummary?.totalAssets?.toLocaleString() ||
+                                  0}
+                                원
+                              </strong>
+                            </div>
+                            <div>
+                              예금/적금:{" "}
+                              <strong>
+                                {customer.productSummary
+                                  ?.totalDepositProducts || 0}
+                                개
+                              </strong>
+                            </div>
+                            <div>
+                              대출:{" "}
+                              <strong>
+                                {customer.productSummary?.totalLoanProducts ||
+                                  0}
+                                개
+                              </strong>
+                            </div>
+                            <div>
+                              투자:{" "}
+                              <strong>
+                                {customer.productSummary
+                                  ?.totalInvestmentProducts || 0}
+                                개
+                              </strong>
+                            </div>
+                            <div>
+                              평균 금리:{" "}
+                              <strong>
+                                {customer.productSummary?.averageInterestRate ||
+                                  0}
+                                %
+                              </strong>
+                            </div>
+                          </div>
+                        </div>
                       </CustomerDetails>
                     </div>
                     <StatusBadge className="waiting">선택 가능</StatusBadge>

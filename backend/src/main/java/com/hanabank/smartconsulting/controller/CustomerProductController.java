@@ -8,14 +8,14 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/employee")
+@RequestMapping("/api/employee/customer-products")
 @CrossOrigin(origins = "*")
 public class CustomerProductController {
 
     @Autowired
     private CustomerProductService customerProductService;
 
-    @GetMapping("/customers/{customerId}/products")
+    @GetMapping("/{customerId}")
     public ResponseEntity<Map<String, Object>> getCustomerProducts(@PathVariable String customerId) {
         try {
             var products = customerProductService.getCustomerProducts(customerId);

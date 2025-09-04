@@ -9,9 +9,9 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface CustomerProductRepository extends JpaRepository<CustomerProduct, Long> {
+public interface CustomerProductRepository extends JpaRepository<CustomerProduct, String> {
     
-    @Query("SELECT cp FROM CustomerProduct cp WHERE cp.customerId = :customerId")
+    @Query("SELECT cp FROM CustomerProduct cp WHERE cp.customer.customerId = :customerId")
     List<CustomerProduct> findByCustomerId(@Param("customerId") String customerId);
     
     // CustomerService에서 사용하는 메서드들 추가
