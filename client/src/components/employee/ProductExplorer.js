@@ -511,6 +511,7 @@ const ProductExplorer = ({
   customerId,
   stompClient,
   sessionId,
+  highlights = [],
 }) => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
@@ -1396,6 +1397,7 @@ const ProductExplorer = ({
           product={selectedProduct}
           stompClient={stompClient}
           sessionId={sessionId}
+          highlights={highlights}
           onClose={() => {
             setShowDescription(false);
             setSelectedProduct(null);

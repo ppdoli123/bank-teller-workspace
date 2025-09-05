@@ -3,6 +3,7 @@ import styled from "styled-components";
 import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
 import { getWebSocketUrl } from "../../config/api";
+import { getFieldInfo, autoFillDuplicateFields } from "../../data/fieldMapping";
 
 import ConsentForm from "./ConsentForm";
 import ApplicationForm from "./ApplicationForm";
@@ -163,8 +164,10 @@ const CustomerTablet = () => {
   ];
 
   useEffect(() => {
+    console.log("🚀 [태블릿] 컴포넌트 마운트 - WebSocket 연결 시작");
     connectWebSocket();
     return () => {
+      console.log("🔌 [태블릿] 컴포넌트 언마운트 - WebSocket 연결 종료");
       if (stompClient) {
         stompClient.disconnect();
       }
@@ -172,10 +175,11 @@ const CustomerTablet = () => {
   }, []);
 
   const connectWebSocket = () => {
+    console.log("🔌 [태블릿] WebSocket 연결 시작...");
     const client = new Client({
       webSocketFactory: () => new SockJS("http://localhost:8080/api/ws"),
       debug: function (str) {
-        console.log(str);
+        console.log("🔍 [태블릿] STOMP Debug:", str);
       },
       reconnectDelay: 5000,
       heartbeatIncoming: 4000,
@@ -183,60 +187,78 @@ const CustomerTablet = () => {
     });
 
     client.onConnect = (frame) => {
-      console.log("✅ WebSocket 연결 성공:", frame);
-      console.log("🔍 연결된 프레임 정보:", frame);
-      console.log("🔍 WebSocket URL:", getWebSocketUrl());
+      console.log("✅ [태블릿] WebSocket 연결 성공:", frame);
+      console.log("🔍 [태블릿] 연결된 프레임 정보:", frame);
+      console.log("🔍 [태블릿] WebSocket URL:", getWebSocketUrl());
       setConnected(true);
       setStompClient(client);
 
       // 태블릿 세션 참여
+      console.log(
+        "🔌 [태블릿] WebSocket 구독 시작 - 경로: /topic/session/tablet_main"
+      );
       const subscription = client.subscribe(
         "/topic/session/tablet_main",
         (message) => {
           try {
+            console.log("📨 [태블릿] RAW 메시지 수신:", message);
+            console.log("📨 [태블릿] 메시지 body:", message.body);
             const data = JSON.parse(message.body);
-            console.log("📨 태블릿에서 메시지 수신:", data);
-            console.log("🔍 메시지 타입:", data.type);
-            console.log("🔍 메시지 데이터:", data.data);
+            console.log("📨 [태블릿] 파싱된 메시지:", data);
+            console.log("🔍 [태블릿] 메시지 타입:", data.type);
+            console.log("🔍 [태블릿] 메시지 데이터:", data.data);
+            console.log("🔍 [태블릿] 메시지 키들:", Object.keys(data));
             handleWebSocketMessage(data);
           } catch (error) {
-            console.error("❌ 메시지 파싱 오류:", error);
+            console.error("❌ [태블릿] 메시지 파싱 오류:", error);
+            console.error("❌ [태블릿] 원본 메시지:", message);
           }
         }
       );
 
-      console.log("✅ 태블릿 구독 완료:", subscription);
+      console.log("✅ [태블릿] 구독 완료:", subscription);
+      console.log("✅ [태블릿] WebSocket 연결 상태:", client.connected);
+      console.log("✅ [태블릿] 구독 경로: /topic/session/tablet_main");
+      console.log("✅ [태블릿] 구독 ID:", subscription.id);
+      console.log("✅ [태블릿] 구독 활성화:", subscription.active);
 
       // 태블릿 세션 참여
+      console.log("📤 [태블릿] 세션 참여 메시지 전송 중...");
+      const joinMessage = {
+        sessionId: "tablet_main",
+        userType: "tablet",
+      };
+      console.log("📤 [태블릿] 전송할 메시지:", joinMessage);
       client.publish({
         destination: "/app/join-session",
-        body: JSON.stringify({
-          sessionId: "tablet_main",
-          userType: "tablet",
-        }),
+        body: JSON.stringify(joinMessage),
       });
+      console.log("📤 [태블릿] 세션 참여 메시지 전송 완료");
     };
 
     client.onStompError = (frame) => {
-      console.error("❌ STOMP 오류:", frame);
-      console.error("❌ STOMP 오류 상세:", frame.headers);
-      console.error("❌ STOMP 오류 메시지:", frame.body);
+      console.error("❌ [태블릿] STOMP 오류:", frame);
+      console.error("❌ [태블릿] STOMP 오류 상세:", frame.headers);
+      console.error("❌ [태블릿] STOMP 오류 메시지:", frame.body);
       setConnected(false);
     };
 
     client.onWebSocketClose = (event) => {
-      console.log("🔌 WebSocket 연결 종료:", event);
-      console.log("🔌 연결 종료 코드:", event.code);
-      console.log("🔌 연결 종료 이유:", event.reason);
+      console.log("🔌 [태블릿] WebSocket 연결 종료:", event);
+      console.log("🔌 [태블릿] 연결 종료 코드:", event.code);
+      console.log("🔌 [태블릿] 연결 종료 이유:", event.reason);
       setConnected(false);
     };
 
+    console.log("🚀 [태블릿] WebSocket 클라이언트 활성화 중...");
     client.activate();
+    console.log("🚀 [태블릿] WebSocket 클라이언트 활성화 완료");
   };
 
   const handleWebSocketMessage = (data) => {
-    console.log("🔍 메시지 타입:", data.type);
-    console.log("🔍 전체 메시지 데이터:", data);
+    console.log("🔍 [태블릿] 메시지 타입:", data.type);
+    console.log("🔍 [태블릿] 전체 메시지 데이터:", data);
+    console.log("🔍 [태블릿] 메시지 키들:", Object.keys(data));
 
     switch (data.type) {
       case "customer-info-update":
@@ -320,38 +342,27 @@ const CustomerTablet = () => {
         }
         break;
 
-      case "field-focus":
-        console.log("🔍 필드 포커스:", data.data);
-        if (data.data) {
-          // 필드 포커스 기능은 현재 사용하지 않음
-          // setHighlightedField({
-          //   id: data.data.fieldId,
-          //   label: data.data.fieldLabel,
-          //   type: data.data.fieldType,
-          //   placeholder: data.data.fieldPlaceholder,
-          // });
-          // setFocusedField({
-          //   fieldId: data.data.fieldId,
-          //   fieldName: data.data.fieldName,
-          //   fieldLabel: data.data.fieldLabel,
-          //   fieldType: data.data.fieldType,
-          //   fieldPlaceholder: data.data.fieldPlaceholder,
-          //   formIndex: data.data.formIndex,
-          //   formName: data.data.formName,
-          // });
-          // setIsFieldFocusMode(true);
-        }
-        break;
-
       // case "field-input-completed": // 중복 제거 - 아래에서 처리
 
       case "form-navigation":
         console.log("🔍 서식 네비게이션:", data.data);
         if (data.data) {
-          const { currentFormIndex: newFormIndex } = data.data;
+          const { currentFormIndex: newFormIndex, currentForm } = data.data;
           if (newFormIndex !== undefined) {
             setCurrentFormIndex(newFormIndex);
             console.log("✅ 태블릿 서식 인덱스 업데이트:", newFormIndex);
+
+            // 서식 타입에 따라 페이지 전환
+            if (currentForm) {
+              if (currentForm.formType === "consent") {
+                // 개인정보 동의서는 이미 product-enrollment 페이지에 있음
+                console.log("📄 개인정보 동의서 유지");
+              } else if (currentForm.formType === "application") {
+                // 은행거래신청서로 전환
+                console.log("📄 은행거래신청서로 전환");
+                // 필요시 페이지 전환 로직 추가
+              }
+            }
           }
         }
         break;
@@ -361,29 +372,91 @@ const CustomerTablet = () => {
         break;
 
       case "field-focus":
-        console.log("🔍 필드 포커스 메시지 수신:", data);
-        console.log("🔍 data.data 존재 여부:", !!data.data);
-        console.log("🔍 data.data 내용:", data.data);
-        if (data.data) {
-          setFocusedField(data.data);
+        console.log("🔍 [태블릿] 필드 포커스 메시지 수신:", data);
+        console.log("🔍 [태블릿] 하이라이트와 동일한 방식으로 처리");
+
+        // 하이라이트와 동일한 방식으로 처리 - data.data에서 필드 정보 추출
+        if (data.data && data.data.fieldId) {
+          const fieldData = {
+            fieldId: data.data.fieldId,
+            fieldName: data.data.fieldName || data.data.fieldId,
+            fieldLabel: data.data.fieldLabel,
+            fieldType: data.data.fieldType || "text",
+            fieldPlaceholder:
+              data.data.fieldPlaceholder ||
+              `${data.data.fieldLabel}을(를) 입력해주세요`,
+            formIndex: data.data.formIndex || 0,
+            formName: data.data.formName || "개인정보 수집·이용 동의서",
+          };
+
+          console.log(
+            "✅ [태블릿] 필드 데이터 추출 성공 (data.data):",
+            fieldData
+          );
+          setFocusedField(fieldData);
           setIsFieldInputMode(true);
-          console.log("✅ 필드 입력 모드 활성화:", data.data.fieldLabel);
-          console.log("✅ focusedField 상태 설정:", data.data);
-          console.log("✅ isFieldInputMode 상태 설정: true");
+          console.log(
+            "✅ [태블릿] 필드 입력 모드 활성화:",
+            fieldData.fieldLabel
+          );
+        } else if (data.fieldId && data.fieldLabel) {
+          // 백업: 직접 필드 정보가 있는 경우
+          const fieldData = {
+            fieldId: data.fieldId,
+            fieldName: data.fieldName || data.fieldId,
+            fieldLabel: data.fieldLabel,
+            fieldType: data.fieldType || "text",
+            fieldPlaceholder:
+              data.fieldPlaceholder || `${data.fieldLabel}을(를) 입력해주세요`,
+            formIndex: data.formIndex || 0,
+            formName: data.formName || "개인정보 수집·이용 동의서",
+          };
+
+          console.log("✅ [태블릿] 필드 데이터 추출 성공 (직접):", fieldData);
+          setFocusedField(fieldData);
+          setIsFieldInputMode(true);
+          console.log(
+            "✅ [태블릿] 필드 입력 모드 활성화:",
+            fieldData.fieldLabel
+          );
         } else {
-          console.log("❌ data.data가 없어서 필드 포커스 실패");
+          console.log("❌ [태블릿] 필드 정보를 찾을 수 없음");
+          console.log("❌ [태블릿] data.data:", data.data);
+          console.log("❌ [태블릿] data:", data);
         }
         break;
 
       case "field-input-completed":
         console.log("🔍 필드 입력 완료 메시지 수신:", data);
+        // 백엔드에서 직접 필드 정보를 전달하므로 data.data가 아닌 직접 접근
+        const inputFieldId = data.fieldId || (data.data && data.data.fieldId);
+        const inputFieldValue =
+          data.fieldValue || (data.data && data.data.fieldValue);
+
+        if (inputFieldId && inputFieldValue !== undefined) {
+          // 중복 필드 자동 채우기
+          const updatedValues = autoFillDuplicateFields(
+            fieldValues,
+            inputFieldId,
+            inputFieldValue
+          );
+
+          setFieldValues(updatedValues);
+          console.log("✅ 필드 값 업데이트:", inputFieldId, inputFieldValue);
+          console.log("🔄 중복 필드 자동 채우기 완료:", updatedValues);
+        }
+        break;
+
+      case "field-values-sync":
+        console.log("🔍 필드 값 동기화 메시지 수신:", data);
         if (data.data) {
-          const { fieldId, fieldValue } = data.data;
-          setFieldValues((prev) => ({
-            ...prev,
-            [fieldId]: fieldValue,
-          }));
-          console.log("✅ 필드 값 업데이트:", fieldId, fieldValue);
+          const { fieldValues: syncedFieldValues, updatedField } = data.data;
+          console.log("📥 PC에서 받은 필드 값들:", syncedFieldValues);
+          console.log("📥 업데이트된 필드:", updatedField);
+
+          // PC에서 받은 필드 값들로 태블릿 상태 동기화
+          setFieldValues(syncedFieldValues);
+          console.log("✅ 태블릿 필드 값 동기화 완료");
         }
         break;
 
@@ -930,43 +1003,94 @@ const CustomerTablet = () => {
   };
 
   const renderProductEnrollmentPage = () => {
-    // 상품 가입 시 첫 번째 서식(개인정보 동의서)을 자동으로 표시
-    return (
-      <ConsentForm
-        fieldValues={fieldValues}
-        onFieldClick={(fieldId, fieldLabel, fieldType) => {
-          console.log("🖱️ ConsentForm 필드 클릭:", {
-            fieldId,
-            fieldLabel,
-            fieldType,
-          });
-          // PC에 필드 포커스 메시지 전송
-          if (stompClient && sessionId && stompClient.active) {
-            stompClient.publish({
-              destination: "/app/field-focus",
-              body: JSON.stringify({
-                sessionId: sessionId,
-                data: {
-                  fieldId: fieldId,
-                  fieldName: fieldId,
-                  fieldLabel: fieldLabel,
-                  fieldType: fieldType,
-                  fieldPlaceholder: `${fieldLabel}을(를) 입력해주세요`,
-                  formIndex: currentFormIndex,
-                  formName: "개인정보 수집·이용 동의서",
-                },
-                timestamp: new Date().toISOString(),
-              }),
-            });
-            console.log("📤 ConsentForm에서 field-focus 메시지 전송:", {
+    // currentFormIndex에 따라 다른 서식 표시
+    console.log("📄 서식 렌더링 - currentFormIndex:", currentFormIndex);
+
+    if (currentFormIndex === 0) {
+      // 첫 번째 서식: 개인정보 수집·이용 동의서
+      return (
+        <ConsentForm
+          fieldValues={fieldValues}
+          onFieldClick={(fieldId, fieldLabel, fieldType) => {
+            console.log("🖱️ ConsentForm 필드 클릭:", {
               fieldId,
               fieldLabel,
               fieldType,
             });
-          }
-        }}
-      />
-    );
+            // PC에 필드 포커스 메시지 전송
+            if (stompClient && sessionId && stompClient.active) {
+              stompClient.publish({
+                destination: "/topic/session/" + sessionId,
+                body: JSON.stringify({
+                  type: "field-focus",
+                  data: {
+                    fieldId: fieldId,
+                    fieldName: fieldId,
+                    fieldLabel: fieldLabel,
+                    fieldType: fieldType,
+                    fieldPlaceholder: `${fieldLabel}을(를) 입력해주세요`,
+                    formIndex: currentFormIndex,
+                    formName: "개인정보 수집·이용 동의서",
+                  },
+                  timestamp: new Date().toISOString(),
+                }),
+              });
+              console.log("📤 ConsentForm에서 field-focus 메시지 전송:", {
+                fieldId,
+                fieldLabel,
+                fieldType,
+              });
+            }
+          }}
+        />
+      );
+    } else if (currentFormIndex === 1) {
+      // 두 번째 서식: 은행거래신청서
+      return (
+        <ApplicationForm
+          fieldValues={fieldValues}
+          onFieldClick={(fieldId, fieldLabel, fieldType) => {
+            console.log("🖱️ ApplicationForm 필드 클릭:", {
+              fieldId,
+              fieldLabel,
+              fieldType,
+            });
+            // PC에 필드 포커스 메시지 전송
+            if (stompClient && sessionId && stompClient.active) {
+              stompClient.publish({
+                destination: "/topic/session/" + sessionId,
+                body: JSON.stringify({
+                  type: "field-focus",
+                  data: {
+                    fieldId: fieldId,
+                    fieldName: fieldId,
+                    fieldLabel: fieldLabel,
+                    fieldType: fieldType,
+                    fieldPlaceholder: `${fieldLabel}을(를) 입력해주세요`,
+                    formIndex: currentFormIndex,
+                    formName: "은행거래신청서",
+                  },
+                  timestamp: new Date().toISOString(),
+                }),
+              });
+              console.log("📤 ApplicationForm에서 field-focus 메시지 전송:", {
+                fieldId,
+                fieldLabel,
+                fieldType,
+              });
+            }
+          }}
+        />
+      );
+    } else {
+      // 기본값: 개인정보 수집·이용 동의서
+      return (
+        <div style={{ padding: "2rem", textAlign: "center" }}>
+          <h2>서식을 불러오는 중...</h2>
+          <p>현재 서식 인덱스: {currentFormIndex}</p>
+        </div>
+      );
+    }
   };
 
   const renderCurrentPage = () => {
@@ -1144,6 +1268,27 @@ const CustomerTablet = () => {
               📝 {focusedField.fieldLabel} 입력
             </h2>
 
+            <div
+              style={{
+                background: "#f7fafc",
+                padding: "0.75rem",
+                borderRadius: "8px",
+                marginBottom: "1rem",
+                fontSize: "0.9rem",
+                color: "#4a5568",
+              }}
+            >
+              <div>
+                <strong>서식:</strong> {focusedField.formName || "알 수 없음"}
+              </div>
+              <div>
+                <strong>필드 ID:</strong> {focusedField.fieldId}
+              </div>
+              <div>
+                <strong>타입:</strong> {focusedField.fieldType}
+              </div>
+            </div>
+
             <div style={{ marginBottom: "1rem" }}>
               <label
                 style={{
@@ -1219,7 +1364,7 @@ const CustomerTablet = () => {
                 onClick={() => {
                   const value = fieldValues[focusedField.fieldId] || "";
 
-                  // PC에 필드 입력 완료 메시지 전송
+                  // PC에 필드 입력 완료 메시지 전송 (백엔드 엔드포인트 사용)
                   if (stompClient && sessionId && stompClient.active) {
                     stompClient.publish({
                       destination: "/app/field-input-completed",
@@ -1227,6 +1372,7 @@ const CustomerTablet = () => {
                         sessionId: sessionId,
                         fieldId: focusedField.fieldId,
                         fieldValue: value,
+                        fieldLabel: focusedField.fieldLabel,
                         formId: focusedField.formId,
                         timestamp: new Date().toISOString(),
                       }),

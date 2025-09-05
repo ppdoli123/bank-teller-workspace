@@ -641,15 +641,28 @@ public class WebSocketController extends TextWebSocketHandler {
      */
     @MessageMapping("/field-focus")
     public void fieldFocus(@Payload Map<String, Object> payload) {
-        String sessionId = (String) payload.get("sessionId");
-        Map<String, Object> data = (Map<String, Object>) payload.get("data");
+        log.info("=== 필드 포커스 메시지 수신 (하이라이트와 동일한 구조) ===");
+        log.info("전체 payload: {}", payload);
         
-        log.info("필드 포커스 - sessionId: {}, data: {}", sessionId, data);
+        String sessionId = (String) payload.get("sessionId");
+        
+        // 하이라이트와 동일한 메시지 구조 - data 객체에 필드 정보 포함
+        Map<String, Object> fieldData = new HashMap<>();
+        fieldData.put("fieldId", payload.get("fieldId"));
+        fieldData.put("fieldName", payload.get("fieldName"));
+        fieldData.put("fieldLabel", payload.get("fieldLabel"));
+        fieldData.put("fieldType", payload.get("fieldType"));
+        fieldData.put("fieldPlaceholder", payload.get("fieldPlaceholder"));
+        fieldData.put("formIndex", payload.get("formIndex"));
+        fieldData.put("formName", payload.get("formName"));
+        fieldData.put("timestamp", System.currentTimeMillis());
         
         Map<String, Object> message = new HashMap<>();
         message.put("type", "field-focus");
-        message.put("data", data);
+        message.put("data", fieldData);
         message.put("timestamp", System.currentTimeMillis());
+        
+        log.info("전송할 메시지 (하이라이트와 동일한 구조): {}", message);
         
         // STOMP 전송
         messagingTemplate.convertAndSend("/topic/session/" + sessionId, message);

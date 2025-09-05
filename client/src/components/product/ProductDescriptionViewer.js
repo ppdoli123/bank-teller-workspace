@@ -7,6 +7,7 @@ const ProductDescriptionViewer = ({
   onNext,
   stompClient,
   sessionId,
+  highlights: externalHighlights = [],
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(80);
@@ -50,7 +51,13 @@ const ProductDescriptionViewer = ({
 
   // 하이라이트 기능 - 직접 밑줄 그리기
   const handleMouseDown = (e) => {
-    console.log("🖱️ 마우스 다운 이벤트:", { highlightMode, isDrawing });
+    console.log("🖱️ 마우스 다운 이벤트:", {
+      highlightMode,
+      isDrawing,
+      clientX: e.clientX,
+      clientY: e.clientY,
+      target: e.target,
+    });
     if (!highlightMode) {
       console.log("❌ 하이라이트 모드가 비활성화됨");
       return;
@@ -134,61 +141,6 @@ const ProductDescriptionViewer = ({
         }
         return prevHighlights;
       });
-    }
-  };
-
-  // 기존 하이라이트 버튼 기능
-  const highlightElement = (
-    elementId,
-    highlightType = "highlight",
-    color = "#ffff00"
-  ) => {
-    console.log("🔘 하이라이트 버튼 클릭:", {
-      elementId,
-      highlightType,
-      color,
-      currentPage,
-    });
-
-    // PC에서 하이라이트 추가
-    const newHighlight = {
-      id: Date.now(),
-      startX: 50, // 기본 위치
-      startY: 50,
-      endX: 200,
-      endY: 80,
-      color: color,
-      page: currentPage,
-      elementId: elementId,
-      highlightType: highlightType,
-    };
-
-    console.log("🖍️ 버튼으로 새 하이라이트 생성:", newHighlight);
-    setHighlights((prev) => {
-      const updated = [...prev, newHighlight];
-      console.log("📝 버튼으로 하이라이트 배열 업데이트:", updated);
-      return updated;
-    });
-
-    // 태블릿에 동기화
-    if (stompClient && sessionId && stompClient.active) {
-      console.log("📤 버튼으로 태블릿에 하이라이트 동기화 전송:", newHighlight);
-      stompClient.publish({
-        destination: "/app/screen-highlight",
-        body: JSON.stringify({
-          sessionId: sessionId,
-          data: {
-            highlight: newHighlight,
-            color: color,
-            page: currentPage,
-            elementId: elementId,
-            highlightType: highlightType,
-          },
-          timestamp: new Date().toISOString(),
-        }),
-      });
-    } else {
-      console.log("❌ STOMP 클라이언트가 비활성화됨");
     }
   };
 
@@ -356,13 +308,7 @@ const ProductDescriptionViewer = ({
         </Header>
 
         {/* PDF 뷰어 */}
-        <PdfContainer
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          style={{ cursor: highlightMode ? "crosshair" : "default" }}
-        >
+        <PdfContainer>
           <PdfFrame
             src={`${getPdfUrl(
               currentPage
@@ -372,28 +318,64 @@ const ProductDescriptionViewer = ({
             onError={() => setError("PDF를 불러올 수 없습니다.")}
           />
 
+          {/* 하이라이트 모드일 때 마우스 이벤트를 캐치하는 오버레이 */}
+          {highlightMode && (
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                cursor: "crosshair",
+                zIndex: 5,
+              }}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+            />
+          )}
+
           {/* 하이라이트 렌더링 */}
-          {highlights
-            .filter((highlight) => highlight.page === currentPage)
-            .map((highlight) => {
-              console.log("🎨 하이라이트 렌더링:", highlight);
-              return (
-                <div
-                  key={highlight.id}
-                  style={{
-                    position: "absolute",
-                    left: Math.min(highlight.startX, highlight.endX),
-                    top: Math.min(highlight.startY, highlight.endY),
-                    width: Math.abs(highlight.endX - highlight.startX),
-                    height: Math.abs(highlight.endY - highlight.startY),
-                    backgroundColor: highlight.color,
-                    opacity: 0.3,
-                    pointerEvents: "none",
-                    zIndex: 10,
-                  }}
-                />
-              );
-            })}
+          {(() => {
+            // 중복 제거를 위해 Map 사용
+            const highlightMap = new Map();
+
+            // 내부 highlights 추가
+            highlights.forEach((highlight) => {
+              highlightMap.set(highlight.id, highlight);
+            });
+
+            // 외부 highlights 추가 (중복 ID는 덮어쓰기)
+            externalHighlights.forEach((highlight) => {
+              highlightMap.set(highlight.id, highlight);
+            });
+
+            const allHighlights = Array.from(highlightMap.values());
+
+            return allHighlights
+              .filter((highlight) => highlight.page === currentPage)
+              .map((highlight) => {
+                console.log("🎨 하이라이트 렌더링:", highlight);
+                return (
+                  <div
+                    key={highlight.id}
+                    style={{
+                      position: "absolute",
+                      left: Math.min(highlight.startX, highlight.endX),
+                      top: Math.min(highlight.startY, highlight.endY),
+                      width: Math.abs(highlight.endX - highlight.startX),
+                      height: Math.abs(highlight.endY - highlight.startY),
+                      backgroundColor: highlight.color,
+                      opacity: 0.3,
+                      pointerEvents: "none",
+                      zIndex: 15,
+                    }}
+                  />
+                );
+              });
+          })()}
 
           {/* 하이라이트 오버레이 */}
           {highlightMode && (
@@ -418,16 +400,12 @@ const ProductDescriptionViewer = ({
                 </p>
               </div>
 
-              {/* 하이라이트 버튼들 */}
+              {/* 하이라이트 지우기 버튼만 유지 */}
               <div
                 style={{
                   position: "absolute",
                   top: "20px",
                   right: "20px",
-                  display: "flex",
-                  gap: "0.5rem",
-                  flexWrap: "wrap",
-                  maxWidth: "300px",
                 }}
               >
                 <button
@@ -447,82 +425,6 @@ const ProductDescriptionViewer = ({
                   }}
                 >
                   🗑️ 지우기
-                </button>
-                <button
-                  onClick={() =>
-                    highlightElement(
-                      "product-title",
-                      "highlight",
-                      highlightColor
-                    )
-                  }
-                  style={{
-                    padding: "0.5rem 1rem",
-                    background: highlightColor,
-                    color: "black",
-                    border: "none",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    fontSize: "0.8rem",
-                    fontWeight: "500",
-                  }}
-                >
-                  📋 상품명
-                </button>
-                <button
-                  onClick={() =>
-                    highlightElement(
-                      "interest-rate",
-                      "highlight",
-                      highlightColor
-                    )
-                  }
-                  style={{
-                    padding: "0.5rem 1rem",
-                    background: highlightColor,
-                    color: "black",
-                    border: "none",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    fontSize: "0.8rem",
-                    fontWeight: "500",
-                  }}
-                >
-                  💰 금리
-                </button>
-                <button
-                  onClick={() =>
-                    highlightElement("terms", "highlight", highlightColor)
-                  }
-                  style={{
-                    padding: "0.5rem 1rem",
-                    background: highlightColor,
-                    color: "black",
-                    border: "none",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    fontSize: "0.8rem",
-                    fontWeight: "500",
-                  }}
-                >
-                  📝 조건
-                </button>
-                <button
-                  onClick={() =>
-                    highlightElement("benefits", "highlight", highlightColor)
-                  }
-                  style={{
-                    padding: "0.5rem 1rem",
-                    background: highlightColor,
-                    color: "black",
-                    border: "none",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    fontSize: "0.8rem",
-                    fontWeight: "500",
-                  }}
-                >
-                  ⭐ 혜택
                 </button>
               </div>
             </HighlightOverlay>

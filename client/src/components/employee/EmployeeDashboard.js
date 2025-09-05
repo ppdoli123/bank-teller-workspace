@@ -19,6 +19,10 @@ import ForeignCurrencyRemittanceForm from "../customer/ForeignCurrencyRemittance
 import PortfolioVisualization from "../portfolio/PortfolioVisualization";
 import ConsentForm from "../customer/ConsentForm";
 import ApplicationForm from "../customer/ApplicationForm";
+import {
+  checkFormCompletion,
+  saveFormWithScreenshot,
+} from "../../utils/screenshotUtils";
 
 const DashboardContainer = styled.div`
   display: flex;
@@ -1265,6 +1269,58 @@ const EmployeeDashboard = () => {
   const [customerProducts, setCustomerProducts] = useState([]); // 고객이 가입한 상품 정보
   const [loadingCustomerProducts, setLoadingCustomerProducts] = useState(false);
   const [fieldValues, setFieldValues] = useState({}); // 필드 값들 (PC와 태블릿 동기화용)
+  const [highlights, setHighlights] = useState([]); // 하이라이트 상태
+  const [formCompletion, setFormCompletion] = useState(null); // 서식 완성도
+  const [isSavingForm, setIsSavingForm] = useState(false); // 서식 저장 중 여부
+
+  // 서식 완성도 체크
+  useEffect(() => {
+    if (Object.keys(fieldValues).length > 0) {
+      const completion = checkFormCompletion(fieldValues, "consent");
+      setFormCompletion(completion);
+      console.log("📊 PC 서식 완성도 업데이트:", completion);
+    }
+  }, [fieldValues]);
+
+  // 서식 저장 함수
+  const handleSaveForm = async () => {
+    try {
+      setIsSavingForm(true);
+
+      // 현재 서식 요소 찾기
+      const formElement = document.querySelector(".page-container");
+      if (!formElement) {
+        throw new Error("서식 요소를 찾을 수 없습니다.");
+      }
+
+      const customerName = currentCustomer?.name || "고객";
+      const formName =
+        enrollmentData?.forms[currentFormIndex]?.formName || "서식";
+
+      console.log("💾 서식 저장 시작:", { customerName, formName });
+
+      const result = await saveFormWithScreenshot(
+        formElement,
+        fieldValues,
+        formName,
+        customerName
+      );
+
+      if (result.success) {
+        console.log("✅ 서식 저장 완료:", result);
+        alert(
+          `서식이 성공적으로 저장되었습니다!\n완성도: ${result.completion.completionRate}%`
+        );
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error("❌ 서식 저장 실패:", error);
+      alert(`서식 저장에 실패했습니다: ${error.message}`);
+    } finally {
+      setIsSavingForm(false);
+    }
+  };
 
   const navigate = useNavigate();
   const webcamRef = useRef(null);
@@ -1346,6 +1402,52 @@ const EmployeeDashboard = () => {
             }
             break;
           // case "field-input-completed": // 중복 제거 - 아래에서 처리
+
+          case "field-focus":
+            console.log("🔍 직원이 필드 포커스 메시지 수신:", data);
+            console.log("🔍 하이라이트와 동일한 방식으로 처리");
+
+            // 하이라이트와 동일한 방식으로 처리 - data.data에서 필드 정보 추출
+            if (data.data && data.data.fieldId) {
+              const fieldId = data.data.fieldId;
+              const fieldLabel = data.data.fieldLabel;
+              const fieldType = data.data.fieldType;
+              const fieldPlaceholder = data.data.fieldPlaceholder;
+              const formIndex = data.data.formIndex;
+              const formName = data.data.formName;
+
+              console.log("✅ 필드 포커스 정보 (data.data):", {
+                fieldId,
+                fieldLabel,
+                fieldType,
+                formIndex,
+                formName,
+              });
+
+              // PC에서 필드 포커스 상태 업데이트 (필요시)
+              // 현재는 로그만 출력하고 있음
+            } else if (data.fieldId && data.fieldLabel) {
+              // 백업: 직접 필드 정보가 있는 경우
+              const fieldId = data.fieldId;
+              const fieldLabel = data.fieldLabel;
+              const fieldType = data.fieldType;
+              const fieldPlaceholder = data.fieldPlaceholder;
+              const formIndex = data.formIndex;
+              const formName = data.formName;
+
+              console.log("✅ 필드 포커스 정보 (직접):", {
+                fieldId,
+                fieldLabel,
+                fieldType,
+                formIndex,
+                formName,
+              });
+            } else {
+              console.log("❌ 필드 정보를 찾을 수 없음");
+              console.log("❌ data.data:", data.data);
+              console.log("❌ data:", data);
+            }
+            break;
 
           case "field-input-complete":
             console.log("📝 태블릿에서 필드 입력 완료 (기존 형식):", data);
@@ -1499,19 +1601,59 @@ const EmployeeDashboard = () => {
             break;
           case "screen-highlight":
             console.log("🔍 직원이 화면 하이라이트 동기화 메시지 수신:", data);
-            // 화면 하이라이트 동기화 메시지는 별도 처리하지 않음 (이미 PC에서 처리됨)
+            if (data.data && data.data.highlight) {
+              const highlight = data.data.highlight;
+              console.log("✅ 하이라이트 추가:", highlight);
+              setHighlights((prev) => {
+                const updated = [...prev, highlight];
+                console.log("📝 하이라이트 배열 업데이트:", updated);
+                return updated;
+              });
+            }
             break;
           case "field-input-completed":
             console.log("🔍 직원이 필드 입력 완료 메시지 수신:", data);
-            if (data.data) {
-              const { fieldId, fieldValue } = data.data;
-              console.log("✅ 필드 값 업데이트:", fieldId, fieldValue);
+            // 백엔드에서 직접 필드 정보를 전달하므로 data.data가 아닌 직접 접근
+            const inputFieldId =
+              data.fieldId || (data.data && data.data.fieldId);
+            const inputFieldValue =
+              data.fieldValue || (data.data && data.data.fieldValue);
+
+            if (inputFieldId && inputFieldValue !== undefined) {
+              console.log(
+                "✅ 필드 값 업데이트:",
+                inputFieldId,
+                inputFieldValue
+              );
 
               // PC의 fieldValues 상태 업데이트
-              setFieldValues((prev) => ({
-                ...prev,
-                [fieldId]: fieldValue,
-              }));
+              const updatedFieldValues = {
+                ...fieldValues,
+                [inputFieldId]: inputFieldValue,
+              };
+              setFieldValues(updatedFieldValues);
+
+              // 태블릿에 업데이트된 필드 값 동기화 메시지 전송
+              if (stompClient && sessionId && stompClient.active) {
+                stompClient.publish({
+                  destination: "/topic/session/" + sessionId,
+                  body: JSON.stringify({
+                    type: "field-values-sync",
+                    data: {
+                      fieldValues: updatedFieldValues,
+                      updatedField: {
+                        fieldId: inputFieldId,
+                        fieldValue: inputFieldValue,
+                      },
+                    },
+                    timestamp: new Date().toISOString(),
+                  }),
+                });
+                console.log("📤 태블릿에 필드 값 동기화 메시지 전송:", {
+                  fieldId: inputFieldId,
+                  fieldValue: inputFieldValue,
+                });
+              }
 
               console.log("✅ PC fieldValues 상태 업데이트 완료");
             }
@@ -2292,6 +2434,7 @@ const EmployeeDashboard = () => {
               customerId={currentCustomer?.CustomerID}
               stompClient={stompClient}
               sessionId={sessionId}
+              highlights={highlights}
             />
           )}
 
@@ -2339,6 +2482,60 @@ const EmployeeDashboard = () => {
                         <div style={{ color: "#2e7d32" }}>
                           {enrollmentData.forms[currentFormIndex]?.formName}
                         </div>
+
+                        {/* 서식 완성도 표시 */}
+                        {formCompletion && (
+                          <div
+                            style={{
+                              background: "rgba(0, 0, 0, 0.8)",
+                              color: "white",
+                              padding: "0.5rem 1rem",
+                              borderRadius: "8px",
+                              fontSize: "0.9rem",
+                              marginTop: "0.5rem",
+                              minWidth: "200px",
+                            }}
+                          >
+                            <div>
+                              📊 서식 완성도: {formCompletion.completionRate}%
+                            </div>
+                            <div>
+                              ✅ 완료된 필드: {formCompletion.completedFields}/
+                              {formCompletion.totalFields}
+                            </div>
+                            {formCompletion.isComplete && (
+                              <div
+                                style={{ color: "#4CAF50", fontWeight: "bold" }}
+                              >
+                                🎉 서식 작성 완료!
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* 서식 저장 버튼 */}
+                        <div style={{ marginTop: "1rem" }}>
+                          <button
+                            onClick={handleSaveForm}
+                            disabled={isSavingForm}
+                            style={{
+                              padding: "0.75rem 1.5rem",
+                              background: isSavingForm ? "#ccc" : "#4CAF50",
+                              color: "white",
+                              border: "none",
+                              borderRadius: "8px",
+                              cursor: isSavingForm ? "not-allowed" : "pointer",
+                              fontSize: "1rem",
+                              fontWeight: "600",
+                              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                            }}
+                          >
+                            {isSavingForm ? "💾 저장 중..." : "💾 서식 저장"}
+                          </button>
+                        </div>
                       </div>
 
                       {/* 서식 필드 표시 */}
@@ -2377,19 +2574,17 @@ const EmployeeDashboard = () => {
                                   "🖱️ EmployeeDashboard ConsentForm 필드 클릭:",
                                   { fieldId, fieldLabel, fieldType }
                                 );
-                                // 태블릿에 필드 포커스 메시지 전송
+                                // 태블릿에 필드 포커스 메시지 전송 (단순화된 구조)
                                 if (stompClient && sessionId) {
                                   const messageBody = {
                                     sessionId: sessionId,
-                                    data: {
-                                      fieldId: fieldId,
-                                      fieldName: fieldId,
-                                      fieldLabel: fieldLabel,
-                                      fieldType: fieldType,
-                                      fieldPlaceholder: `${fieldLabel}을(를) 입력해주세요`,
-                                      formIndex: currentFormIndex,
-                                      formName: "개인정보 수집·이용 동의서",
-                                    },
+                                    fieldId: fieldId,
+                                    fieldName: fieldId,
+                                    fieldLabel: fieldLabel,
+                                    fieldType: fieldType,
+                                    fieldPlaceholder: `${fieldLabel}을(를) 입력해주세요`,
+                                    formIndex: currentFormIndex,
+                                    formName: "개인정보 수집·이용 동의서",
                                     timestamp: new Date().toISOString(),
                                   };
 
@@ -2420,7 +2615,46 @@ const EmployeeDashboard = () => {
                               }}
                             />
                           ) : (
-                            <ApplicationForm fieldValues={fieldValues} />
+                            <ApplicationForm
+                              fieldValues={fieldValues}
+                              onFieldClick={(
+                                fieldId,
+                                fieldLabel,
+                                fieldType
+                              ) => {
+                                console.log(
+                                  "🖱️ EmployeeDashboard ApplicationForm 필드 클릭:",
+                                  { fieldId, fieldLabel, fieldType }
+                                );
+                                // 태블릿에 필드 포커스 메시지 전송 (단순화된 구조)
+                                if (stompClient && sessionId) {
+                                  const messageBody = {
+                                    sessionId: sessionId,
+                                    fieldId: fieldId,
+                                    fieldName: fieldId,
+                                    fieldLabel: fieldLabel,
+                                    fieldType: fieldType,
+                                    fieldPlaceholder: `${fieldLabel}을(를) 입력해주세요`,
+                                    formIndex: currentFormIndex,
+                                    formName: "은행거래신청서",
+                                    timestamp: new Date().toISOString(),
+                                  };
+
+                                  stompClient.publish({
+                                    destination: "/app/field-focus",
+                                    body: JSON.stringify(messageBody),
+                                  });
+                                  console.log(
+                                    "📤 ApplicationForm에서 field-focus 메시지 전송:",
+                                    {
+                                      fieldId,
+                                      fieldLabel,
+                                      fieldType,
+                                    }
+                                  );
+                                }
+                              }}
+                            />
                           )}
                         </div>
                       ) : (

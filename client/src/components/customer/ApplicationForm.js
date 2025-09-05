@@ -26,7 +26,7 @@ const Th = ({ children, colSpan, rowSpan, className }) => (
   </th>
 );
 
-const ApplicationForm = ({ fieldValues = {} }) => {
+const ApplicationForm = ({ fieldValues = {}, onFieldClick }) => {
   return (
     <>
       {/* PAGE 1 */}
@@ -77,6 +77,11 @@ const ApplicationForm = ({ fieldValues = {} }) => {
                     type="text"
                     value={fieldValues.customer_name || ""}
                     readOnly
+                    onClick={() =>
+                      onFieldClick &&
+                      onFieldClick("customer_name", "성명(업체명)", "text")
+                    }
+                    style={{ cursor: "pointer" }}
                   />
                 </Td>
                 <Th>
@@ -89,6 +94,15 @@ const ApplicationForm = ({ fieldValues = {} }) => {
                     type="text"
                     value={fieldValues.resident_number || ""}
                     readOnly
+                    onClick={() =>
+                      onFieldClick &&
+                      onFieldClick(
+                        "resident_number",
+                        "생년월일(사업자번호)",
+                        "text"
+                      )
+                    }
+                    style={{ cursor: "pointer" }}
                   />
                 </Td>
                 <Td rowSpan={4} className={styles.stampArea}>
